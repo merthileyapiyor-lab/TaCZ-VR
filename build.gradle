@@ -29,6 +29,10 @@ minecraft {
                 if (project.hasProperty('testonly')) {
                     property 'taczvr.selftest.only', project.property('testonly')
                 }
+                // -Pupdatelive also asks the real GitHub releases page
+                if (project.hasProperty('updatelive')) {
+                    property 'taczvr.update.live', 'true'
+                }
             }
             mods {
                 taczvr {
