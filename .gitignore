@@ -1,0 +1,19 @@
+# Gradle and ForgeGradle
+.gradle/
+build/
+out/
+run/
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+
+# other mods' jars for the dev client, they're not ours to share
+libs/*.jar

@@ -1,0 +1,134 @@
+plugins {
+    id 'eclipse'
+    id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
+    id 'org.spongepowered.mixin' version '0.7.+'
+}
+
+version = mod_version
+group = mod_group
+
+base {
+    archivesName = "${mod_id}-${minecraft_version}"
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: 'official', version: minecraft_version
+    copyIdeResources = true
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.console.level', 'debug'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            if (project.hasProperty('selftest')) {
+                property 'taczvr.selftest', 'true'
+                property 'taczvr.selftest.exit', 'true'
+                if (project.hasProperty('testonly')) {
+                    property 'taczvr.selftest.only', project.property('testonly')
+                }
+            }
+            mods {
+                taczvr {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+mixin {
+    add sourceSets.main, 'taczvr.refmap.json'
+    config 'taczvr.mixins.json'
+}
+
+repositories {
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup 'maven.modrinth'
+        }
+    }
+    flatDir {
+        dirs 'libs', '.gradle/jarjar'
+    }
+    mavenCentral()
+}
+
+// TACZ ships SimpleBedrockModel inside its own jar. Take it out of there, so a fresh checkout builds
+// without putting any jar in by hand. Outside build/ so `clean build` still finds it
+configurations {
+    taczJar
+}
+dependencies {
+    taczJar "maven.modrinth:timeless-and-classics-zero:${tacz_version}"
+}
+// only once ForgeGradle is done setting up its repositories, it can't change them after one was used
+gradle.projectsEvaluated {
+    if (!file('.gradle/jarjar/simplebedrockmodel-2.2.2-forge+mc1.20.1.jar').exists()) {
+        copy {
+            from zipTree(configurations.taczJar.singleFile)
+            include 'META-INF/jarjar/simplebedrockmodel-*.jar'
+            eachFile { path = name }
+            includeEmptyDirs = false
+            into '.gradle/jarjar'
+        }
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${forge_version}"
+
+    compileOnly fg.deobf("maven.modrinth:vivecraft:${vivecraft_version}")
+    compileOnly fg.deobf("maven.modrinth:timeless-and-classics-zero:${tacz_version}")
+    // only for the dev client (./gradlew runClient), never shipped
+    runtimeOnly fg.deobf("maven.modrinth:vivecraft:${vivecraft_version}")
+    runtimeOnly fg.deobf("maven.modrinth:timeless-and-classics-zero:${tacz_version}")
+    // TACZ's gun renderer extends classes from this library, javac needs it to resolve the hierarchy
+    compileOnly fg.deobf('libs:simplebedrockmodel:2.2.2-forge+mc1.20.1')
+    // the radio talks through Simple Voice Chat when it's installed, the mod works without it
+    compileOnly fg.deobf("maven.modrinth:simple-voice-chat:${voicechat_version}")
+    // -Pnovoice runs the dev client without it, to check the mod still works
+    if (!project.hasProperty('novoice')) {
+        runtimeOnly fg.deobf("maven.modrinth:simple-voice-chat:${voicechat_version}")
+    }
+    // LesRaisins Tactical Equipments, built unchanged from its source, only to test that its items show in VR.
+    // Never shipped: its GPL licence keeps it out of our jar, the VR drawing only looks at item ids.
+    // Only when its jar is in libs/, it's not in the repository
+    if (!project.hasProperty('nolr') && file('libs/lrtactical-1.20.1-0.4.3.jar').exists()) {
+        runtimeOnly fg.deobf('libs:lrtactical-1.20.1:0.4.3')
+    }
+
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+def resourceTargets = ['META-INF/mods.toml', 'pack.mcmeta']
+def replaceProperties = [
+        mod_id: mod_id, mod_name: mod_name, mod_version: mod_version
+]
+processResources {
+    inputs.properties replaceProperties
+    filesMatching(resourceTargets) {
+        expand replaceProperties
+    }
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title'   : mod_id,
+                'Implementation-Title'  : project.name,
+                'Implementation-Version': project.version,
+                'MixinConfigs'          : 'taczvr.mixins.json'
+        ])
+    }
+    finalizedBy 'reobfJar'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
