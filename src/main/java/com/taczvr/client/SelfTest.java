@@ -410,6 +410,11 @@ public final class SelfTest {
             finish();
             return;
         }
+        if ("update".equals(System.getProperty("taczvr.selftest.only"))) {
+            updateCheck();
+            finish();
+            return;
+        }
         firstPersonHands();
         buttonReload();
         trigger();
@@ -446,7 +451,192 @@ public final class SelfTest {
         attachmentHint();
         lesRaisins();
         models3d();
+        updateCheck();
         previews();
+    }
+
+    /**
+     * The update check against a small local server: it finds the newer release, shows Update TaCZ VR with Later
+     * and Quit Game, and Quit Game downloads the jar and swaps it in (in a test folder, without really quitting).
+     * A locked jar is swapped by a helper once the game has closed, run/taczvr-update-test/locked shows it afterwards.
+     */
+    private static void updateCheck() {
+        com.sun.net.httpserver.HttpServer[] http = {null};
+        String[] base = {null};
+        UpdateChecker.Release[] release = {null};
+        byte[][] served = {null};
+        boolean[] stopped = {false};
+        java.nio.file.Path[] dir = {null};
+        java.io.RandomAccessFile[] lock = {null};
+        Process[] sleeper = {null};
+        run(mc -> {
+            check("update: 1.3.10 is newer than 1.3.9", UpdateChecker.compareVersions("1.3.10", "1.3.9") > 0, "");
+            check("update: v1.4.0 is newer than 1.3.8", UpdateChecker.compareVersions("v1.4.0", "1.3.8") > 0, "");
+            check("update: 1.3.8 is not newer than itself", UpdateChecker.compareVersions("1.3.8", "v1.3.8") == 0, "");
+            served[0] = fakeJar("modId = \"taczvr\"");
+            byte[] bad = fakeJar("modId = \"something_else\"");
+            http[0] = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+            base[0] = "http://127.0.0.1:" + http[0].getAddress().getPort();
+            String jarName = "taczvr-1.20.1-9.9.9.jar";
+            String latest = "{\"tag_name\":\"v9.9.9\",\"body\":\"## What's new\\r\\n- **Longer** grappling hook\\r\\n- The `update` menu\","
+                    + "\"assets\":[{\"name\":\"taczvr-1.20.1-9.9.9-sources.zip\",\"size\":3,\"browser_download_url\":\"" + base[0] + "/nope\"},"
+                    + "{\"name\":\"" + jarName + "\",\"size\":" + served[0].length + ",\"browser_download_url\":\"" + base[0] + "/" + jarName + "\"}]}";
+            String same = "{\"tag_name\":\"1.3.8\",\"body\":\"\",\"assets\":[{\"name\":\"" + jarName + "\",\"size\":1,\"browser_download_url\":\"x\"}]}";
+            serve(http[0], "/latest", latest.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            serve(http[0], "/same", same.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            serve(http[0], "/" + jarName, served[0]);
+            serve(http[0], "/bad.jar", bad);
+            http[0].start();
+            release[0] = UpdateChecker.check(base[0] + "/latest", "1.3.8");
+            check("update: finds 9.9.9 and its jar, not the sources", release[0] != null && "9.9.9".equals(release[0].version())
+                    && jarName.equals(release[0].jarName()), String.valueOf(release[0]));
+            check("update: nothing to do when it's our version", UpdateChecker.check(base[0] + "/same", "1.3.8") == null, "");
+            try {
+                UpdateChecker.check(base[0] + "/missing", "1.3.8");
+                fail("update: a missing release is an error", "no exception");
+            } catch (java.io.IOException e) {
+                pass("update: a missing release is an error (" + e.getMessage() + ")");
+            }
+            if (Boolean.getBoolean("taczvr.update.live")) {
+                UpdateChecker.Release live = UpdateChecker.check(UpdateChecker.RELEASES_API, "1.0.0");
+                check("update: GitHub has this version with its jar", live != null && live.version().equals(UpdateChecker.currentVersion())
+                        && live.jarName().equals("taczvr-1.20.1-" + UpdateChecker.currentVersion() + ".jar") && live.jarSize() > 100000,
+                        String.valueOf(live));
+                check("update: and nothing newer than this version", UpdateChecker.check(UpdateChecker.RELEASES_API, UpdateChecker.currentVersion()) == null, "");
+            }
+            mc.setScreen(new TitleScreen());
+            UpdateChecker.newer = release[0];
+        });
+        await("update: Update TaCZ VR comes up on the title screen", 40, mc -> mc.screen instanceof UpdateScreen,
+                () -> String.valueOf(Minecraft.getInstance().screen));
+        sleep(5);
+        run(mc -> {
+            UpdateScreen screen = (UpdateScreen) mc.screen;
+            check("update: its title", "Update TaCZ VR".equals(screen.getTitle().getString()), screen.getTitle().getString());
+            check("update: Later and Quit Game", "Later".equals(screen.laterButton().getMessage().getString())
+                    && "Quit Game".equals(screen.quitButton().getMessage().getString()),
+                    screen.laterButton().getMessage().getString() + " / " + screen.quitButton().getMessage().getString());
+            check("update: release notes without markdown", screen.noteLines().size() == 3, "lines=" + screen.noteLines().size());
+            screenshot(mc, "taczvr_update_screen.png");
+        });
+        sleep(3);
+        run(mc -> ((UpdateScreen) mc.screen).laterButton().onPress());
+        await("update: Later goes back to the title screen", 10, mc -> mc.screen instanceof TitleScreen, () -> String.valueOf(Minecraft.getInstance().screen));
+        sleep(10);
+        run(mc -> {
+            check("update: offered once per game, it doesn't come back", mc.screen instanceof TitleScreen, String.valueOf(mc.screen));
+            dir[0] = mc.gameDirectory.toPath().resolve("taczvr-update-test");
+            deleteTree(dir[0]);
+            java.nio.file.Files.createDirectories(dir[0].resolve("locked"));
+            java.nio.file.Path old = dir[0].resolve("taczvr-1.20.1-1.3.8.jar");
+            java.nio.file.Files.write(old, fakeJar("modId = \"taczvr\" old"));
+            UpdateScreen.testJar = old;
+            UpdateScreen.stopGame = () -> stopped[0] = true;
+            mc.setScreen(new UpdateScreen(mc.screen, release[0], "1.3.8"));
+        });
+        sleep(3);
+        run(mc -> ((UpdateScreen) mc.screen).quitButton().onPress());
+        await("update: Quit Game downloads, swaps the jar and quits", 200, mc -> stopped[0],
+                () -> "error=" + (Minecraft.getInstance().screen instanceof UpdateScreen s && s.error() != null ? s.error().getString() : "none"));
+        run(mc -> {
+            java.nio.file.Path now = dir[0].resolve("taczvr-1.20.1-9.9.9.jar");
+            check("update: the old jar is gone", !java.nio.file.Files.exists(dir[0].resolve("taczvr-1.20.1-1.3.8.jar")), "");
+            check("update: the new jar is in place, byte for byte", java.nio.file.Files.exists(now)
+                    && java.util.Arrays.equals(java.nio.file.Files.readAllBytes(now), served[0]), "");
+            check("update: no half download left", !java.nio.file.Files.exists(dir[0].resolve("taczvr-1.20.1-9.9.9.jar.part")), "");
+
+            // a download that isn't TaCZ VR is refused and the old jar stays
+            java.nio.file.Path keep = dir[0].resolve("taczvr-1.20.1-1.3.8.jar");
+            java.nio.file.Files.write(keep, fakeJar("modId = \"taczvr\" old"));
+            java.nio.file.Files.delete(now);
+            try {
+                UpdateChecker.install(new UpdateChecker.Release("9.9.9", "", "taczvr-1.20.1-9.9.9.jar", base[0] + "/bad.jar", -1), keep, p -> {
+                });
+                fail("update: a jar that isn't TaCZ VR is refused", "installed it");
+            } catch (java.io.IOException e) {
+                check("update: a jar that isn't TaCZ VR is refused (" + e.getMessage() + ")", java.nio.file.Files.exists(keep)
+                        && !java.nio.file.Files.exists(now) && !java.nio.file.Files.exists(dir[0].resolve("taczvr-1.20.1-9.9.9.jar.part")), "");
+            }
+
+            // Windows keeps a running jar locked: then a helper swaps it once the game has closed
+            java.nio.file.Path locked = dir[0].resolve("locked").resolve("taczvr-1.20.1-1.3.8.jar");
+            java.nio.file.Files.write(locked, fakeJar("modId = \"taczvr\" old"));
+            lock[0] = new java.io.RandomAccessFile(locked.toFile(), "r");
+            boolean swapped = UpdateChecker.install(release[0], locked, p -> {
+            });
+            check("update: a locked jar waits for the game to close", !swapped && java.nio.file.Files.exists(locked)
+                    && java.nio.file.Files.exists(dir[0].resolve("locked").resolve("taczvr-1.20.1-9.9.9.jar.part")), "swapped=" + swapped);
+
+            // the helper itself, waiting for a short process instead of the game
+            java.nio.file.Path helperDir = dir[0].resolve("helper");
+            java.nio.file.Files.createDirectories(helperDir);
+            java.nio.file.Path helperOld = helperDir.resolve("taczvr-1.20.1-1.3.8.jar");
+            java.nio.file.Path helperPart = helperDir.resolve("taczvr-1.20.1-9.9.9.jar.part");
+            java.nio.file.Files.write(helperOld, fakeJar("old"));
+            java.nio.file.Files.write(helperPart, served[0]);
+            sleeper[0] = System.getProperty("os.name", "").toLowerCase().contains("win")
+                    ? new ProcessBuilder("ping", "-n", "4", "127.0.0.1").redirectOutput(ProcessBuilder.Redirect.DISCARD).start()
+                    : new ProcessBuilder("sleep", "3").start();
+            UpdateChecker.swapAfterExit(sleeper[0].pid(), helperOld, helperPart, helperDir.resolve("taczvr-1.20.1-9.9.9.jar"));
+        });
+        sleep(20);
+        run(mc -> check("update: the helper waits while the game still runs",
+                java.nio.file.Files.exists(dir[0].resolve("helper").resolve("taczvr-1.20.1-1.3.8.jar")), ""));
+        await("update: once it's closed, the helper swaps the jars", 400, mc -> {
+            java.nio.file.Path helperDir = dir[0].resolve("helper");
+            return !java.nio.file.Files.exists(helperDir.resolve("taczvr-1.20.1-1.3.8.jar"))
+                    && java.nio.file.Files.exists(helperDir.resolve("taczvr-1.20.1-9.9.9.jar"))
+                    && !java.nio.file.Files.exists(helperDir.resolve("taczvr-1.20.1-9.9.9.jar.part"));
+        }, () -> "sleeper alive=" + sleeper[0].isAlive());
+        run(mc -> {
+            // the locked one stays locked until this client exits, then its helper swaps it
+            http[0].stop(0);
+            UpdateScreen.testJar = null;
+            UpdateScreen.stopGame = () -> Minecraft.getInstance().stop();
+            UpdateChecker.newer = null;
+            mc.setScreen(null);
+            grabMouse(mc);
+            log("update: after exit, %s should hold only the 9.9.9 jar", dir[0].resolve("locked"));
+        });
+        sleep(5);
+    }
+
+    private static byte[] fakeJar(String modsToml) throws java.io.IOException {
+        java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(bytes)) {
+            zip.putNextEntry(new java.util.zip.ZipEntry("META-INF/mods.toml"));
+            zip.write(modsToml.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            zip.closeEntry();
+            zip.putNextEntry(new java.util.zip.ZipEntry("padding.bin"));
+            zip.write(new byte[50000]);
+            zip.closeEntry();
+        }
+        return bytes.toByteArray();
+    }
+
+    private static void serve(com.sun.net.httpserver.HttpServer http, String path, byte[] body) {
+        http.createContext(path, exchange -> {
+            if (!exchange.getRequestURI().getPath().equals(path)) {
+                exchange.sendResponseHeaders(404, -1);
+                exchange.close();
+                return;
+            }
+            exchange.sendResponseHeaders(200, body.length);
+            try (java.io.OutputStream out = exchange.getResponseBody()) {
+                out.write(body);
+            }
+        });
+    }
+
+    private static void deleteTree(java.nio.file.Path root) throws java.io.IOException {
+        if (!java.nio.file.Files.exists(root)) {
+            return;
+        }
+        try (java.util.stream.Stream<java.nio.file.Path> paths = java.nio.file.Files.walk(root)) {
+            for (java.nio.file.Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                java.nio.file.Files.delete(path);
+            }
+        }
     }
 
     /**
