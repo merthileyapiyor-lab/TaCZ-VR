@@ -25,6 +25,7 @@ public final class TaczVRConfig {
 
     public static final class Client {
         public final ForgeConfigSpec.BooleanValue enabled;
+        public final ForgeConfigSpec.BooleanValue updateCheck;
 
         public final ForgeConfigSpec.DoubleValue gunScale;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> scaleOverrides;
@@ -75,6 +76,8 @@ public final class TaczVRConfig {
             b.push("general");
             enabled = b.comment("Master switch for the VR gun handling.")
                     .define("enabled", true);
+            updateCheck = b.comment("On the title screen, look on GitHub for a newer TaCZ VR and offer to install it.")
+                    .define("updateCheck", true);
             b.pop();
 
             b.push("hold");
