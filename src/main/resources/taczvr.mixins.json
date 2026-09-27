@@ -1,0 +1,41 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.taczvr.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "taczvr.refmap.json",
+  "mixins": [
+    "common.EntityKineticBulletMixin",
+    "common.LivingEntityShootMixin",
+    "common.ModernKineticGunItemMixin",
+    "common.PlayerPoseMixin",
+    "common.SensingMixin",
+    "common.ServerGamePacketListenerAccessor"
+  ],
+  "client": [
+    "client.AimKeyMixin",
+    "client.AnimationControllerAccessor",
+    "client.BedrockModelAccessor",
+    "client.CameraSetupEventMixin",
+    "client.GameRendererMixin",
+    "client.GunItemRendererWrapperMixin",
+    "client.ItemInHandLayerMixin",
+    "client.ItemInHandRendererInvoker",
+    "client.ItemInHandRendererMixin",
+    "client.MinecraftGlowMixin",
+    "client.MuzzleFlashRenderAccessor",
+    "client.RenderCrosshairEventMixin",
+    "client.SwingTrackerMixin",
+    "client.TeleportTrackerMixin",
+    "client.TickAnimationEventMixin",
+    "client.VRArmHelperMixin",
+    "client.VRDataMixin",
+    "client.VRPlayerModelAccessor",
+    "client.VRPlayerModelMixin",
+    "client.VRPlayerModelWithArmsMixin",
+    "client.VRRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
