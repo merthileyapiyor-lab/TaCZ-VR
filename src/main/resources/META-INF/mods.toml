@@ -39,10 +39,19 @@ versionRange = "[1.1.8,)"
 ordering = "AFTER"
 side = "BOTH"
 
+# a VR mod: Vivecraft or Visor. Without either the guns work flat screen only, the rest of the mod works
 [[dependencies.${mod_id}]]
 modId = "vivecraft"
-mandatory = true
+mandatory = false
 versionRange = "*"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "visor"
+mandatory = false
+# 0.6.0-alpha sorts before 0.6
+versionRange = "[0.6.0-alpha.1,)"
 ordering = "AFTER"
 side = "BOTH"
 
