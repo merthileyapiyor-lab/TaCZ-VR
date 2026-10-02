@@ -54,7 +54,9 @@ public final class ServerAimStore {
      */
     @Nullable
     public static Aim getAim(ServerPlayer player) {
-        if (!TaczVRConfig.COMMON.serverVrAim.get() || !VrCommon.isVRPlayer(player)) {
+        // our client only sends aims while in VR, so they count even when the server's VR mod doesn't know the player
+        // (a Visor player on a Vivecraft server, or a server without a VR mod)
+        if (!TaczVRConfig.COMMON.serverVrAim.get() || !VrCommon.isVRPlayer(player) && !hasFreshAim(player)) {
             return null;
         }
         long now = player.level().getGameTime();
@@ -65,6 +67,11 @@ public final class ServerAimStore {
         Aim aim = resolve(player);
         RESOLVED.put(player.getUUID(), new Cached(now, player.position(), aim));
         return aim;
+    }
+
+    private static boolean hasFreshAim(ServerPlayer player) {
+        Entry entry = AIMS.get(player.getUUID());
+        return entry != null && player.level().getGameTime() - entry.gameTime <= MAX_AGE_TICKS;
     }
 
     @Nullable

@@ -16,8 +16,8 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.server.ServerLifecycleHooks;
 import org.jetbrains.annotations.Nullable;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -99,13 +99,13 @@ public final class RadioState {
         if (player.isUsingItem() && player.getUseItem().getItem() instanceof RadioItem) {
             return true;
         }
-        VRPose pose = VrCommon.isVRPlayer(player) ? VrCommon.getPose(player) : null;
+        VrPose pose = VrCommon.isVRPlayer(player) ? VrCommon.getPose(player) : null;
         if (pose == null || pose.getHead() == null) {
             return false;
         }
         Vec3 mouth = pose.getHead().getPos().add(pose.getHead().getDir().scale(0.06)).subtract(0.0, 0.09, 0.0);
         for (InteractionHand hand : InteractionHand.values()) {
-            VRBodyPartData part = pose.getHand(hand);
+            VrPart part = pose.getHand(hand);
             if (part != null && player.getItemInHand(hand).getItem() instanceof RadioItem && part.getPos().distanceTo(mouth) < MOUTH_REACH) {
                 return true;
             }

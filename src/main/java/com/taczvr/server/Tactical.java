@@ -23,7 +23,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrPose;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -86,7 +86,7 @@ public final class Tactical {
         if (player.isSpectator()) {
             return 0.0F;
         }
-        VRPose pose = VrCommon.isVRPlayer(player) ? VrCommon.getPose(player) : null;
+        VrPose pose = VrCommon.isVRPlayer(player) ? VrCommon.getPose(player) : null;
         Vec3 eye = pose != null && pose.getHead() != null ? pose.getHead().getPos() : player.getEyePosition();
         Vec3 look = pose != null && pose.getHead() != null ? pose.getHead().getDir() : player.getViewVector(1.0F);
         double distance = eye.distanceTo(at);

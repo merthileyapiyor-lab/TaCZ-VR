@@ -496,13 +496,13 @@ public final class GameManager {
     }
 
     private static boolean handOn(ServerPlayer friend, ServerPlayer downed) {
-        org.vivecraft.api.data.VRPose pose = com.taczvr.VrCommon.isVRPlayer(friend) ? com.taczvr.VrCommon.getPose(friend) : null;
+        com.taczvr.vr.VrPose pose = com.taczvr.VrCommon.isVRPlayer(friend) ? com.taczvr.VrCommon.getPose(friend) : null;
         if (pose == null) {
             return false;
         }
         Vec3 body = downed.position().add(0.0, 0.3, 0.0);
         for (net.minecraft.world.InteractionHand hand : net.minecraft.world.InteractionHand.values()) {
-            org.vivecraft.api.data.VRBodyPartData part = pose.getHand(hand);
+            com.taczvr.vr.VrPart part = pose.getHand(hand);
             if (part != null && part.getPos().distanceTo(body) < REVIVE_HAND_REACH) {
                 return true;
             }

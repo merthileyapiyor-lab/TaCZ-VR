@@ -12,8 +12,8 @@ import net.minecraftforge.common.ToolActions;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.jetbrains.annotations.Nullable;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 /**
  * A VR player's shield stops bullets and other projectiles by where it is held, no need to "use" it: if the shot's
@@ -33,8 +33,8 @@ public final class ShieldBlock {
             return;
         }
         InteractionHand hand = shieldHand(player);
-        VRPose pose = hand == null ? null : VrCommon.getPose(player);
-        VRBodyPartData held = pose == null ? null : pose.getHand(hand);
+        VrPose pose = hand == null ? null : VrCommon.getPose(player);
+        VrPart held = pose == null ? null : pose.getHand(hand);
         Vec3 motion = shot.getDeltaMovement();
         if (held == null || motion.lengthSqr() < 1.0E-6) {
             return;
