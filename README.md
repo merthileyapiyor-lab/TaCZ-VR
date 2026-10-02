@@ -1,6 +1,6 @@
 # TaCZ VR
 
-Hold [TaCZ](https://modrinth.com/mod/timeless-and-classics-zero) guns in [Vivecraft](https://modrinth.com/mod/vivecraft) VR: real 3D guns in your hands, aim down the barrel, two-handed grip, hand reloads and working scopes.
+Hold [TaCZ](https://modrinth.com/mod/timeless-and-classics-zero) guns in [Vivecraft](https://modrinth.com/mod/vivecraft) VR: real 3D guns in your hands, aim down the barrel, two-handed grip, hand reloads and working scopes. [Visor](https://modrinth.com/mod/visor) is supported too.
 
 Minecraft **1.20.1**, **Forge**. [Türkçe açıklama: OKUBENI.md](OKUBENI.md)
 
@@ -10,7 +10,7 @@ Put these in your `mods` folder:
 
 1. `taczvr-1.20.1-<version>.jar` (this mod, from [TaCZ-VR-releases](https://github.com/merthileyapiyor-lab/TaCZ-VR-releases/releases))
 2. [TaCZ](https://modrinth.com/mod/timeless-and-classics-zero) 1.1.8-hotfix or newer
-3. [Vivecraft](https://modrinth.com/mod/vivecraft) 1.20.1 Forge (built with 1.3.15)
+3. [Vivecraft](https://modrinth.com/mod/vivecraft) 1.20.1 Forge (built with 1.3.15), **or** [Visor](https://modrinth.com/mod/visor) 0.6.0-alpha or newer (see below)
 4. Optional: [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) 1.20.1, for the radio
 
 **Updates:** when the game starts, the mod looks for a newer release on [TaCZ-VR-releases](https://github.com/merthileyapiyor-lab/TaCZ-VR-releases/releases). If there is one, the title screen shows **Update TaCZ VR**: **Later** skips it, **Quit Game** downloads the new jar into your mods folder, removes the old one and closes the game. Start it again to play with the new version. Turn it off with `updateCheck = false`.
@@ -75,6 +75,21 @@ A **⚔ Game** button appears at the top left of the Esc menu for ops and the wo
   - Points for kills, revives and waves, and a shop between waves (**J**). Everything bought with points is taken back when the round ends.
   - A giant boss zombie every 5 waves.
 
+## With Visor
+
+[Visor](https://modrinth.com/mod/visor) works instead of Vivecraft. It needs Visor 0.6.0-alpha or newer, and Visor itself needs **Forge 47.4.0** or newer. With both installed, Vivecraft is used.
+
+With Visor you get:
+- The 3D gun in your hand, shots from the barrel, two-handed grip and aiming down the sights
+- The **trigger** fires and **A** reloads (TaCZ's normal animated reload)
+- An attachment held in the left hand snaps on at its spot on the gun
+- Hit buzz, no HUD crosshair in VR, recoil that doesn't turn your view
+- Visor's own hand is hidden while you hold a gun, the hand is drawn on the grip, and swinging the gun doesn't break blocks
+
+Not with Visor yet: everything on the **grip** button (pulling a magazine by hand, taking attachments off, handing guns over, switching the goggles), the left trigger for a second pistol, and the zoomed picture inside magnifying scopes. These come in a later version.
+
+Other players need the same VR mod to see you holding your gun in 3D. Shots always leave the barrel, even on a server without a VR mod.
+
 ## Settings
 
 | Command | What it does |
@@ -103,7 +118,7 @@ Needs JDK 17. Gradle downloads TaCZ, Vivecraft and Simple Voice Chat from Modrin
 
 The jar is `build/libs/taczvr-1.20.1-<version>.jar`.
 
-`./gradlew runClient` starts a dev client. `./gradlew runClient -Pselftest` runs the built-in self-test: it fakes VR poses and checks shooting, reloading, attachments, the items and the game modes, then closes the client. `-Ptestonly=hook` (also `models`, `deagle`, `zombie`, `hint`, `lr`, `update`) runs only one part. `-Pnovoice` starts without Simple Voice Chat.
+`./gradlew runClient` starts a dev client, `-Pvisor` with Visor (and Forge 47.4.0) instead of Vivecraft. `./gradlew runClient -Pselftest` runs the built-in self-test: it fakes VR poses and checks shooting, reloading, attachments, the items and the game modes, then closes the client. With `-Pvisor` it runs the Visor checks instead. `-Ptestonly=hook` (also `models`, `deagle`, `zombie`, `hint`, `lr`, `update`) runs only one part. `-Pnovoice` starts without Simple Voice Chat.
 
 ## Licence
 
