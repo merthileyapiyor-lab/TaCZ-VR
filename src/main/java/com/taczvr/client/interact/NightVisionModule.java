@@ -12,13 +12,13 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import org.vivecraft.api.client.InteractModule;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.GripModule;
+import com.taczvr.vr.VrPose;
 
 /**
  * Touch the night vision goggles on your head with either hand and press grip to flip them on or off.
  */
-public final class NightVisionModule implements InteractModule {
+public final class NightVisionModule implements GripModule {
     private static final ResourceLocation ID = new ResourceLocation(TaczVR.MOD_ID, "night_vision");
     private static final double REACH = 0.22;
     public static int toggles = 0;
@@ -40,7 +40,7 @@ public final class NightVisionModule implements InteractModule {
     @Override
     public boolean isActive(LocalPlayer player, InteractionHand hand, Vec3 handPosition) {
         ItemStack helmet = player.getItemBySlot(EquipmentSlot.HEAD);
-        VRPose pose = VrClient.localTickPose();
+        VrPose pose = VrClient.localTickPose();
         if (!(helmet.getItem() instanceof NightVisionItem) || pose == null || pose.getHead() == null) {
             return false;
         }

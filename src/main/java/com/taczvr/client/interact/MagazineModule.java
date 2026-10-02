@@ -14,17 +14,17 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
-import org.vivecraft.api.client.HeldInteractModule;
-import org.vivecraft.api.data.VRBodyPart;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.GripModule;
+import com.taczvr.vr.VrHand;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 /**
  * Off-hand part of the manual magazine change: grip the magazine to pull it out, grab a new one from the belt
  * (hold grip to keep holding it, {@link MagazineHandler} seats it when it touches the magazine well), and pull back
  * the charging handle to chamber the first round.
  */
-public final class MagazineModule implements HeldInteractModule {
+public final class MagazineModule implements GripModule {
     private static final ResourceLocation ID = new ResourceLocation(TaczVR.MOD_ID, "magazine");
     private static final double HANDLE_REACH = 0.1;
     private static final double MAGAZINE_REACH = 0.08;
@@ -37,6 +37,11 @@ public final class MagazineModule implements HeldInteractModule {
     @Nullable
     private Vec3 rackStart;
     private boolean pulled;
+
+    @Override
+    public boolean isHeld() {
+        return true;
+    }
 
     @Override
     public ResourceLocation getId() {
@@ -65,7 +70,7 @@ public final class MagazineModule implements HeldInteractModule {
         }
         ItemStack gun = player.getMainHandItem();
         GunPoseSolver.Pose pose = VrGunController.lastPose();
-        VRPose vrPose = VrGunController.lastVrPose();
+        VrPose vrPose = VrGunController.lastVrPose();
         if (pose == null || vrPose == null || !MagazineHandler.appliesTo(gun) || pose.twoHanded) {
             return false;
         }
@@ -130,7 +135,7 @@ public final class MagazineModule implements HeldInteractModule {
             if (!this.pulled && back > RACK_PULL * pose.scale / 0.3) {
                 this.pulled = true;
                 if (TaczVRConfig.CLIENT.haptics.get()) {
-                    VrClient.haptic(VRBodyPart.OFF_HAND, 0.03F, 0.6F);
+                    VrClient.haptic(VrHand.OFF_HAND, 0.03F, 0.6F);
                 }
             }
             return true;
@@ -159,8 +164,8 @@ public final class MagazineModule implements HeldInteractModule {
     @Nullable
     private static Vec3 offHandPos() {
         // the same tick's pose the gun pose was solved from
-        VRPose pose = VrGunController.lastVrPose();
-        VRBodyPartData off = pose == null ? null : pose.getOffHand();
+        VrPose pose = VrGunController.lastVrPose();
+        VrPart off = pose == null ? null : pose.getOffHand();
         return off == null ? null : off.getPos();
     }
 }

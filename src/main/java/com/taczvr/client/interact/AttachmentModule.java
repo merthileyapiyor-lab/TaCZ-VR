@@ -23,17 +23,17 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
-import org.vivecraft.api.client.HeldInteractModule;
-import org.vivecraft.api.data.VRBodyPart;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.GripModule;
+import com.taczvr.vr.VrHand;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 /**
  * Attachments by hand. Mounting: bring a scope, muzzle device, stock... held in the off-hand to its spot on the gun
  * and it snaps on, no button needed. Goes through TACZ's own refit message, so TACZ checks it fits the gun.
  * Removing: with an empty off-hand, hold grip on a mounted attachment for a moment to take it off into the hand.
  */
-public final class AttachmentModule implements HeldInteractModule {
+public final class AttachmentModule implements GripModule {
     private static final ResourceLocation ID = new ResourceLocation(TaczVR.MOD_ID, "attachments");
     // generous: the spots on top of the gun are right above the other controller, the controllers bump into each other
     private static final double MOUNT_REACH = 0.15;
@@ -102,11 +102,11 @@ public final class AttachmentModule implements HeldInteractModule {
     /**
      * Called every tick while holding a gun in VR: snaps the off-hand's attachment on once it reaches its spot.
      */
-    public static void tickAutoMount(LocalPlayer player, GunPoseSolver.Pose pose, VRPose vrPose) {
+    public static void tickAutoMount(LocalPlayer player, GunPoseSolver.Pose pose, VrPose vrPose) {
         if (mountCooldown > 0) {
             mountCooldown--;
         }
-        VRBodyPartData off = vrPose.getOffHand();
+        VrPart off = vrPose.getOffHand();
         Guide guide = guide(player, pose);
         // an empty hand keeps its state: one that just took a scope off is still at the spot when the scope arrives
         if (off == null || guide == null || pose.twoHanded) {
@@ -124,11 +124,16 @@ public final class AttachmentModule implements HeldInteractModule {
         NetworkHandler.CHANNEL.sendToServer(new ClientMessageRefitGun(OFFHAND_SLOT, player.getInventory().selected, guide.type()));
         player.playSound(SoundEvents.ARMOR_EQUIP_IRON, 0.6F, 1.4F);
         if (TaczVRConfig.CLIENT.haptics.get()) {
-            VrClient.haptic(VRBodyPart.OFF_HAND, 0.06F, 0.8F);
-            VrClient.haptic(VRBodyPart.MAIN_HAND, 0.03F, 0.4F);
+            VrClient.haptic(VrHand.OFF_HAND, 0.06F, 0.8F);
+            VrClient.haptic(VrHand.MAIN_HAND, 0.03F, 0.4F);
         }
         mountArmed = false;
         mountCooldown = MOUNT_COOLDOWN_TICKS;
+    }
+
+    @Override
+    public boolean isHeld() {
+        return true;
     }
 
     @Override

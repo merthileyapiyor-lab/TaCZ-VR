@@ -14,15 +14,15 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import org.vivecraft.api.client.InteractModule;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.GripModule;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 /**
  * Hold your gun, ammo or attachment against another player's hand and press grip: they get it.
  * Vivecraft gives this module the grip button only while the hand is at someone's hand.
  */
-public final class HandoffModule implements InteractModule {
+public final class HandoffModule implements GripModule {
     private static final ResourceLocation ID = new ResourceLocation(TaczVR.MOD_ID, "handoff");
     private static final double VR_HAND_REACH = 0.3;
     // players without VR don't have tracked hands, their hands are guessed and so get more slack
@@ -71,10 +71,10 @@ public final class HandoffModule implements InteractModule {
      * @return how far {@code pos} is from the closest hand of {@code other}, beyond reach counts as infinite
      */
     private static double distanceToHands(Player other, Vec3 pos) {
-        VRPose pose = VrCommon.isVRPlayer(other) ? VrCommon.getPose(other) : null;
+        VrPose pose = VrCommon.isVRPlayer(other) ? VrCommon.getPose(other) : null;
         double best = Double.MAX_VALUE;
         if (pose != null) {
-            for (VRBodyPartData hand : new VRBodyPartData[]{pose.getMainHand(), pose.getOffHand()}) {
+            for (VrPart hand : new VrPart[]{pose.getMainHand(), pose.getOffHand()}) {
                 if (hand != null) {
                     double d = hand.getPos().distanceTo(pos);
                     if (d < VR_HAND_REACH && d < best) {
