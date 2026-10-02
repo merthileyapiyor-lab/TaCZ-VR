@@ -1,30 +1,31 @@
 package com.taczvr.client;
 
 import com.taczvr.VrCommon;
+import com.taczvr.vr.VrBackends;
+import com.taczvr.vr.VrHand;
+import com.taczvr.vr.VrPass;
+import com.taczvr.vr.VrPose;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import org.vivecraft.api.client.VRClientAPI;
-import org.vivecraft.api.client.VRRenderingAPI;
-import org.vivecraft.api.client.data.RenderPass;
-import org.vivecraft.api.data.VRBodyPart;
-import org.vivecraft.api.data.VRPose;
 
 /**
- * Client side access to Vivecraft. Everything is wrapped so a Vivecraft API change degrades instead of crashing.
+ * Client side access to the VR mod (Vivecraft or Visor). Everything is wrapped so a VR mod API change degrades
+ * instead of crashing.
  */
 public final class VrClient {
     /**
      * Development self-test only: a fake world pose for the local player, which then counts as being in VR.
      */
     @Nullable
-    static volatile VRPose testPose = null;
+    static volatile VrPose testPose = null;
     /**
      * Development self-test only: the fake room pose that goes with {@link #testPose}.
      */
     @Nullable
-    static volatile VRPose testRoomPose = null;
+    static volatile VrPose testRoomPose = null;
     static volatile int testHaptics = 0;
 
     private VrClient() {
@@ -35,7 +36,7 @@ public final class VrClient {
             return true;
         }
         try {
-            return VRClientAPI.instance().isVRActive();
+            return VrBackends.client().isVRActive();
         } catch (Throwable t) {
             VrCommon.logOnce(t);
             return false;
@@ -46,12 +47,12 @@ public final class VrClient {
      * Pose of the local player sampled before the tick, this is what the server receives for this tick.
      */
     @Nullable
-    public static VRPose localTickPose() {
+    public static VrPose localTickPose() {
         if (testPose != null) {
             return testPose;
         }
         try {
-            return VRClientAPI.instance().getPreTickWorldPose();
+            return VrBackends.client().localTickPose();
         } catch (Throwable t) {
             VrCommon.logOnce(t);
             return null;
@@ -62,12 +63,12 @@ public final class VrClient {
      * Local player's pose in the physical room, unaffected by walking or turning in the game.
      */
     @Nullable
-    public static VRPose latestRoomPose() {
+    public static VrPose latestRoomPose() {
         if (testPose != null) {
             return testRoomPose;
         }
         try {
-            return VRClientAPI.instance().getLatestRoomPose();
+            return VrBackends.client().latestRoomPose();
         } catch (Throwable t) {
             VrCommon.logOnce(t);
             return null;
@@ -78,12 +79,12 @@ public final class VrClient {
      * Pose of any player interpolated for the frame being rendered.
      */
     @Nullable
-    public static VRPose renderPose(Player player) {
+    public static VrPose renderPose(Player player) {
+        if (testPose != null && player == Minecraft.getInstance().player) {
+            return testPose;
+        }
         try {
-            if (player == Minecraft.getInstance().player) {
-                return testPose != null ? testPose : VRClientAPI.instance().getWorldRenderPose();
-            }
-            return VRRenderingAPI.instance().getWorldRenderPose(player);
+            return VrBackends.client().renderPose(player);
         } catch (Throwable t) {
             // remote players can briefly be flagged as VR before their first pose arrives
             return null;
@@ -91,13 +92,14 @@ public final class VrClient {
     }
 
     /**
-     * Vivecraft builds remote poses from the un-interpolated entity position, this is the offset to fix that.
+     * What to add to a remote player's render pose so it lines up with the interpolated player model.
      */
     public static Vec3 remoteInterpolationOffset(Player player, float partialTick) {
-        if (player == Minecraft.getInstance().player) {
+        try {
+            return VrBackends.client().remoteInterpolationOffset(player, partialTick);
+        } catch (Throwable t) {
             return Vec3.ZERO;
         }
-        return player.getPosition(partialTick).subtract(player.position());
     }
 
     public static float localWorldScale() {
@@ -105,33 +107,67 @@ public final class VrClient {
             return 1.0F;
         }
         try {
-            return VRClientAPI.instance().getWorldScale();
+            return VrBackends.client().localWorldScale();
         } catch (Throwable t) {
             return 1.0F;
         }
     }
 
-    public static void haptic(VRBodyPart part, float seconds, float amplitude) {
+    public static void haptic(VrHand hand, float seconds, float amplitude) {
         if (testPose != null) {
             testHaptics++;
             return;
         }
         try {
-            VRClientAPI.instance().triggerHapticPulse(part, seconds, 160.0F, amplitude, 0.0F);
+            VrBackends.client().haptic(hand, seconds, amplitude);
         } catch (Throwable t) {
             VrCommon.logOnce(t);
         }
     }
 
     @Nullable
-    public static RenderPass currentPass() {
+    public static VrPass currentPass() {
         if (testPose != null) {
             return null;
         }
         try {
-            return VRRenderingAPI.instance().getCurrentRenderPass();
+            return VrBackends.client().currentPass();
         } catch (Throwable t) {
             return null;
+        }
+    }
+
+    /**
+     * The off-hand trigger, which fires a gun held in the off-hand.
+     */
+    public static boolean offHandTriggerDown() {
+        try {
+            return VrBackends.client().offHandTriggerDown();
+        } catch (Throwable t) {
+            VrCommon.logOnce(t);
+            return false;
+        }
+    }
+
+    /**
+     * Whether the VR mod drew this player model, with arms posed to the controllers.
+     */
+    public static boolean isVrPlayerModel(PlayerModel<?> model) {
+        try {
+            return VrBackends.client().isVrPlayerModel(model);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * The texture with the magnified scope picture, -1 if the VR mod has none.
+     */
+    public static int scopeTexture() {
+        try {
+            return VrBackends.client().scopeTexture();
+        } catch (Throwable t) {
+            return -1;
         }
     }
 }

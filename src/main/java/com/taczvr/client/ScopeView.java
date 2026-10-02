@@ -1,6 +1,5 @@
 package com.taczvr.client;
 
-import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -9,6 +8,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.taczvr.TaczVRConfig;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 import com.tacz.guns.api.DefaultAssets;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.item.IGun;
@@ -25,17 +26,13 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
-import org.vivecraft.client_vr.ClientDataHolderVR;
-import org.vivecraft.client_vr.VRData;
 
 import java.util.List;
 
 /**
- * Working magnified scopes. While you look through a TACZ scope, Vivecraft's spyglass render pass is switched on,
- * its camera is moved into the scope's eyepiece and its field of view is set from the scope's zoom. The picture
- * is then drawn over the eyepiece with a reticle.
+ * Working magnified scopes. While you look through a TACZ scope, the VR mod renders a zoomed picture from the scope's
+ * eyepiece (with Vivecraft its spyglass pass, see VivecraftScope), with the field of view set from the scope's zoom.
+ * The picture is then drawn over the eyepiece with a reticle.
  */
 public final class ScopeView {
     // aim frame units (blocks at gun scale 1), used when the scope model has no eyepiece bone
@@ -45,11 +42,6 @@ public final class ScopeView {
     private static boolean viewing = false;
     private static float fovDegrees = 10.0F;
     private static float lensDistance = FALLBACK_LENS_DISTANCE;
-
-    @Nullable
-    private static VRData cachedData = null;
-    @Nullable
-    private static VRData.VRDevicePose cachedEye = null;
 
     private ScopeView() {
     }
@@ -62,6 +54,10 @@ public final class ScopeView {
         return fovDegrees;
     }
 
+    public static float lensDistance() {
+        return lensDistance;
+    }
+
     static void stop() {
         viewing = false;
     }
@@ -71,7 +67,7 @@ public final class ScopeView {
      *
      * @param aiming the sights are at the eye (TACZ aim state)
      */
-    static void update(ItemStack stack, IGun iGun, VRPose vrPose, GunPoseSolver.Pose gun, boolean aiming) {
+    static void update(ItemStack stack, IGun iGun, VrPose vrPose, GunPoseSolver.Pose gun, boolean aiming) {
         viewing = false;
         if (!aiming || !TaczVRConfig.CLIENT.scopes.get()) {
             return;
@@ -89,7 +85,7 @@ public final class ScopeView {
         int zoomNumber = AttachmentItemDataAccessor.getZoomNumberFromTag(iGun.getAttachmentTag(stack, AttachmentType.SCOPE));
         lensDistance = eyepieceDistance(index, zoomNumber);
 
-        VRBodyPartData head = vrPose.getHead();
+        VrPart head = vrPose.getHead();
         if (head == null) {
             return;
         }
@@ -171,52 +167,12 @@ public final class ScopeView {
     }
 
     /**
-     * The eye pose Vivecraft renders the spyglass pass from: the scope's eyepiece, looking down the scope.
-     * Called by Vivecraft for its render data, cached per data instance (one per frame).
-     */
-    @Nullable
-    public static VRData.VRDevicePose eyePose(VRData data) {
-        if (data == cachedData) {
-            return cachedEye;
-        }
-        cachedData = data;
-        cachedEye = null;
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) {
-            return null;
-        }
-        ItemStack stack = mc.player.getMainHandItem();
-        GunPoseSolver.Pose gun = GunPoseSolver.solve(mc.player, stack, data.asVRPose(), Vec3.ZERO,
-                data.worldScale, 0.0F, 0.0F);
-        if (gun == null) {
-            return null;
-        }
-        Vector3d lens = gun.toWorld(new Vector3f(0.0F, 0.0F, -lensDistance));
-        // world -> room space, the inverse of VRDevicePose#getPosition / #getMatrix
-        Vector3f roomPos = new Vector3f(
-                (float) (lens.x - data.origin.x),
-                (float) (lens.y - data.origin.y),
-                (float) (lens.z - data.origin.z))
-                .rotateY(-data.rotation_radians)
-                .div(data.worldScale);
-        Matrix4f roomRot = new Matrix4f().rotationY(-data.rotation_radians).rotate(gun.rotation);
-        Vector3f roomDir = roomRot.transformDirection(new Vector3f(0.0F, 0.0F, -1.0F));
-        cachedEye = data.new VRDevicePose(data, roomRot, roomPos, roomDir);
-        return cachedEye;
-    }
-
-    /**
      * Draws the zoomed picture and a reticle over the eyepiece. Pose stack is the level render one.
      */
     static void drawEyepiece(PoseStack poseStack, Vec3 cam, GunPoseSolver.Pose gun) {
-        RenderTarget target;
-        try {
-            target = ClientDataHolderVR.getInstance().vrRenderer.telescopeFramebufferR;
-        } catch (Throwable t) {
-            return;
-        }
-        if (target != null) {
-            drawEyepiece(poseStack, cam, gun, target.getColorTextureId());
+        int texture = VrClient.scopeTexture();
+        if (texture >= 0) {
+            drawEyepiece(poseStack, cam, gun, texture);
         }
     }
 

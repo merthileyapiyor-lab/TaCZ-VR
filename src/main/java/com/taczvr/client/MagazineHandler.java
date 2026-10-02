@@ -30,9 +30,9 @@ import org.joml.Quaternionf;
 import org.joml.Quaternionfc;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
-import org.vivecraft.api.data.VRBodyPart;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrHand;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -151,7 +151,7 @@ public final class MagazineHandler {
             }
         }
         if (TaczVRConfig.CLIENT.haptics.get()) {
-            VrClient.haptic(VRBodyPart.MAIN_HAND, 0.05F, 0.5F);
+            VrClient.haptic(VrHand.MAIN_HAND, 0.05F, 0.5F);
         }
     }
 
@@ -170,12 +170,12 @@ public final class MagazineHandler {
     /**
      * Pushes the held magazine in once it reaches the magazine well.
      */
-    static void tick(LocalPlayer player, ItemStack gun, VRPose vrPose, GunPoseSolver.Pose pose) {
+    static void tick(LocalPlayer player, ItemStack gun, VrPose vrPose, GunPoseSolver.Pose pose) {
         track(player, gun);
         if (!holdingMagazine) {
             return;
         }
-        VRBodyPartData off = vrPose.getOffHand();
+        VrPart off = vrPose.getOffHand();
         Vector3d well = GunPoseSolver.boneWorld(pose, GunModelConstant.MAG_NORMAL_NODE);
         if (off == null || well == null) {
             return;
@@ -190,8 +190,8 @@ public final class MagazineHandler {
                     && !g.hasBulletInBarrel(gun);
             player.playSound(SoundEvents.ARMOR_EQUIP_IRON, 0.8F, 1.3F);
             if (TaczVRConfig.CLIENT.haptics.get()) {
-                VrClient.haptic(VRBodyPart.OFF_HAND, 0.06F, 0.8F);
-                VrClient.haptic(VRBodyPart.MAIN_HAND, 0.04F, 0.5F);
+                VrClient.haptic(VrHand.OFF_HAND, 0.06F, 0.8F);
+                VrClient.haptic(VrHand.MAIN_HAND, 0.04F, 0.5F);
             }
         }
     }
@@ -204,8 +204,8 @@ public final class MagazineHandler {
         needsRack = false;
         player.playSound(SoundEvents.CROSSBOW_LOADING_END, 0.7F, 1.6F);
         if (TaczVRConfig.CLIENT.haptics.get()) {
-            VrClient.haptic(VRBodyPart.OFF_HAND, 0.05F, 1.0F);
-            VrClient.haptic(VRBodyPart.MAIN_HAND, 0.05F, 0.7F);
+            VrClient.haptic(VrHand.OFF_HAND, 0.05F, 1.0F);
+            VrClient.haptic(VrHand.MAIN_HAND, 0.05F, 0.7F);
         }
     }
 
@@ -232,8 +232,8 @@ public final class MagazineHandler {
     /**
      * The belt: anywhere around the waist, below the chest and close to the body.
      */
-    public static boolean isAtBelt(VRPose vrPose, Vec3 hand, float worldScale) {
-        VRBodyPartData head = vrPose.getHead();
+    public static boolean isAtBelt(VrPose vrPose, Vec3 hand, float worldScale) {
+        VrPart head = vrPose.getHead();
         if (head == null) {
             return false;
         }

@@ -42,10 +42,9 @@ import net.minecraftforge.client.event.RenderPlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
-import org.vivecraft.api.client.data.RenderPass;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
-import org.vivecraft.client.render.VRPlayerModel;
+import com.taczvr.vr.VrPass;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -127,8 +126,8 @@ public final class VrGunRenderer {
             return false;
         }
         if (player == Minecraft.getInstance().player) {
-            RenderPass pass = VrClient.currentPass();
-            return pass == null || RenderPass.isFirstPerson(pass);
+            VrPass pass = VrClient.currentPass();
+            return pass == null || pass.isFirstPerson();
         }
         return !FITTED_ARMS.contains(player.getUUID());
     }
@@ -141,7 +140,7 @@ public final class VrGunRenderer {
     public static void onRenderPlayer(RenderPlayerEvent.Pre event) {
         Player player = event.getEntity();
         PlayerModel<AbstractClientPlayer> model = event.getRenderer().getModel();
-        boolean vivecraftArms = model instanceof VRPlayerModel<?>;
+        boolean vivecraftArms = VrClient.isVrPlayerModel(model);
         if (vivecraftArms) {
             FITTED_ARMS.add(player.getUUID());
         } else {
@@ -150,7 +149,7 @@ public final class VrGunRenderer {
         if (vivecraftArms || !rendersHeldGun(player, player.getMainHandItem()) || !handsOnGun(player)) {
             return;
         }
-        VRPose vrPose = VrClient.renderPose(player);
+        VrPose vrPose = VrClient.renderPose(player);
         boolean leftHanded = vrPose != null && vrPose.isLeftHanded();
         hideArm(model, leftHanded ? HumanoidArm.LEFT : HumanoidArm.RIGHT);
         if (leftHandOnGun(player)) {
@@ -200,8 +199,8 @@ public final class VrGunRenderer {
                 continue;
             }
             // the scope camera sits inside your own scope, the gun would block its view
-            RenderPass pass = VrClient.currentPass();
-            if (local && (pass == RenderPass.SCOPER || pass == RenderPass.SCOPEL)) {
+            VrPass pass = VrClient.currentPass();
+            if (local && pass == VrPass.SCOPE) {
                 continue;
             }
             try {
@@ -220,7 +219,7 @@ public final class VrGunRenderer {
 
     private static void renderGun(Minecraft mc, Player player, ItemStack stack, PoseStack poseStack, Vec3 cam,
                                   float partialTick, boolean local) {
-        VRPose vrPose = VrClient.renderPose(player);
+        VrPose vrPose = VrClient.renderPose(player);
         if (vrPose == null) {
             return;
         }
@@ -237,18 +236,18 @@ public final class VrGunRenderer {
         drawLaser(mc, poseStack, cam, pose, stack, player);
         if (!local) {
             // the new magazine in their off-hand during a manual magazine change
-            VRBodyPartData off = vrPose.getOffHand();
+            VrPart off = vrPose.getOffHand();
             if (off != null && RemoteGunEffects.holdingMagazine(player)) {
                 MagazineHandler.drawMagazine(mc, pose, poseStack, cam, off.getPos(), off.getRotation(), pose.scale);
             }
             return;
         }
-        RenderPass pass = VrClient.currentPass();
-        if (ScopeView.isViewing() && pass != null && RenderPass.isFirstPerson(pass)) {
+        VrPass pass = VrClient.currentPass();
+        if (ScopeView.isViewing() && pass != null && pass.isFirstPerson()) {
             ScopeView.drawEyepiece(poseStack, cam, pose);
         }
         if (MagazineHandler.isHoldingMagazine()) {
-            VRBodyPartData off = vrPose.getOffHand();
+            VrPart off = vrPose.getOffHand();
             if (off != null) {
                 MagazineHandler.drawMagazine(mc, pose, poseStack, cam, off.getPos(), off.getRotation(), pose.scale);
             }
@@ -371,7 +370,7 @@ public final class VrGunRenderer {
      * The gun in the off-hand when dual wielding: in the left controller, in its rest pose, with its own muzzle flash.
      */
     private static void renderOffhandGun(Minecraft mc, Player player, PoseStack poseStack, Vec3 cam, float partialTick, boolean local) {
-        VRPose vrPose = VrClient.renderPose(player);
+        VrPose vrPose = VrClient.renderPose(player);
         if (vrPose == null) {
             return;
         }

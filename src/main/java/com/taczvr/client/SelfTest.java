@@ -110,9 +110,8 @@ import org.joml.Quaternionfc;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.vivecraft.api.data.FBTMode;
-import org.vivecraft.api.data.VRBodyPart;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 import org.vivecraft.client.ClientVRPlayers;
 import org.vivecraft.client.VivecraftVRMod;
 import org.vivecraft.client_vr.ClientDataHolderVR;
@@ -451,8 +450,57 @@ public final class SelfTest {
         attachmentHint();
         lesRaisins();
         models3d();
+        aimWithoutServerVrMod();
         updateCheck();
         previews();
+    }
+
+    /**
+     * A server whose VR mod doesn't know you're in VR (a Visor player on a Vivecraft server, or a server without a VR
+     * mod) still fires from your muzzle: the aim our client sends is enough.
+     */
+    private static void aimWithoutServerVrMod() {
+        run(mc -> server(sp -> {
+            sp.getInventory().setItem(0, GunItemBuilder.create().setId(AK).setAmmoCount(30).setAmmoInBarrel(true).build());
+            sp.getInventory().selected = 0;
+            sp.connection.send(new ClientboundSetCarriedItemPacket(0));
+            sp.inventoryMenu.broadcastChanges();
+            return null;
+        }));
+        run(mc -> {
+            // the server's VR mod says no, the client is in VR
+            VrCommon.testForceVr = false;
+            rig(eye().add(0.1, -0.2, -0.3), new Quaternionf(EAST).rotateX((float) Math.toRadians(15.0)), idleOff());
+        });
+        await("server without VR mod: AK in hand", 40, mc -> clientAmmo(mc) == 30, () -> "ammo=" + clientAmmo(Minecraft.getInstance()));
+        sleep(30);
+        run(mc -> {
+            check("server without VR mod: it doesn't know you're in VR", !server(sp -> VrCommon.isVRPlayer(sp)), "");
+            GunPoseSolver.Pose pose = VrGunController.lastPose();
+            expectedMuzzle = new Vec3(pose.muzzle.x, pose.muzzle.y, pose.muzzle.z);
+            expectedDir = pose.bulletDirection(25.0);
+            bulletPos = null;
+            bulletVel = null;
+            captureBullet = true;
+            mc.setWindowActive(true);
+            grabMouse(mc);
+            VRInputAction.setKeyBindState(mc.options.keyAttack, true);
+        });
+        sleep(2);
+        run(mc -> mc.options.keyAttack.setDown(false));
+        await("server without VR mod: a bullet was fired", 20, mc -> bulletPos != null, () -> "none");
+        run(mc -> {
+            captureBullet = false;
+            if (bulletPos == null || bulletVel == null) {
+                return;
+            }
+            double fromMuzzle = bulletPos.distanceTo(expectedMuzzle);
+            double offAim = Math.toDegrees(Math.acos(Math.min(1.0, bulletVel.normalize().dot(expectedDir))));
+            check("server without VR mod: bullet still starts at the muzzle", fromMuzzle < 0.15, String.format(Locale.ROOT, "%.3f blocks off", fromMuzzle));
+            check("server without VR mod: and flies where the gun points", offAim < 12.0, String.format(Locale.ROOT, "%.1f deg off", offAim));
+            VrClient.testPose = null;
+        });
+        sleep(10);
     }
 
     /**
@@ -1790,7 +1838,7 @@ public final class SelfTest {
         }
         // high five: slap the remote player's hand
         run(mc -> {
-            VRPose theirs = VrCommon.getPose(remote);
+            VrPose theirs = VrCommon.getPose(remote);
             slapAt = theirs == null || theirs.getMainHand() == null ? remote.position().add(0.4, 1.25, 0.2) : theirs.getMainHand().getPos();
             slapsBefore = HighFive.slaps;
             highFivesBefore = HighFivePacket.received;
@@ -2772,7 +2820,7 @@ public final class SelfTest {
         run(mc -> room(roomHand.add(0.05, 0.0, 0.0)));
         run(mc -> check("melee: slow hand move is not a jab", VrClient.testHaptics == hapticsBefore, ""));
         // control: without the VR aim the jab goes where the head looks (north) and misses the pig (east)
-        run(mc -> VrCommon.testForceVr = false);
+        run(mc -> TaczVRConfig.COMMON.serverVrAim.set(false));
         sleep(3);
         run(mc -> {
             hapticsBefore = VrClient.testHaptics;
@@ -2784,7 +2832,7 @@ public final class SelfTest {
         run(mc -> check("melee control: without VR aim the pig beside you is missed", pigHealthNow() >= pigHealth,
                 "health " + pigHealthNow()));
         run(mc -> {
-            VrCommon.testForceVr = true;
+            TaczVRConfig.COMMON.serverVrAim.set(true);
             room(new Vec3(0.0, 1.0, 0.0));
         });
         sleep(30);
@@ -3267,7 +3315,7 @@ public final class SelfTest {
         }
         Vec3 cam = event.getCamera().getPosition();
         PoseStack poseStack = event.getPoseStack();
-        VRPose fake = VrClient.testPose;
+        VrPose fake = VrClient.testPose;
         if (scopeEye && fake != null) {
             GunPoseSolver.Pose pose = GunPoseSolver.solve(mc.player, mc.player.getMainHandItem(), fake, Vec3.ZERO, 1.0F, 0.0F, 0.0F);
             if (pose != null) {
@@ -3631,7 +3679,7 @@ public final class SelfTest {
         TaczVR.LOGGER.info("[SELFTEST] " + String.format(Locale.ROOT, format, args));
     }
 
-    private record FakePart(Vec3 pos, Quaternionfc rot) implements VRBodyPartData {
+    private record FakePart(Vec3 pos, Quaternionfc rot) implements VrPart {
         @Override
         public Vec3 getPos() {
             return this.pos;
@@ -3644,40 +3692,30 @@ public final class SelfTest {
         }
 
         @Override
-        public double getPitch() {
-            return 0;
-        }
-
-        @Override
-        public double getYaw() {
-            return 0;
-        }
-
-        @Override
-        public double getRoll() {
-            return 0;
-        }
-
-        @Override
         public Quaternionfc getRotation() {
             return this.rot;
         }
     }
 
     private record FakePose(Vec3 mainPos, Quaternionfc mainRot, @Nullable Vec3 offPos, Vec3 headPos,
-                            Quaternionfc headRot) implements VRPose {
+                            Quaternionfc headRot) implements VrPose {
         FakePose(Vec3 mainPos, Quaternionfc mainRot, @Nullable Vec3 offPos) {
             this(mainPos, mainRot, offPos, mainPos.add(0, 0.3, 0.4), new Quaternionf());
         }
 
         @Override
-        public VRBodyPartData getBodyPartData(VRBodyPart part) {
-            return switch (part) {
-                case MAIN_HAND -> new FakePart(this.mainPos, this.mainRot);
-                case OFF_HAND -> this.offPos == null ? null : new FakePart(this.offPos, new Quaternionf());
-                case HEAD -> new FakePart(this.headPos, this.headRot);
-                default -> null;
-            };
+        public VrPart getHead() {
+            return new FakePart(this.headPos, this.headRot);
+        }
+
+        @Override
+        public VrPart getMainHand() {
+            return new FakePart(this.mainPos, this.mainRot);
+        }
+
+        @Override
+        public @Nullable VrPart getOffHand() {
+            return this.offPos == null ? null : new FakePart(this.offPos, new Quaternionf());
         }
 
         @Override
@@ -3688,16 +3726,6 @@ public final class SelfTest {
         @Override
         public boolean isLeftHanded() {
             return testLeftHanded;
-        }
-
-        @Override
-        public FBTMode getFBTMode() {
-            return FBTMode.ARMS_ONLY;
-        }
-
-        @Override
-        public VRBodyPartData getHand(InteractionHand hand) {
-            return getBodyPartData(hand == InteractionHand.MAIN_HAND ? VRBodyPart.MAIN_HAND : VRBodyPart.OFF_HAND);
         }
     }
 }

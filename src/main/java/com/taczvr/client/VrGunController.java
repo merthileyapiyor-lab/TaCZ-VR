@@ -20,9 +20,9 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
-import org.vivecraft.api.data.VRBodyPart;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrHand;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 /**
  * Per tick VR gun handling for the local player: trigger, aiming down sights, reloading and telling the server
@@ -48,7 +48,7 @@ public final class VrGunController {
     @Nullable
     private static GunPoseSolver.Pose lastPose = null;
     @Nullable
-    private static VRPose lastVrPose = null;
+    private static VrPose lastVrPose = null;
 
     private VrGunController() {
     }
@@ -83,7 +83,7 @@ public final class VrGunController {
         ShootKey.shootControllerTick(trigger);
         shootHeld = trigger;
 
-        VRPose vrPose = VrClient.localTickPose();
+        VrPose vrPose = VrClient.localTickPose();
         if (vrPose == null) {
             return;
         }
@@ -146,8 +146,8 @@ public final class VrGunController {
      * A fast jab along the barrel is a stock/bayonet hit. Measured in room space, so walking or turning doesn't count.
      */
     private static void updateMeleeThrust(IClientPlayerGunOperator operator, boolean inGame) {
-        VRPose room = VrClient.latestRoomPose();
-        VRBodyPartData hand = room == null ? null : room.getMainHand();
+        VrPose room = VrClient.latestRoomPose();
+        VrPart hand = room == null ? null : room.getMainHand();
         if (hand == null) {
             lastRoomHandPos = null;
             return;
@@ -165,7 +165,7 @@ public final class VrGunController {
             operator.melee();
             meleeCooldown = MELEE_COOLDOWN_TICKS;
             if (TaczVRConfig.CLIENT.haptics.get()) {
-                VrClient.haptic(VRBodyPart.MAIN_HAND, 0.08F, 1.0F);
+                VrClient.haptic(VrHand.MAIN_HAND, 0.08F, 1.0F);
             }
         }
     }
@@ -182,14 +182,14 @@ public final class VrGunController {
      * VR pose of the local player from the last tick, null when not holding a gun in VR.
      */
     @Nullable
-    public static VRPose lastVrPose() {
+    public static VrPose lastVrPose() {
         return lastVrPose;
     }
 
     /**
      * Development self-test only: pretend a tick produced these poses.
      */
-    static void setTestPoses(@Nullable GunPoseSolver.Pose pose, @Nullable VRPose vrPose) {
+    static void setTestPoses(@Nullable GunPoseSolver.Pose pose, @Nullable VrPose vrPose) {
         lastPose = pose;
         lastVrPose = vrPose;
     }
@@ -208,7 +208,7 @@ public final class VrGunController {
     /**
      * Aiming down sights: the head is close to the sight line, behind the sights, looking along the barrel.
      */
-    private static void updateAim(IClientPlayerGunOperator operator, VRPose vrPose, GunPoseSolver.Pose gun, boolean inGame) {
+    private static void updateAim(IClientPlayerGunOperator operator, VrPose vrPose, GunPoseSolver.Pose gun, boolean inGame) {
         TaczVRConfig.Client cfg = TaczVRConfig.CLIENT;
         if (!cfg.aimDownSights.get()) {
             if (aimOwned) {
@@ -217,7 +217,7 @@ public final class VrGunController {
             }
             return;
         }
-        VRBodyPartData head = vrPose.getHead();
+        VrPart head = vrPose.getHead();
         boolean aiming = false;
         if (inGame && head != null) {
             Vec3 headPos = head.getPos();
@@ -238,7 +238,7 @@ public final class VrGunController {
     }
 
     private static void updateReload(LocalPlayer player, IClientPlayerGunOperator operator, IGun iGun, ItemStack stack,
-                                     VRPose vrPose, GunPoseSolver.Pose gun) {
+                                     VrPose vrPose, GunPoseSolver.Pose gun) {
         TaczVRConfig.Client cfg = TaczVRConfig.CLIENT;
         // guns that feed from the inventory have no magazine to reload
         if (iGun.useInventoryAmmo(stack)) {
@@ -246,7 +246,7 @@ public final class VrGunController {
         }
         boolean reloading = IGunOperator.fromLivingEntity(player).getSynReloadState().getStateType().isReloading();
 
-        VRBodyPartData offHand = vrPose.getOffHand();
+        VrPart offHand = vrPose.getOffHand();
         if (cfg.magazineTapReload.get() && gun.magazine != null && offHand != null && !gun.twoHanded) {
             Vec3 off = offHand.getPos();
             double dist = gun.magazine.distance(off.x, off.y, off.z);
@@ -255,7 +255,7 @@ public final class VrGunController {
                 operator.reload();
                 reloadCooldown = 20;
                 if (cfg.haptics.get()) {
-                    VrClient.haptic(VRBodyPart.OFF_HAND, 0.05F, 0.6F);
+                    VrClient.haptic(VrHand.OFF_HAND, 0.05F, 0.6F);
                 }
             }
         } else {
@@ -292,9 +292,9 @@ public final class VrGunController {
         }
         lastShotMillis = System.currentTimeMillis();
         if (TaczVRConfig.CLIENT.haptics.get()) {
-            VrClient.haptic(VRBodyPart.MAIN_HAND, 0.06F, 1.0F);
+            VrClient.haptic(VrHand.MAIN_HAND, 0.06F, 1.0F);
             if (twoHandedLastTick) {
-                VrClient.haptic(VRBodyPart.OFF_HAND, 0.04F, 0.6F);
+                VrClient.haptic(VrHand.OFF_HAND, 0.04F, 0.6F);
             }
         }
     }

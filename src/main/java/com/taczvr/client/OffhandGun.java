@@ -15,18 +15,14 @@ import com.tacz.guns.resource.pojo.data.gun.GunData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.jetbrains.annotations.Nullable;
-import org.vivecraft.api.data.FBTMode;
-import org.vivecraft.api.data.VRBodyPart;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
-import org.vivecraft.client.VivecraftVRMod;
+import com.taczvr.vr.VrHand;
+import com.taczvr.vr.VrPose;
 
 import java.util.UUID;
 
@@ -64,41 +60,12 @@ public final class OffhandGun {
     /**
      * The pose with the off-hand as the hand holding the gun, and no second hand to hold it with.
      */
-    static VRPose offHandAsMain(VRPose pose) {
-        return new VRPose() {
-            @Override
-            public VRBodyPartData getBodyPartData(VRBodyPart part) {
-                return switch (part) {
-                    case MAIN_HAND -> pose.getOffHand();
-                    case OFF_HAND -> null;
-                    default -> pose.getBodyPartData(part);
-                };
-            }
-
-            @Override
-            public boolean isSeated() {
-                return pose.isSeated();
-            }
-
-            @Override
-            public boolean isLeftHanded() {
-                return !pose.isLeftHanded();
-            }
-
-            @Override
-            public FBTMode getFBTMode() {
-                return pose.getFBTMode();
-            }
-
-            @Override
-            public VRBodyPartData getHand(InteractionHand hand) {
-                return getBodyPartData(hand == InteractionHand.MAIN_HAND ? VRBodyPart.MAIN_HAND : VRBodyPart.OFF_HAND);
-            }
-        };
+    static VrPose offHandAsMain(VrPose pose) {
+        return VrPose.of(pose.getHead(), pose.getOffHand(), null, !pose.isLeftHanded(), pose.isSeated());
     }
 
     @Nullable
-    static GunPoseSolver.Pose solve(Player player, VRPose pose, Vec3 offset, float worldScale) {
+    static GunPoseSolver.Pose solve(Player player, VrPose pose, Vec3 offset, float worldScale) {
         if (pose.getOffHand() == null) {
             return null;
         }
@@ -131,9 +98,9 @@ public final class OffhandGun {
         }
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
-        VRPose pose = player != null && VrClient.isVRActive() && holds(player) && !player.isSpectator() ? VrClient.localTickPose() : null;
+        VrPose pose = player != null && VrClient.isVRActive() && holds(player) && !player.isSpectator() ? VrClient.localTickPose() : null;
         lastPose = pose == null ? null : solve(player, pose, Vec3.ZERO, VrClient.localWorldScale());
-        boolean down = lastPose != null && mc.screen == null && VivecraftVRMod.INSTANCE.keyTeleport.isDown();
+        boolean down = lastPose != null && mc.screen == null && VrClient.offHandTriggerDown();
         boolean pressed = down && !triggerWasDown;
         triggerWasDown = down;
         if (!down || !serverHasMod()) {
@@ -166,7 +133,7 @@ public final class OffhandGun {
             SoundPlayManager.playShootSound(player, display, data);
         }
         if (TaczVRConfig.CLIENT.haptics.get()) {
-            VrClient.haptic(VRBodyPart.OFF_HAND, 0.06F, 1.0F);
+            VrClient.haptic(VrHand.OFF_HAND, 0.06F, 1.0F);
         }
     }
 
