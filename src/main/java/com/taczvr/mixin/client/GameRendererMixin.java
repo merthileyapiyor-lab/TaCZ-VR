@@ -1,7 +1,7 @@
 package com.taczvr.mixin.client;
 
 import com.taczvr.client.ScopeView;
-import com.taczvr.client.VrClient;
+import com.taczvr.vr.vivecraft.VivecraftClientBackend;
 import net.minecraft.client.renderer.GameRenderer;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,7 +18,7 @@ public abstract class GameRendererMixin {
 
     @Inject(method = "getProjectionMatrix(D)Lorg/joml/Matrix4f;", at = @At("RETURN"))
     private void taczvr$scopeZoom(double fov, CallbackInfoReturnable<Matrix4f> cir) {
-        if (!ScopeView.isViewing() || VrClient.currentPass() != RenderPass.SCOPER) {
+        if (!ScopeView.isViewing() || VivecraftClientBackend.rawPass() != RenderPass.SCOPER) {
             return;
         }
         Matrix4f projection = cir.getReturnValue();
