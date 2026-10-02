@@ -10,13 +10,15 @@ import com.taczvr.content.ModContent;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import org.vivecraft.api.client.VRClientAPI;
+import com.taczvr.vr.VrBackends;
+
+import java.util.List;
 
 public final class ClientSetup {
     /**
-     * Set once Vivecraft asked for our interact modules.
+     * Set once the VR mod asked for our grip modules.
      */
-    static volatile boolean modulesRegistered = false;
+    public static volatile boolean modulesRegistered = false;
 
     private ClientSetup() {
     }
@@ -45,13 +47,15 @@ public final class ClientSetup {
         modBus.addListener(ClientSetup::onRegisterRenderers);
         modBus.addListener(ScreenEffects::onRegisterOverlays);
         modBus.addListener(ClientKeys::onRegisterKeys);
-        SelfTest.register();
+        VrBackends.initClient();
+        // SelfTest drives Vivecraft directly, it can't even load without it
+        if (VrBackends.isVisor()) {
+            VisorSelfTest.register();
+        } else {
+            SelfTest.register();
+        }
         try {
-            // Vivecraft hands the grip button to these while the hand is at something they can grab
-            VRClientAPI.instance().addClientRegistrationHandler(event -> {
-                event.registerInteractModules(new HandoffModule(), new MagazineModule(), new AttachmentModule(), new NightVisionModule());
-                modulesRegistered = true;
-            });
+            VrBackends.client().registerGripModules(List.of(new HandoffModule(), new MagazineModule(), new AttachmentModule(), new NightVisionModule()));
         } catch (Throwable t) {
             TaczVR.LOGGER.error("Could not register VR interactions, hand-off and mounting attachments by hand won't work", t);
         }

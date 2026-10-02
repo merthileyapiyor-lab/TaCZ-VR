@@ -13,9 +13,9 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.jetbrains.annotations.Nullable;
-import org.vivecraft.api.data.VRBodyPart;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrHand;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,9 +48,9 @@ public final class HighFive {
         if (event.phase != TickEvent.Phase.END || player == null || mc.level == null) {
             return;
         }
-        VRPose pose = VrClient.isVRActive() && TaczVRConfig.CLIENT.highFive.get() ? VrClient.localTickPose() : null;
-        VRBodyPartData main = pose == null ? null : pose.getMainHand();
-        VRBodyPartData off = pose == null ? null : pose.getOffHand();
+        VrPose pose = VrClient.isVRActive() && TaczVRConfig.CLIENT.highFive.get() ? VrClient.localTickPose() : null;
+        VrPart main = pose == null ? null : pose.getMainHand();
+        VrPart off = pose == null ? null : pose.getOffHand();
         Vec3 mainPos = main == null ? null : main.getPos();
         Vec3 offPos = off == null ? null : off.getPos();
         if (cooldown > 0) {
@@ -58,8 +58,8 @@ public final class HighFive {
         } else if (serverHasMod()) {
             // hand speed relative to the body, so walking into someone isn't a slap
             Vec3 bodyMove = player.position().subtract(player.xo, player.yo, player.zo);
-            if (!check(mc, player, mainPos, lastMain, bodyMove, VRBodyPart.MAIN_HAND)) {
-                check(mc, player, offPos, lastOff, bodyMove, VRBodyPart.OFF_HAND);
+            if (!check(mc, player, mainPos, lastMain, bodyMove, VrHand.MAIN_HAND)) {
+                check(mc, player, offPos, lastOff, bodyMove, VrHand.OFF_HAND);
             }
         }
         lastMain = mainPos;
@@ -67,7 +67,7 @@ public final class HighFive {
     }
 
     private static boolean check(Minecraft mc, LocalPlayer player, @Nullable Vec3 hand, @Nullable Vec3 last, Vec3 bodyMove,
-                                 VRBodyPart part) {
+                                 VrHand part) {
         if (hand == null || last == null) {
             return false;
         }
@@ -99,9 +99,9 @@ public final class HighFive {
      */
     static List<Vec3> hands(Player other) {
         List<Vec3> hands = new ArrayList<>();
-        VRPose pose = VrCommon.isVRPlayer(other) ? VrCommon.getPose(other) : null;
+        VrPose pose = VrCommon.isVRPlayer(other) ? VrCommon.getPose(other) : null;
         if (pose != null) {
-            for (VRBodyPartData hand : new VRBodyPartData[]{pose.getMainHand(), pose.getOffHand()}) {
+            for (VrPart hand : new VrPart[]{pose.getMainHand(), pose.getOffHand()}) {
                 if (hand != null) {
                     hands.add(hand.getPos());
                 }
@@ -121,14 +121,14 @@ public final class HighFive {
      * The other player slapped your hand: feel it in the hand that was hit.
      */
     public static void felt(Vec3 at) {
-        VRPose pose = VrClient.isVRActive() ? VrClient.localTickPose() : null;
+        VrPose pose = VrClient.isVRActive() ? VrClient.localTickPose() : null;
         if (pose == null) {
             return;
         }
-        VRBodyPartData main = pose.getMainHand();
-        VRBodyPartData off = pose.getOffHand();
+        VrPart main = pose.getMainHand();
+        VrPart off = pose.getOffHand();
         boolean mainCloser = off == null || main != null && main.getPos().distanceTo(at) <= off.getPos().distanceTo(at);
-        VrClient.haptic(mainCloser ? VRBodyPart.MAIN_HAND : VRBodyPart.OFF_HAND, 0.08F, 1.0F);
+        VrClient.haptic(mainCloser ? VrHand.MAIN_HAND : VrHand.OFF_HAND, 0.08F, 1.0F);
     }
 
     private static boolean serverHasMod() {

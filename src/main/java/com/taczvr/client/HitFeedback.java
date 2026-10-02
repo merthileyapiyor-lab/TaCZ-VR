@@ -8,7 +8,7 @@ import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import org.vivecraft.api.data.VRBodyPart;
+import com.taczvr.vr.VrHand;
 
 /**
  * Feel your hits: a buzz in the gun hand and a hit sound, stronger for headshots, and a longer buzz for a kill.
@@ -51,10 +51,10 @@ public final class HitFeedback {
         if (!TaczVRConfig.CLIENT.haptics.get()) {
             return;
         }
-        VrClient.haptic(VRBodyPart.MAIN_HAND, seconds, amplitude);
+        VrClient.haptic(VrHand.MAIN_HAND, seconds, amplitude);
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null && GunPoseSolver.isTwoHanded(mc.player.getUUID())) {
-            VrClient.haptic(VRBodyPart.OFF_HAND, seconds, amplitude * 0.6F);
+            VrClient.haptic(VrHand.OFF_HAND, seconds, amplitude * 0.6F);
         }
     }
 

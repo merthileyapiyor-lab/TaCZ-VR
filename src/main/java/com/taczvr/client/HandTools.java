@@ -17,9 +17,9 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.jetbrains.annotations.Nullable;
-import org.vivecraft.api.data.VRBodyPart;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrHand;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 /**
  * VR hand moves with tools: stab forward with the knife, push the syringe into your other forearm or a friend.
@@ -49,8 +49,8 @@ public final class HandTools {
         if (event.phase != TickEvent.Phase.END || player == null || mc.level == null) {
             return;
         }
-        VRPose pose = VrClient.isVRActive() ? VrClient.localTickPose() : null;
-        VRBodyPartData main = pose == null ? null : pose.getMainHand();
+        VrPose pose = VrClient.isVRActive() ? VrClient.localTickPose() : null;
+        VrPart main = pose == null ? null : pose.getMainHand();
         if (main == null || player.isSpectator()) {
             lastMain = null;
             return;
@@ -85,7 +85,7 @@ public final class HandTools {
             AABB box = entity.getBoundingBox().inflate(0.05);
             if (box.contains(tip) || box.clip(pos, tip).isPresent()) {
                 Net.CHANNEL.sendToServer(new KnifeStabPacket(entity.getId()));
-                VrClient.haptic(VRBodyPart.MAIN_HAND, 0.1F, 1.0F);
+                VrClient.haptic(VrHand.MAIN_HAND, 0.1F, 1.0F);
                 cooldown = 8;
                 stabsSent++;
                 return;
@@ -93,14 +93,14 @@ public final class HandTools {
         }
     }
 
-    private static void inject(Minecraft mc, LocalPlayer player, VRPose pose, Vec3 needle) {
-        VRBodyPartData off = pose.getOffHand();
+    private static void inject(Minecraft mc, LocalPlayer player, VrPose pose, Vec3 needle) {
+        VrPart off = pose.getOffHand();
         if (off != null && player.getHealth() < player.getMaxHealth()) {
             Vec3 wrist = off.getPos();
             Vec3 elbow = wrist.subtract(off.getDir().scale(FOREARM));
             if (distanceToSegment(needle, wrist, elbow) < FOREARM_REACH) {
                 sendInjection(player);
-                VrClient.haptic(VRBodyPart.OFF_HAND, 0.15F, 0.6F);
+                VrClient.haptic(VrHand.OFF_HAND, 0.15F, 0.6F);
                 return;
             }
         }
@@ -115,7 +115,7 @@ public final class HandTools {
 
     private static void sendInjection(LivingEntity target) {
         Net.CHANNEL.sendToServer(new MedkitPacket(target.getId()));
-        VrClient.haptic(VRBodyPart.MAIN_HAND, 0.15F, 0.6F);
+        VrClient.haptic(VrHand.MAIN_HAND, 0.15F, 0.6F);
         cooldown = 20;
         injectionsSent++;
     }

@@ -20,9 +20,9 @@ import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.joml.Matrix4f;
-import org.vivecraft.api.client.data.RenderPass;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrPass;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -116,11 +116,11 @@ public final class AttachmentHint {
         }
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
-        RenderPass pass = VrClient.currentPass();
-        if (player == null || OculusCompat.isRenderShadow() || pass != null && !RenderPass.isFirstPerson(pass)) {
+        VrPass pass = VrClient.currentPass();
+        if (player == null || OculusCompat.isRenderShadow() || pass != null && !pass.isFirstPerson()) {
             return;
         }
-        VRPose pose = VrClient.renderPose(player);
+        VrPose pose = VrClient.renderPose(player);
         if (pose == null) {
             return;
         }
@@ -128,7 +128,7 @@ public final class AttachmentHint {
         Font font = mc.font;
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
         for (Map.Entry<InteractionHand, List<Component>> entry : LINES.entrySet()) {
-            VRBodyPartData hand = pose.getHand(entry.getKey());
+            VrPart hand = pose.getHand(entry.getKey());
             List<Component> lines = entry.getValue();
             if (hand == null || lines.isEmpty()) {
                 continue;

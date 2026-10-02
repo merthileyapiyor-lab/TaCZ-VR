@@ -20,9 +20,9 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.registries.ForgeRegistries;
-import org.vivecraft.api.client.data.RenderPass;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrPass;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 /**
  * LesRaisins Tactical Equipments draws its knives, grenades, medkits and shield in first person only with its own
@@ -57,18 +57,18 @@ public final class LrTacticalVr {
             return;
         }
         // in third person views the player model holds it the normal way
-        RenderPass pass = VrClient.currentPass();
-        if (pass != null && !RenderPass.isFirstPerson(pass)) {
+        VrPass pass = VrClient.currentPass();
+        if (pass != null && !pass.isFirstPerson()) {
             return;
         }
-        VRPose pose = VrClient.renderPose(player);
+        VrPose pose = VrClient.renderPose(player);
         if (pose == null) {
             return;
         }
         try {
             for (InteractionHand hand : InteractionHand.values()) {
                 ItemStack stack = player.getItemInHand(hand);
-                VRBodyPartData part = pose.getHand(hand);
+                VrPart part = pose.getHand(hand);
                 if (part != null && isLrItem(stack)) {
                     draw(mc, player, hand, stack, part, event.getPoseStack(), event.getCamera().getPosition());
                 }
@@ -81,7 +81,7 @@ public final class LrTacticalVr {
         }
     }
 
-    private static void draw(Minecraft mc, LocalPlayer player, InteractionHand hand, ItemStack stack, VRBodyPartData part,
+    private static void draw(Minecraft mc, LocalPlayer player, InteractionHand hand, ItemStack stack, VrPart part,
                              PoseStack poseStack, Vec3 cam) {
         boolean left = (hand == InteractionHand.MAIN_HAND) == (player.getMainArm() == HumanoidArm.LEFT);
         Vec3 at = part.getPos();

@@ -30,8 +30,8 @@ import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -105,14 +105,14 @@ public final class GunPoseSolver {
      * @param kickBack      visual recoil, pushes the gun back along the barrel (meters)
      */
     @Nullable
-    public static Pose solve(Player player, ItemStack stack, VRPose vrPose, Vec3 positionOffset, float worldScale,
+    public static Pose solve(Player player, ItemStack stack, VrPose vrPose, Vec3 positionOffset, float worldScale,
                              float kickRadians, float kickBack) {
         return solve(player.getUUID(), stack, vrPose, positionOffset, worldScale, kickRadians, kickBack,
                 offHandFree(player));
     }
 
     @Nullable
-    public static Pose solve(UUID playerId, ItemStack stack, VRPose vrPose, Vec3 positionOffset, float worldScale,
+    public static Pose solve(UUID playerId, ItemStack stack, VrPose vrPose, Vec3 positionOffset, float worldScale,
                              float kickRadians, float kickBack) {
         return solve(playerId, stack, vrPose, positionOffset, worldScale, kickRadians, kickBack, true);
     }
@@ -133,7 +133,7 @@ public final class GunPoseSolver {
      * @param offHandFree false while the off-hand holds something for the gun, it can't take the handguard then
      */
     @Nullable
-    public static Pose solve(UUID playerId, ItemStack stack, VRPose vrPose, Vec3 positionOffset, float worldScale,
+    public static Pose solve(UUID playerId, ItemStack stack, VrPose vrPose, Vec3 positionOffset, float worldScale,
                              float kickRadians, float kickBack, boolean offHandFree) {
         IGun iGun = IGun.getIGunOrNull(stack);
         if (iGun == null) {
@@ -143,7 +143,7 @@ public final class GunPoseSolver {
         if (display == null || display.getGunModel() == null) {
             return null;
         }
-        VRBodyPartData mainHand = vrPose.getMainHand();
+        VrPart mainHand = vrPose.getMainHand();
         if (mainHand == null) {
             return null;
         }
@@ -200,11 +200,11 @@ public final class GunPoseSolver {
     /**
      * Rotates {@code rot} so the barrel points at the off-hand when the off-hand is on the handguard.
      */
-    private static boolean applyTwoHanded(UUID id, VRPose vrPose, Vec3 positionOffset, Quaternionf rot,
+    private static boolean applyTwoHanded(UUID id, VrPose vrPose, Vec3 positionOffset, Quaternionf rot,
                                           Vector3d grip, Vector3f gripLocal, Vector3f muzzleLocal, float scale,
                                           boolean offHandFree) {
         TaczVRConfig.Client cfg = TaczVRConfig.CLIENT;
-        VRBodyPartData offHand = vrPose.getOffHand();
+        VrPart offHand = vrPose.getOffHand();
         if (!cfg.twoHanded.get() || !offHandFree || offHand == null || vrPose.isSeated()) {
             TWO_HANDED.remove(id);
             return false;

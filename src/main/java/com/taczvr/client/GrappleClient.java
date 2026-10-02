@@ -30,8 +30,8 @@ import net.minecraftforge.client.event.RenderLevelStageEvent;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 /**
  * The grappling hook on the client: pulls you to your hook once it holds, and draws hook and rope.
@@ -130,8 +130,8 @@ public final class GrappleClient {
      * Where the rope starts: the tracked hand of a VR player, otherwise about where the hand holding it is.
      */
     static Vec3 handPosition(Player owner, InteractionHand hand, float partialTick) {
-        VRPose pose = VrClient.renderPose(owner);
-        VRBodyPartData part = pose == null ? null : pose.getHand(hand);
+        VrPose pose = VrClient.renderPose(owner);
+        VrPart part = pose == null ? null : pose.getHand(hand);
         if (part != null) {
             return part.getPos().add(VrClient.remoteInterpolationOffset(owner, partialTick));
         }
