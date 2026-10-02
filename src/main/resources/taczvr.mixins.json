@@ -2,6 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.taczvr.mixin",
+  "plugin": "com.taczvr.mixin.TaczVrMixinPlugin",
   "compatibilityLevel": "JAVA_17",
   "refmap": "taczvr.refmap.json",
   "mixins": [
