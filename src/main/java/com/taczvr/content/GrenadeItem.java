@@ -13,9 +13,9 @@ import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import org.vivecraft.api.data.VRBodyPart;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrHand;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 /**
  * A hand grenade, flashbang or smoke grenade. Press and hold use (A in VR) to pull the pin, the fuse starts burning.
@@ -113,23 +113,23 @@ public class GrenadeItem extends Item {
     }
 
     @Nullable
-    private static VRBodyPartData throwingHand(LivingEntity entity) {
+    private static VrPart throwingHand(LivingEntity entity) {
         if (!(entity instanceof Player player)) {
             return null;
         }
-        VRPose pose = VrCommon.getPose(player);
+        VrPose pose = VrCommon.getPose(player);
         return pose == null ? null : pose.getHand(entity.getUsedItemHand());
     }
 
     private static Vec3 throwOrigin(LivingEntity entity) {
-        VRBodyPartData hand = throwingHand(entity);
+        VrPart hand = throwingHand(entity);
         return hand != null ? hand.getPos() : entity.getEyePosition().subtract(0.0, 0.1, 0.0);
     }
 
     private static Vec3 throwVelocity(LivingEntity entity) {
         Vec3 velocity = null;
         if (entity instanceof Player player && VrCommon.isVRPlayer(player)) {
-            VRBodyPart part = entity.getUsedItemHand() == InteractionHand.MAIN_HAND ? VRBodyPart.MAIN_HAND : VRBodyPart.OFF_HAND;
+            VrHand part = entity.getUsedItemHand() == InteractionHand.MAIN_HAND ? VrHand.MAIN_HAND : VrHand.OFF_HAND;
             Vec3 swing = VrCommon.handVelocity(player, part);
             if (swing != null) {
                 velocity = swing.scale(VR_THROW_BOOST);

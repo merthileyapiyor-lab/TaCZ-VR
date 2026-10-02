@@ -16,8 +16,8 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 
 import java.util.List;
 
@@ -53,8 +53,8 @@ public class GrapplingHookItem extends Item {
         }
         Vec3 from = player.getEyePosition();
         Vec3 dir = player.getLookAngle();
-        VRPose pose = VrCommon.isVRPlayer(player) ? VrCommon.getPose(player) : null;
-        VRBodyPartData aim = pose == null ? null : pose.getHand(hand);
+        VrPose pose = VrCommon.isVRPlayer(player) ? VrCommon.getPose(player) : null;
+        VrPart aim = pose == null ? null : pose.getHand(hand);
         if (aim != null) {
             from = aim.getPos();
             dir = aim.getDir();
