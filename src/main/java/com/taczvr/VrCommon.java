@@ -1,16 +1,15 @@
 package com.taczvr;
 
+import com.taczvr.vr.VrBackends;
+import com.taczvr.vr.VrHand;
+import com.taczvr.vr.VrPart;
+import com.taczvr.vr.VrPose;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import org.vivecraft.api.VRAPI;
-import org.vivecraft.api.data.VRBodyPart;
-import org.vivecraft.api.data.VRBodyPartData;
-import org.vivecraft.api.data.VRPose;
-import org.vivecraft.api.data.VRPoseHistory;
 
 /**
- * Side-independent access to Vivecraft's public API.
+ * Side-independent access to the VR mod (Vivecraft or Visor).
  */
 public final class VrCommon {
     private static boolean loggedError = false;
@@ -22,7 +21,7 @@ public final class VrCommon {
      * Development self-test only: the tracked pose every player has while {@link #testForceVr} is on.
      */
     @Nullable
-    public static volatile VRPose testPose = null;
+    public static volatile VrPose testPose = null;
     /**
      * Development self-test only: hand speed while {@link #testForceVr} is on, blocks per tick.
      */
@@ -40,7 +39,7 @@ public final class VrCommon {
             return true;
         }
         try {
-            return VRAPI.instance().isVRPlayer(player);
+            return VrBackends.common().isVRPlayer(player);
         } catch (Throwable t) {
             logOnce(t);
             return false;
@@ -48,12 +47,12 @@ public final class VrCommon {
     }
 
     @Nullable
-    public static VRPose getPose(Player player) {
+    public static VrPose getPose(Player player) {
         if (testForceVr) {
             return testPose;
         }
         try {
-            return VRAPI.instance().getVRPose(player);
+            return VrBackends.common().getPose(player);
         } catch (Throwable t) {
             logOnce(t);
             return null;
@@ -64,14 +63,12 @@ public final class VrCommon {
      * How fast a VR player's hand moved over the last few ticks, in world space, blocks per tick.
      */
     @Nullable
-    public static Vec3 handVelocity(Player player, VRBodyPart part) {
+    public static Vec3 handVelocity(Player player, VrHand hand) {
         if (testForceVr) {
             return testHandVelocity;
         }
         try {
-            VRPoseHistory history = VRAPI.instance().getHistoricalVRPoses(player);
-            return history == null || history.ticksOfHistory() < 2 ? null
-                    : history.averageVelocity(part, Math.min(3, history.ticksOfHistory() - 1));
+            return VrBackends.common().handVelocity(player, hand);
         } catch (Throwable t) {
             logOnce(t);
             return null;
@@ -80,17 +77,17 @@ public final class VrCommon {
 
     @Nullable
     public static Hand getMainHand(Player player) {
-        VRPose pose = getPose(player);
+        VrPose pose = getPose(player);
         if (pose == null) {
             return null;
         }
-        VRBodyPartData hand = pose.getMainHand();
+        VrPart hand = pose.getMainHand();
         return hand == null ? null : new Hand(hand.getPos(), hand.getDir());
     }
 
     @Nullable
     public static Vec3 getHeadPos(Player player) {
-        VRPose pose = getPose(player);
+        VrPose pose = getPose(player);
         if (pose == null || pose.getHead() == null) {
             return null;
         }
@@ -100,7 +97,7 @@ public final class VrCommon {
     public static void logOnce(Throwable t) {
         if (!loggedError) {
             loggedError = true;
-            TaczVR.LOGGER.error("Vivecraft API call failed, VR gun handling may not work", t);
+            TaczVR.LOGGER.error("VR mod ({}) API call failed, VR gun handling may not work", VrBackends.common().name(), t);
         }
     }
 }

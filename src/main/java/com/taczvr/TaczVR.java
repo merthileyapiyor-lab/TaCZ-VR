@@ -31,6 +31,7 @@ public class TaczVR {
     public TaczVR() {
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, TaczVRConfig.CLIENT_SPEC);
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, TaczVRConfig.COMMON_SPEC);
+        com.taczvr.vr.VrBackends.init();
 
         ModContent.register(FMLJavaModLoadingContext.get().getModEventBus());
         Net.register();
