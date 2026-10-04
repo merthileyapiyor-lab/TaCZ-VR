@@ -42,6 +42,8 @@ public final class ClientSetup {
         MinecraftForge.EVENT_BUS.register(LrTacticalVr.class);
         MinecraftForge.EVENT_BUS.register(AttachmentHint.class);
         MinecraftForge.EVENT_BUS.register(UpdateChecker.class);
+        MinecraftForge.EVENT_BUS.register(GripDriver.class);
+        MinecraftForge.EVENT_BUS.register(ScopeCamera.class);
         MinecraftForge.EVENT_BUS.addListener(TaczVRCommands::register);
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         modBus.addListener(ClientSetup::onRegisterRenderers);

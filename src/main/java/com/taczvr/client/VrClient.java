@@ -127,6 +127,9 @@ public final class VrClient {
 
     @Nullable
     public static VrPass currentPass() {
+        if (ScopeCamera.isRendering()) {
+            return VrPass.SCOPE;
+        }
         if (testPose != null) {
             return null;
         }
