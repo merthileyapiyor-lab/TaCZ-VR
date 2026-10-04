@@ -116,7 +116,7 @@ LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, s
 
 `mods` klasörüne şunlar:
 
-1. `taczvr-1.20.1-1.4.0.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
+1. `taczvr-1.20.1-1.4.1.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
 2. TACZ `tacz-1.20.1-1.1.8-hotfix` (veya daha yeni 1.1.8+)
 3. **Vivecraft 1.20.1 Forge** — `vivecraft-1.20.1-1.3.15-forge.jar` **ya da** **Visor** (aşağıya bak)
 4. **Simple Voice Chat** — `voicechat-forge-1.20.1-2.6.17.jar` (telsiz için; olmasa da mod çalışır)
@@ -129,14 +129,11 @@ LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, s
 
 Vivecraft yerine **Visor** (başka bir VR modu) da kullanılabilir. Visor 0.6.0-alpha veya daha yenisi gerekir, Visor de **Forge 47.4.0** veya daha yenisini ister. İkisi birden kuruluysa Vivecraft kullanılır.
 
-Visor ile çalışanlar:
-- Elde 3D silah, namludan ateş, iki elle tutma, nişan alma
-- **Tetik** ateş eder, **A** reload yapar (TACZ'ın normal animasyonlu reload'u)
-- Sol eldeki aksesuarı silahtaki yerine götürünce takılır
-- Vuruş titreşimi, VR'da gizli nişangah, kamerayı döndürmeyen geri tepme
-- Silah elindeyken Visor'ın eli gizlenir, el kabzaya çizilir. Silahla savurmak blok kırmaz
-
-Visor'da henüz olmayanlar: **grip** ile yapılanlar (şarjörü elle çıkarma, aksesuar sökme, silah verme, gözlüğü açma), çift tabancada sol tetik, büyüten dürbünün içindeki yakın görüntü. Bunlar sonraki sürümde gelecek.
+Visor ile her şey Vivecraft'taki gibi çalışır, birkaç fark dışında:
+- **Grip:** Visor'da grip hotbar'ı açar. Elin tutulabilecek bir şeyin yanındayken (şarjör, belindeki yeni şarjör, sürgü, takılı aksesuar, arkadaşının eli, gözlük) grip o işe gider, hotbar açılmaz. Başka her yerde grip yine hotbar'dır.
+- **Sol tetik:** Elinde silah varken sol tetik oyuna tıklamaz; iki elinde tabanca varsa sol tabancayı ateşler. Visor menülerine sol elle tıklamak çalışmaya devam eder.
+- **Dürbün:** Visor'ın dürbün geçişi yok. Büyüten dürbünden bakarken mod, dünyayı dürbünün içinden yakınlaştırılmış bir kez daha çizer. Bu dürbünle nişan alırken biraz FPS'e mal olur. Fabulous grafik ayarında çalışmaz (Fancy/Fast kullan).
+- Silah elindeyken Visor'ın eli gizlenir, el kabzaya çizilir. Silahla savurmak blok kırmaz.
 
 Diğer oyuncular seni silahla 3D görmek için aynı VR modunu kullanmalı. Mermi her durumda namludan çıkar, sunucuda VR modu olmasa bile.
 

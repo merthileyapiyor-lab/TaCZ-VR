@@ -79,14 +79,11 @@ A **⚔ Game** button appears at the top left of the Esc menu for ops and the wo
 
 [Visor](https://modrinth.com/mod/visor) works instead of Vivecraft. It needs Visor 0.6.0-alpha or newer, and Visor itself needs **Forge 47.4.0** or newer. With both installed, Vivecraft is used.
 
-With Visor you get:
-- The 3D gun in your hand, shots from the barrel, two-handed grip and aiming down the sights
-- The **trigger** fires and **A** reloads (TaCZ's normal animated reload)
-- An attachment held in the left hand snaps on at its spot on the gun
-- Hit buzz, no HUD crosshair in VR, recoil that doesn't turn your view
-- Visor's own hand is hidden while you hold a gun, the hand is drawn on the grip, and swinging the gun doesn't break blocks
-
-Not with Visor yet: everything on the **grip** button (pulling a magazine by hand, taking attachments off, handing guns over, switching the goggles), the left trigger for a second pistol, and the zoomed picture inside magnifying scopes. These come in a later version.
+With Visor everything works like with Vivecraft, with a few differences:
+- **Grip:** Visor's grip opens its hotbar. While your hand is at something it can grab (the magazine, a new one at your belt, the charging handle, a mounted attachment, a friend's hand, the goggles), the grip goes there instead and the hotbar stays shut. Anywhere else the grip is still the hotbar.
+- **Left trigger:** with a gun in your hand the left trigger doesn't click into the game. With a pistol in each hand it fires the left one. Clicking Visor's menus with the left hand still works.
+- **Scopes:** Visor has no spyglass pass, so while you look through a magnifying scope the mod renders the world once more from inside the scope, zoomed in. That costs some FPS while aiming through it. It doesn't work with Fabulous graphics (use Fancy or Fast).
+- Visor's own hand is hidden while you hold a gun, the hand is drawn on the grip, and swinging the gun doesn't break blocks.
 
 Other players need the same VR mod to see you holding your gun in 3D. Shots always leave the barrel, even on a server without a VR mod.
 
