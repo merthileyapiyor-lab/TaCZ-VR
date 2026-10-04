@@ -48,7 +48,8 @@ public final class OffhandGunServer {
      * TACZ builds bullets from the shooter's gun data.
      */
     public static boolean dualWielding(ServerPlayer player) {
-        return TaczVRConfig.COMMON.dualWield.get() && VrCommon.isVRPlayer(player)
+        // like the aim: our client's VR aim counts when the server's VR mod doesn't know the player
+        return TaczVRConfig.COMMON.dualWield.get() && (VrCommon.isVRPlayer(player) || ServerAimStore.hasFreshAim(player))
                 && IGun.getIGunOrNull(player.getMainHandItem()) != null && IGun.getIGunOrNull(player.getOffhandItem()) != null;
     }
 

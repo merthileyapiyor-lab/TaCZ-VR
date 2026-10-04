@@ -69,7 +69,10 @@ public final class ServerAimStore {
         return aim;
     }
 
-    private static boolean hasFreshAim(ServerPlayer player) {
+    /**
+     * Our client sent a VR aim in the last few ticks, which it only does while in VR.
+     */
+    public static boolean hasFreshAim(ServerPlayer player) {
         Entry entry = AIMS.get(player.getUUID());
         return entry != null && player.level().getGameTime() - entry.gameTime <= MAX_AGE_TICKS;
     }
