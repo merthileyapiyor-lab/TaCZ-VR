@@ -55,7 +55,7 @@ public final class ServerAimStore {
     @Nullable
     public static Aim getAim(ServerPlayer player) {
         // our client only sends aims while in VR, so they count even when the server's VR mod doesn't know the player
-        // (a Visor player on a Vivecraft server, or a server without a VR mod)
+        // (a server without Vivecraft, for example)
         if (!TaczVRConfig.COMMON.serverVrAim.get() || !VrCommon.isVRPlayer(player) && !hasFreshAim(player)) {
             return null;
         }
