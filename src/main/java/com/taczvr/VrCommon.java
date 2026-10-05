@@ -9,7 +9,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Side-independent access to the VR mod (Vivecraft or Visor).
+ * Side-independent access to the VR mod (Vivecraft).
  */
 public final class VrCommon {
     private static boolean loggedError = false;
