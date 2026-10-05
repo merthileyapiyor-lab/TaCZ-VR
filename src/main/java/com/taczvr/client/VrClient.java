@@ -12,7 +12,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Client side access to the VR mod (Vivecraft or Visor). Everything is wrapped so a VR mod API change degrades
+ * Client side access to the VR mod (Vivecraft). Everything is wrapped so a VR mod API change degrades
  * instead of crashing.
  */
 public final class VrClient {
@@ -127,9 +127,6 @@ public final class VrClient {
 
     @Nullable
     public static VrPass currentPass() {
-        if (ScopeCamera.isRendering()) {
-            return VrPass.SCOPE;
-        }
         if (testPose != null) {
             return null;
         }

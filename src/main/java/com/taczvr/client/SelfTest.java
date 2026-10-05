@@ -457,8 +457,8 @@ public final class SelfTest {
     }
 
     /**
-     * A server whose VR mod doesn't know you're in VR (a Visor player on a Vivecraft server, or a server without a VR
-     * mod) still fires from your muzzle: the aim our client sends is enough.
+     * A server whose VR mod doesn't know you're in VR (a server without Vivecraft, for example) still fires from your
+     * muzzle: the aim our client sends is enough.
      */
     private static void aimWithoutServerVrMod() {
         run(mc -> server(sp -> {

@@ -42,8 +42,6 @@ public final class ClientSetup {
         MinecraftForge.EVENT_BUS.register(LrTacticalVr.class);
         MinecraftForge.EVENT_BUS.register(AttachmentHint.class);
         MinecraftForge.EVENT_BUS.register(UpdateChecker.class);
-        MinecraftForge.EVENT_BUS.register(GripDriver.class);
-        MinecraftForge.EVENT_BUS.register(ScopeCamera.class);
         MinecraftForge.EVENT_BUS.addListener(TaczVRCommands::register);
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         modBus.addListener(ClientSetup::onRegisterRenderers);
@@ -51,9 +49,7 @@ public final class ClientSetup {
         modBus.addListener(ClientKeys::onRegisterKeys);
         VrBackends.initClient();
         // SelfTest drives Vivecraft directly, it can't even load without it
-        if (VrBackends.isVisor()) {
-            VisorSelfTest.register();
-        } else {
+        if (VrBackends.isVivecraft()) {
             SelfTest.register();
         }
         try {
