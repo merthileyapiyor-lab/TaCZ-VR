@@ -84,18 +84,12 @@ gradle.projectsEvaluated {
 }
 
 dependencies {
-    minecraft "net.minecraftforge:forge:${project.hasProperty('visor') ? visor_forge_version : forge_version}"
+    minecraft "net.minecraftforge:forge:${forge_version}"
 
     compileOnly fg.deobf("maven.modrinth:vivecraft:${vivecraft_version}")
-    // the other VR mod we support, Vivecraft is used when both are there
-    compileOnly fg.deobf("maven.modrinth:visor:${visor_version}")
     compileOnly fg.deobf("maven.modrinth:timeless-and-classics-zero:${tacz_version}")
-    // only for the dev client (./gradlew runClient), never shipped. -Pvisor runs it with Visor instead of Vivecraft
-    if (project.hasProperty('visor')) {
-        runtimeOnly fg.deobf("maven.modrinth:visor:${visor_version}")
-    } else {
-        runtimeOnly fg.deobf("maven.modrinth:vivecraft:${vivecraft_version}")
-    }
+    // only for the dev client (./gradlew runClient), never shipped
+    runtimeOnly fg.deobf("maven.modrinth:vivecraft:${vivecraft_version}")
     runtimeOnly fg.deobf("maven.modrinth:timeless-and-classics-zero:${tacz_version}")
     // TACZ's gun renderer extends classes from this library, javac needs it to resolve the hierarchy
     compileOnly fg.deobf('libs:simplebedrockmodel:2.2.2-forge+mc1.20.1')

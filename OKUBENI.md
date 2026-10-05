@@ -1,6 +1,6 @@
 # TACZ VR Compat (Vivecraft x TACZ)
 
-Minecraft **Forge 1.20.1** modu. Vivecraft (ya da Visor) ile VR'da TACZ silahlarını gerçek silah gibi elinde tutmanı sağlar.
+Minecraft **Forge 1.20.1** modu. Vivecraft ile VR'da TACZ silahlarını gerçek silah gibi elinde tutmanı sağlar.
 
 ## Kontroller (Quest varsayılan tuşları)
 
@@ -116,26 +116,16 @@ LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, s
 
 `mods` klasörüne şunlar:
 
-1. `taczvr-1.20.1-1.4.1.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
+1. `taczvr-1.20.1-1.4.2.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
 2. TACZ `tacz-1.20.1-1.1.8-hotfix` (veya daha yeni 1.1.8+)
-3. **Vivecraft 1.20.1 Forge** — `vivecraft-1.20.1-1.3.15-forge.jar` **ya da** **Visor** (aşağıya bak)
+3. **Vivecraft 1.20.1 Forge** — `vivecraft-1.20.1-1.3.15-forge.jar`
 4. **Simple Voice Chat** — `voicechat-forge-1.20.1-2.6.17.jar` (telsiz için; olmasa da mod çalışır)
 
 **Güncelleme:** Oyun açılınca mod GitHub'da (https://github.com/merthileyapiyor-lab/TaCZ-VR-releases) yeni sürüm var mı diye bakar. Varsa ana menüde **Update TaCZ VR** ekranı çıkar: **Later** ile geçersin, **Quit Game** yeni sürümü indirip mods klasörüne kurar, eskisini siler ve oyunu kapatır. Oyunu tekrar açınca yeni sürümle oynarsın. Kapatmak için `updateCheck = false`.
 
 Çok oyunculu sunucuda mod **sunucuya da** kurulmalı. Mermi yönü, şarjör, aksesuar ve silah verme sunucuda işleniyor. Sunucu ve tüm oyuncular **aynı sürümü** kullanmalı. Tek oyunculuda ekstra bir şey gerekmez.
 
-## Visor ile
-
-Vivecraft yerine **Visor** (başka bir VR modu) da kullanılabilir. Visor 0.6.0-alpha veya daha yenisi gerekir, Visor de **Forge 47.4.0** veya daha yenisini ister. İkisi birden kuruluysa Vivecraft kullanılır.
-
-Visor ile her şey Vivecraft'taki gibi çalışır, birkaç fark dışında:
-- **Grip:** Visor'da grip hotbar'ı açar. Elin tutulabilecek bir şeyin yanındayken (şarjör, belindeki yeni şarjör, sürgü, takılı aksesuar, arkadaşının eli, gözlük) grip o işe gider, hotbar açılmaz. Başka her yerde grip yine hotbar'dır.
-- **Sol tetik:** Elinde silah varken sol tetik oyuna tıklamaz; iki elinde tabanca varsa sol tabancayı ateşler. Visor menülerine sol elle tıklamak çalışmaya devam eder.
-- **Dürbün:** Visor'ın dürbün geçişi yok. Büyüten dürbünden bakarken mod, dünyayı dürbünün içinden yakınlaştırılmış bir kez daha çizer. Bu dürbünle nişan alırken biraz FPS'e mal olur. Fabulous grafik ayarında çalışmaz (Fancy/Fast kullan).
-- Silah elindeyken Visor'ın eli gizlenir, el kabzaya çizilir. Silahla savurmak blok kırmaz.
-
-Diğer oyuncular seni silahla 3D görmek için aynı VR modunu kullanmalı. Mermi her durumda namludan çıkar, sunucuda VR modu olmasa bile.
+Diğer oyuncular seni silahla 3D görmek için Vivecraft kullanmalı. Mermi her durumda namludan çıkar, sunucuda Vivecraft olmasa bile.
 
 ## Hizalama ayarı (oyun içinde)
 

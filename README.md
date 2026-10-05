@@ -1,6 +1,6 @@
 # TaCZ VR
 
-Hold [TaCZ](https://modrinth.com/mod/timeless-and-classics-zero) guns in [Vivecraft](https://modrinth.com/mod/vivecraft) VR: real 3D guns in your hands, aim down the barrel, two-handed grip, hand reloads and working scopes. [Visor](https://modrinth.com/mod/visor) is supported too.
+Hold [TaCZ](https://modrinth.com/mod/timeless-and-classics-zero) guns in [Vivecraft](https://modrinth.com/mod/vivecraft) VR: real 3D guns in your hands, aim down the barrel, two-handed grip, hand reloads and working scopes.
 
 Minecraft **1.20.1**, **Forge**. [Türkçe açıklama: OKUBENI.md](OKUBENI.md)
 
@@ -10,12 +10,12 @@ Put these in your `mods` folder:
 
 1. `taczvr-1.20.1-<version>.jar` (this mod, from [TaCZ-VR-releases](https://github.com/merthileyapiyor-lab/TaCZ-VR-releases/releases))
 2. [TaCZ](https://modrinth.com/mod/timeless-and-classics-zero) 1.1.8-hotfix or newer
-3. [Vivecraft](https://modrinth.com/mod/vivecraft) 1.20.1 Forge (built with 1.3.15), **or** [Visor](https://modrinth.com/mod/visor) 0.6.0-alpha or newer (see below)
+3. [Vivecraft](https://modrinth.com/mod/vivecraft) 1.20.1 Forge (built with 1.3.15)
 4. Optional: [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) 1.20.1, for the radio
 
 **Updates:** when the game starts, the mod looks for a newer release on [TaCZ-VR-releases](https://github.com/merthileyapiyor-lab/TaCZ-VR-releases/releases). If there is one, the title screen shows **Update TaCZ VR**: **Later** skips it, **Quit Game** downloads the new jar into your mods folder, removes the old one and closes the game. Start it again to play with the new version. Turn it off with `updateCheck = false`.
 
-On a server the mod goes **on the server too**, because bullet direction, magazines, attachments and handing guns over are done there. The server and every player need the **same version**. Flat-screen players can join and play with VR players; they see VR players holding their guns in 3D.
+On a server the mod goes **on the server too**, because bullet direction, magazines, attachments and handing guns over are done there. The server and every player need the **same version**. Flat-screen players can join and play with VR players; they see VR players holding their guns in 3D. Shots always leave the barrel, even on a server without Vivecraft.
 
 ## Controls (Quest default buttons)
 
@@ -75,18 +75,6 @@ A **⚔ Game** button appears at the top left of the Esc menu for ops and the wo
   - Points for kills, revives and waves, and a shop between waves (**J**). Everything bought with points is taken back when the round ends.
   - A giant boss zombie every 5 waves.
 
-## With Visor
-
-[Visor](https://modrinth.com/mod/visor) works instead of Vivecraft. It needs Visor 0.6.0-alpha or newer, and Visor itself needs **Forge 47.4.0** or newer. With both installed, Vivecraft is used.
-
-With Visor everything works like with Vivecraft, with a few differences:
-- **Grip:** Visor's grip opens its hotbar. While your hand is at something it can grab (the magazine, a new one at your belt, the charging handle, a mounted attachment, a friend's hand, the goggles), the grip goes there instead and the hotbar stays shut. Anywhere else the grip is still the hotbar.
-- **Left trigger:** with a gun in your hand the left trigger doesn't click into the game. With a pistol in each hand it fires the left one. Clicking Visor's menus with the left hand still works.
-- **Scopes:** Visor has no spyglass pass, so while you look through a magnifying scope the mod renders the world once more from inside the scope, zoomed in. That costs some FPS while aiming through it. It doesn't work with Fabulous graphics (use Fancy or Fast).
-- Visor's own hand is hidden while you hold a gun, the hand is drawn on the grip, and swinging the gun doesn't break blocks.
-
-Other players need the same VR mod to see you holding your gun in 3D. Shots always leave the barrel, even on a server without a VR mod.
-
 ## Settings
 
 | Command | What it does |
@@ -115,7 +103,7 @@ Needs JDK 17. Gradle downloads TaCZ, Vivecraft and Simple Voice Chat from Modrin
 
 The jar is `build/libs/taczvr-1.20.1-<version>.jar`.
 
-`./gradlew runClient` starts a dev client, `-Pvisor` with Visor (and Forge 47.4.0) instead of Vivecraft. `./gradlew runClient -Pselftest` runs the built-in self-test: it fakes VR poses and checks shooting, reloading, attachments, the items and the game modes, then closes the client. With `-Pvisor` it runs the Visor checks instead. `-Ptestonly=hook` (also `models`, `deagle`, `zombie`, `hint`, `lr`, `update`) runs only one part. `-Pnovoice` starts without Simple Voice Chat.
+`./gradlew runClient` starts a dev client. `./gradlew runClient -Pselftest` runs the built-in self-test: it fakes VR poses and checks shooting, reloading, attachments, the items and the game modes, then closes the client. `-Ptestonly=hook` (also `models`, `deagle`, `zombie`, `hint`, `lr`, `update`) runs only one part. `-Pnovoice` starts without Simple Voice Chat.
 
 ## Licence
 
