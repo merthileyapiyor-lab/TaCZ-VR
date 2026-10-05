@@ -5,7 +5,7 @@ import org.joml.Quaternionfc;
 
 /**
  * One tracked device of a VR player in world space: where it is, where it points and how it's turned.
- * Filled from whichever VR mod is installed, Vivecraft or Visor.
+ * Filled from the VR mod, so the rest of the mod doesn't depend on its classes.
  */
 public interface VrPart {
     Vec3 getPos();

@@ -84,18 +84,4 @@ public interface VrClientBackend {
 
     default void registerGripModules(List<GripModule> modules) {
     }
-
-    /**
-     * Whether the grip modules run through our own {@code GripDriver}, for a VR mod without grip modules of its own.
-     */
-    default boolean usesGripDriver() {
-        return false;
-    }
-
-    /**
-     * Whether the zoomed scope picture comes from our own {@code ScopeCamera}, for a VR mod without a spyglass pass.
-     */
-    default boolean usesScopeCamera() {
-        return false;
-    }
 }
