@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Leaves out the mixins that change or call into Vivecraft when it isn't installed (with Visor, or flat screen only).
+ * Leaves out the mixins that change or call into Vivecraft when it isn't installed (a flat screen game, or a server without it).
  */
 public class TaczVrMixinPlugin implements IMixinConfigPlugin {
     private static final Set<String> NEED_VIVECRAFT = Set.of(
