@@ -417,6 +417,7 @@ public final class SelfTest {
         firstPersonHands();
         buttonReload();
         trigger();
+        twoHandedTrigger();
         meleeThrust();
         manualMagazine();
         attachmentsAndScope();
@@ -2792,6 +2793,55 @@ public final class SelfTest {
     }
 
     /**
+     * Held with both hands (a CurseForge comment said the bullets then come from the crosshair): the shot still
+     * leaves the muzzle, along the barrel that now points from the grip hand to the handguard hand.
+     */
+    private static void twoHandedTrigger() {
+        run(mc -> rig(eye().add(0.1, -0.2, -0.3), new Quaternionf(EAST).rotateX((float) Math.toRadians(5.0)), idleOff()));
+        sleep(4);
+        run(mc -> {
+            GunPoseSolver.Pose pose = VrGunController.lastPose();
+            // off-hand on the handguard, a bit above the barrel line: the barrel tilts up towards it
+            setOff(new Vector3d(pose.muzzle).sub(pose.grip).mul(0.55).add(pose.grip).add(0.0, 0.06, 0.0));
+        });
+        sleep(4);
+        run(mc -> {
+            GunPoseSolver.Pose pose = VrGunController.lastPose();
+            check("two-handed shot: holding the handguard", pose.twoHanded, "");
+            expectedMuzzle = new Vec3(pose.muzzle.x, pose.muzzle.y, pose.muzzle.z);
+            expectedDir = pose.bulletDirection(25.0);
+            Vec3 oneHanded = new Vec3(rigRot.transform(new Vector3f(0.0F, 0.0F, -1.0F)));
+            check("two-handed shot: the barrel follows the off-hand, not the grip controller",
+                    Math.toDegrees(Math.acos(Math.min(1.0, expectedDir.dot(oneHanded.normalize())))) > 2.0, "");
+            bulletPos = null;
+            bulletVel = null;
+            captureBullet = true;
+            mc.setWindowActive(true);
+            grabMouse(mc);
+            VRInputAction.setKeyBindState(mc.options.keyAttack, true);
+        });
+        sleep(2);
+        run(mc -> mc.options.keyAttack.setDown(false));
+        await("two-handed shot: a bullet was fired", 20, mc -> bulletPos != null, () -> "none");
+        run(mc -> {
+            captureBullet = false;
+            if (bulletPos == null || bulletVel == null) {
+                return;
+            }
+            Vec3 dir = bulletVel.normalize();
+            double fromMuzzle = bulletPos.distanceTo(expectedMuzzle);
+            double offAim = Math.toDegrees(Math.acos(Math.min(1.0, dir.dot(expectedDir))));
+            double offLook = Math.toDegrees(Math.acos(Math.min(1.0, dir.dot(mc.player.getLookAngle()))));
+            log("two-handed bullet start=%s muzzle=%s dir=%s aim=%s", v(bulletPos), v(expectedMuzzle), v(dir), v(expectedDir));
+            check("two-handed shot: bullet starts at the muzzle", fromMuzzle < 0.15, String.format(Locale.ROOT, "%.3f blocks off", fromMuzzle));
+            check("two-handed shot: bullet flies along the two-handed barrel", offAim < 3.0, String.format(Locale.ROOT, "%.1f deg off", offAim));
+            check("two-handed shot: not from the crosshair", offLook > 60.0, String.format(Locale.ROOT, "%.1f deg from look", offLook));
+        });
+        run(mc -> restPose());
+        sleep(20);
+    }
+
+    /**
      * A fast jab along the barrel is a melee hit, aimed along the gun.
      */
     private static void meleeThrust() {
@@ -3550,13 +3600,13 @@ public final class SelfTest {
                 Vec3 target = eye().add(0.0, 0.0, -behind);
                 rig(rigMain.add(target.subtract(pose.origin.x, pose.origin.y, pose.origin.z)), NORTH, idleOff());
             });
-            sleep(4);
+            // TACZ only aims once the gun is drawn, which takes longer after some items than others
+            await("pistol scope " + behind + " m: aims", 40, mc -> IClientPlayerGunOperator.fromLocalPlayer(mc.player).isAim(), () -> "");
             run(mc -> {
                 GunPoseSolver.Pose pose = VrGunController.lastPose();
                 boolean aim = IClientPlayerGunOperator.fromLocalPlayer(mc.player).isAim();
                 log("deagle %.1f m: origin %s eye %s forward %s grip %s aim=%s viewing=%s fov=%.2f scale=%.3f", behind, v(pose.origin), v(eye()),
                         v(pose.forward), v(pose.grip), aim, ScopeView.isViewing(), ScopeView.fovDegrees(), pose.scale);
-                check("pistol scope " + behind + " m: aims", aim, "");
                 check("pistol scope " + behind + " m: magnified view on", ScopeView.isViewing(), "");
                 scopeEye = true;
             });
