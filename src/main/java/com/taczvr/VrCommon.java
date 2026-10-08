@@ -27,6 +27,10 @@ public final class VrCommon {
      */
     @Nullable
     public static volatile Vec3 testHandVelocity = null;
+    /**
+     * Development self-test only: bullets fly without spread, so a shot's direction can be checked exactly.
+     */
+    public static volatile boolean testNoSpread = false;
 
     public record Hand(Vec3 pos, Vec3 dir) {
     }
