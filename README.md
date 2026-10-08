@@ -2,16 +2,18 @@
 
 Hold [TaCZ](https://modrinth.com/mod/timeless-and-classics-zero) guns in [Vivecraft](https://modrinth.com/mod/vivecraft) VR: real 3D guns in your hands, aim down the barrel, two-handed grip, hand reloads and working scopes.
 
-Minecraft **1.20.1**, **Forge**. A **1.19.2** version is on the [`1.19.2` branch](https://github.com/merthileyapiyor-lab/TaCZ-VR/tree/1.19.2), its jar is in the same releases. [Türkçe açıklama: OKUBENI.md](OKUBENI.md)
+Minecraft **1.19.2**, **Forge** (this branch; the 1.20.1 version is on `main`). [Türkçe açıklama: OKUBENI.md](OKUBENI.md)
 
 ## Install
 
 Put these in your `mods` folder:
 
-1. `taczvr-1.20.1-<version>.jar` (this mod, from [TaCZ-VR-releases](https://github.com/merthileyapiyor-lab/TaCZ-VR-releases/releases))
-2. [TaCZ](https://modrinth.com/mod/timeless-and-classics-zero) 1.1.8-hotfix or newer
-3. [Vivecraft](https://modrinth.com/mod/vivecraft) 1.20.1 Forge (built with 1.3.15)
-4. Optional: [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) 1.20.1, for the radio
+1. `taczvr-1.19.2-<version>.jar` (this mod, from [TaCZ-VR-releases](https://github.com/merthileyapiyor-lab/TaCZ-VR-releases/releases))
+2. [TaCZ](https://modrinth.com/mod/timeless-and-classics-zero) 1.1.4-hotfix for 1.19.2 (the newest there is for 1.19.2)
+3. [Vivecraft](https://modrinth.com/mod/vivecraft) 1.19.2 Forge (built with 1.3.15)
+4. Optional: [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) 1.19.2, for the radio
+
+Forge 1.19.2 (43.x). Everything works as on 1.20.1, except what TaCZ 1.1.4 doesn't have: there are no laser attachments (so no laser beams), no pistol scope, and every scope has one view for all its zoom levels.
 
 **Updates:** when the game starts, the mod looks for a newer release on [TaCZ-VR-releases](https://github.com/merthileyapiyor-lab/TaCZ-VR-releases/releases). If there is one, the title screen shows **Update TaCZ VR**: **Later** skips it, **Quit Game** downloads the new jar into your mods folder, removes the old one and closes the game. Start it again to play with the new version. Turn it off with `updateCheck = false`.
 
@@ -82,6 +84,8 @@ TaCZ gun packs work without any setup: TaCZ VR has no list of guns, it reads eac
 If a pack's gun is too big or too small in your hand, give it its own size in `scaleOverrides` in `config/taczvr-client.toml`, for example `"ww2:kar98k=1.2"`.
 
 The World War 2 pack's zip (1.0.4) has three files with broken names that TaCZ can't open; unzip it into the `tacz` folder and it loads.
+
+On 1.19.2 a pack has to be made for TaCZ 1.1.4; most newer packs need TaCZ 1.1.5 or later, which only exists for 1.20.1.
 
 ## Settings
 

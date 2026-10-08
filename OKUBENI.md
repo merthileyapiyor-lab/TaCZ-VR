@@ -1,6 +1,6 @@
 # TACZ VR Compat (Vivecraft x TACZ)
 
-Minecraft **Forge 1.20.1** modu. Vivecraft ile VR'da TACZ silahlarını gerçek silah gibi elinde tutmanı sağlar.
+Minecraft **Forge 1.19.2** modu (1.20.1 sürümü ayrı jar). Vivecraft ile VR'da TACZ silahlarını gerçek silah gibi elinde tutmanı sağlar.
 
 ## Kontroller (Quest varsayılan tuşları)
 
@@ -62,7 +62,7 @@ Hepsi yaratıcı envanterde kendi **TaCZ VR** sekmesinde (VR gözlüklü logo), 
 - **Kanca** (üç demir, tuzak kancası, kayış): **A** / sağ tık ile elinin gösterdiği yere fırlatılır (VR dışında baktığın yere), 200 bloğa kadar gider, tıkladığın an takılır. Bir bloğa takılınca seni oraya çeker, orada asılı kalırsın, düşme hasarı birikmez. Tekrar **A** ile bırakırsın. Elinden bırakırsan ip kopar.
 - **Telsiz** (üstte paratoner, ortada bakır-kızıltaş-bakır, altta bakır-demir-bakır): Elindeyken **kullan tuşunu basılı tut**: telsiz ağzına kalkar, konuştuğun her şeyi envanterinde telsiz olan herkes duyar, ne kadar uzakta olursa olsun. Ses telsiz gibi cızırtılı gelir, basınca ve bırakınca "klik" sesi olur, ekranda kaç kişinin duyduğu yazar. VR'da telsizi **ağzına götürmen** yeterli. Takım maçında sadece takım arkadaşların duyar. 6 bloktan yakındakiler seni zaten normal sesle duyar, telsizden ikinci kez gelmez. Telsiz sesinin seviyesini Simple Voice Chat ayarlarında "Telsiz" kaydırıcısından ayarlayabilirsin.
 
-**Telsiz için Simple Voice Chat gerekir** (`voicechat-forge-1.20.1-2.6.17.jar`, bu klasörde). Herkes kurmalı. İlk açılışta **V**'ye basıp Simple Voice Chat'in kurulumunu bitirin, yoksa ses kapalı sayılır. SVC olmadan mod normal çalışır, sadece telsiz konuşmaz.
+**Telsiz için Simple Voice Chat gerekir** (`voicechat-forge-1.19.2-2.6.17.jar`). Herkes kurmalı. İlk açılışta **V**'ye basıp Simple Voice Chat'in kurulumunu bitirin, yoksa ses kapalı sayılır. SVC olmadan mod normal çalışır, sadece telsiz konuşmaz.
 
 ## Kalkan, lazer
 - **Kalkan:** Sol elindeki normal kalkanı merminin önüne tuttuğun an kurşunu durdurur, "kullanmana" gerek yok. İndirirsen mermi geçer.
@@ -116,12 +116,12 @@ LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, s
 
 `mods` klasörüne şunlar:
 
-1. `taczvr-1.20.1-1.4.2.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
-2. TACZ `tacz-1.20.1-1.1.8-hotfix` (veya daha yeni 1.1.8+)
-3. **Vivecraft 1.20.1 Forge** — `vivecraft-1.20.1-1.3.15-forge.jar`
-4. **Simple Voice Chat** — `voicechat-forge-1.20.1-2.6.17.jar` (telsiz için; olmasa da mod çalışır)
+1. `taczvr-1.19.2-1.4.2.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
+2. TACZ `tacz-1.19.2-1.1.4-hotfix` (1.19.2 için en yenisi)
+3. **Vivecraft 1.19.2 Forge** — `vivecraft-1.19.2-1.3.15-forge.jar`
+4. **Simple Voice Chat** — `voicechat-forge-1.19.2-2.6.17.jar` (telsiz için; olmasa da mod çalışır)
 
-Minecraft **1.19.2** için ayrı jar var: `taczvr-1.19.2-<sürüm>.jar` (TACZ 1.1.4-hotfix ve Vivecraft 1.19.2 ile), aynı GitHub sürümlerinde.
+Forge 1.19.2 (43.x) gerekir. Her şey 1.20.1'deki gibi çalışır, TACZ 1.1.4'te olmayanlar hariç: lazer aksesuarı yok (lazer ışını da yok), tabanca dürbünü yok, dürbünlerin her büyütmede tek görüşü var.
 
 **Güncelleme:** Oyun açılınca mod GitHub'da (https://github.com/merthileyapiyor-lab/TaCZ-VR-releases) yeni sürüm var mı diye bakar. Varsa ana menüde **Update TaCZ VR** ekranı çıkar: **Later** ile geçersin, **Quit Game** yeni sürümü indirip mods klasörüne kurar, eskisini siler ve oyunu kapatır. Oyunu tekrar açınca yeni sürümle oynarsın. Kapatmak için `updateCheck = false`.
 
@@ -136,6 +136,8 @@ TACZ gun pack'leri ayarsız çalışır: mod silah listesi tutmaz, her silahın 
 Bir paketin silahı elinde fazla büyük ya da küçükse `config/taczvr-client.toml` içindeki `scaleOverrides`'a kendi boyunu ekle, örneğin `"ww2:kar98k=1.2"`.
 
 World War 2 paketinin zip'inde (1.0.4) bozuk isimli üç dosya var, TACZ açamıyor; zip'i `tacz` klasörüne çıkarınca yüklenir.
+
+1.19.2'de paketin TACZ 1.1.4 için yapılmış olması gerekir; yeni paketlerin çoğu TACZ 1.1.5+ ister, o da sadece 1.20.1'de var.
 
 ## Hizalama ayarı (oyun içinde)
 
