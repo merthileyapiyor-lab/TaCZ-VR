@@ -54,7 +54,7 @@ public final class HandoffModule implements GripModule {
             return false;
         }
         double best = Double.MAX_VALUE;
-        for (Player other : player.level().players()) {
+        for (Player other : player.getLevel().players()) {
             if (other == player || other.isSpectator() || other.distanceToSqr(player) > 16.0) {
                 continue;
             }
