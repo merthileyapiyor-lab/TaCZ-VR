@@ -18,7 +18,7 @@ public abstract class PlayerPoseMixin {
     @Inject(method = "updatePlayerPose", at = @At("HEAD"), cancellable = true)
     private void taczvr$downedCrawl(CallbackInfo ci) {
         Player self = (Player) (Object) this;
-        boolean downed = self.level().isClientSide() ? DownedState.CLIENT.contains(self.getId()) : GameManager.isDowned(self);
+        boolean downed = self.getLevel().isClientSide() ? DownedState.CLIENT.contains(self.getId()) : GameManager.isDowned(self);
         if (downed) {
             self.setPose(Pose.SWIMMING);
             ci.cancel();

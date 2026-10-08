@@ -22,7 +22,7 @@ public abstract class LivingEntityShootMixin {
     @Final
     private LivingEntity shooter;
 
-    @ModifyVariable(method = "shoot(Ljava/util/function/Supplier;Ljava/util/function/Supplier;JFZ)Lcom/tacz/guns/api/entity/ShootResult;",
+    @ModifyVariable(method = "shoot(Ljava/util/function/Supplier;Ljava/util/function/Supplier;J)Lcom/tacz/guns/api/entity/ShootResult;",
             at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private Supplier<Float> taczvr$vrPitch(Supplier<Float> pitch) {
         if (!(this.shooter instanceof ServerPlayer player)) {
@@ -31,7 +31,7 @@ public abstract class LivingEntityShootMixin {
         return () -> taczvr$aimOr(player, true, pitch);
     }
 
-    @ModifyVariable(method = "shoot(Ljava/util/function/Supplier;Ljava/util/function/Supplier;JFZ)Lcom/tacz/guns/api/entity/ShootResult;",
+    @ModifyVariable(method = "shoot(Ljava/util/function/Supplier;Ljava/util/function/Supplier;J)Lcom/tacz/guns/api/entity/ShootResult;",
             at = @At("HEAD"), argsOnly = true, ordinal = 1)
     private Supplier<Float> taczvr$vrYaw(Supplier<Float> yaw) {
         if (!(this.shooter instanceof ServerPlayer player)) {
