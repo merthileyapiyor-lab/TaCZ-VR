@@ -1,5 +1,6 @@
 package com.taczvr.vr.vivecraft;
 
+import com.taczvr.compat.Joml;
 import com.taczvr.vr.VrHand;
 import com.taczvr.vr.VrPart;
 import com.taczvr.vr.VrPose;
@@ -70,7 +71,8 @@ public final class VivecraftPoses {
 
         @Override
         public Quaternionfc getRotation() {
-            return this.part.getRotation();
+            // Vivecraft's 1.19.2 API hands out Minecraft's own quaternion
+            return Joml.joml(this.part.getRotation());
         }
     }
 }
