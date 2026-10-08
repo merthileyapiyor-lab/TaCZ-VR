@@ -1,7 +1,8 @@
 package com.taczvr.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
+import com.taczvr.compat.Axis;
+import com.taczvr.compat.Joml;
 import com.taczvr.TaczVRConfig;
 import com.taczvr.mixin.client.BedrockModelAccessor;
 import com.tacz.guns.api.DefaultAssets;
@@ -17,7 +18,6 @@ import com.tacz.guns.client.model.GunModelConstant;
 import com.tacz.guns.client.model.bedrock.BedrockModel;
 import com.tacz.guns.client.model.bedrock.BedrockPart;
 import com.tacz.guns.client.model.bedrock.ModelRendererWrapper;
-import com.tacz.guns.client.renderer.item.AnimateGeoItemRenderer;
 import com.tacz.guns.client.resource.GunDisplayInstance;
 import com.tacz.guns.client.resource.index.ClientGunIndex;
 import net.minecraft.client.Minecraft;
@@ -243,7 +243,7 @@ public final class GunPoseSolver {
                 .translate(0.0F, 1.5F, 0.0F)
                 .rotateZ((float) Math.PI)
                 .translate(0.0F, 1.5F, 0.0F)
-                .mul(AnimateGeoItemRenderer.getPositioningNodeInverse(viewPath))
+                .mul(positioningNodeInverse(viewPath))
                 .translate(0.0F, -1.5F, 0.0F);
     }
 
@@ -254,8 +254,28 @@ public final class GunPoseSolver {
         poseStack.translate(0.0F, 1.5F, 0.0F);
         poseStack.mulPose(Axis.ZP.rotationDegrees(180.0F));
         poseStack.translate(0.0F, 1.5F, 0.0F);
-        poseStack.mulPoseMatrix(AnimateGeoItemRenderer.getPositioningNodeInverse(viewPath));
+        Joml.mulPoseMatrix(poseStack, positioningNodeInverse(viewPath));
         poseStack.translate(0.0F, -1.5F, 0.0F);
+    }
+
+    /**
+     * The inverse of a camera positioning bone chain, the way TACZ works it out for first person (TACZ 1.1.4 keeps it
+     * private).
+     */
+    static Matrix4f positioningNodeInverse(@Nullable List<BedrockPart> nodePath) {
+        Matrix4f matrix = new Matrix4f();
+        if (nodePath != null) {
+            for (int i = nodePath.size() - 1; i >= 0; i--) {
+                BedrockPart part = nodePath.get(i);
+                matrix.rotateX(-part.xRot).rotateY(-part.yRot).rotateZ(-part.zRot);
+                if (part.getParent() != null) {
+                    matrix.translate(-part.x / 16.0F, -part.y / 16.0F, -part.z / 16.0F);
+                } else {
+                    matrix.translate(-part.x / 16.0F, 1.5F - part.y / 16.0F, -part.z / 16.0F);
+                }
+            }
+        }
+        return matrix;
     }
 
     /**
@@ -269,12 +289,11 @@ public final class GunPoseSolver {
         }
         if (!DefaultAssets.isEmptyAttachmentId(scopeId) && model.getScopePosPath() != null) {
             List<BedrockPart> path = new ArrayList<>(model.getScopePosPath());
-            int zoomNumber = AttachmentItemDataAccessor.getZoomNumberFromTag(iGun.getAttachmentTag(stack, AttachmentType.SCOPE));
             TimelessAPI.getClientAttachmentIndex(scopeId).ifPresent(index -> {
                 BedrockAttachmentModel attachmentModel = index.getAttachmentModel();
-                int[] views = index.getViews();
-                if (attachmentModel != null && views != null && views.length > 0) {
-                    List<BedrockPart> scopeView = attachmentModel.getScopeViewPath(views[zoomNumber % views.length] - 1);
+                // TACZ 1.1.4 scopes have one view for all their zoom levels
+                if (attachmentModel != null) {
+                    List<BedrockPart> scopeView = attachmentModel.getScopeViewPath();
                     if (scopeView != null) {
                         path.addAll(scopeView);
                     }
@@ -365,11 +384,11 @@ public final class GunPoseSolver {
             return fallback == null ? null : new Vector3f(fallback);
         }
         PoseStack poseStack = new PoseStack();
-        poseStack.last().pose().set(chain);
+        Joml.setPose(poseStack, chain);
         for (BedrockPart part : path) {
             part.translateAndRotateAndScale(poseStack);
         }
-        return poseStack.last().pose().getTranslation(new Vector3f());
+        return Joml.translation(poseStack);
     }
 
     private static double scaleMultiplier(IGun iGun, ItemStack stack) {

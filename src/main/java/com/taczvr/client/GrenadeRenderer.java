@@ -1,7 +1,8 @@
 package com.taczvr.client;
 
+import com.taczvr.compat.Joml;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
+import com.taczvr.compat.Axis;
 import com.taczvr.content.GrenadeEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -10,7 +11,7 @@ import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -43,15 +44,15 @@ public final class GrenadeRenderer extends EntityRenderer<GrenadeEntity> {
                 axis.set(1.0F, 0.0F, 0.0F);
             }
             axis.normalize();
-            poseStack.mulPose(new Quaternionf().rotateAxis((grenade.tickCount + partialTick) * 0.45F, axis));
+            Joml.mulPose(poseStack, new Quaternionf().rotateAxis((grenade.tickCount + partialTick) * 0.45F, axis));
         } else {
             poseStack.translate(0.0F, 0.08F, 0.0F);
             poseStack.mulPose(Axis.YP.rotationDegrees(spin));
             poseStack.mulPose(Axis.ZP.rotationDegrees(90.0F));
         }
         poseStack.scale(SCALE, SCALE, SCALE);
-        this.items.renderStatic(grenade.getItem(), ItemDisplayContext.NONE, light, OverlayTexture.NO_OVERLAY, poseStack, buffers,
-                grenade.level(), grenade.getId());
+        this.items.renderStatic(grenade.getItem(), ItemTransforms.TransformType.NONE, light, OverlayTexture.NO_OVERLAY, poseStack, buffers,
+                grenade.getId());
         poseStack.popPose();
         drawn++;
         super.render(grenade, yaw, partialTick, poseStack, buffers, light);

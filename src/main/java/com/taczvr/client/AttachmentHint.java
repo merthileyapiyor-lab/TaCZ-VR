@@ -19,7 +19,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import org.joml.Matrix4f;
+import com.mojang.math.Matrix4f;
 import com.taczvr.vr.VrPass;
 import com.taczvr.vr.VrPart;
 import com.taczvr.vr.VrPose;
@@ -75,8 +75,8 @@ public final class AttachmentHint {
         IGun held = IGun.getIGunOrNull(otherHand);
         if (held != null) {
             lines.add(held.allowAttachment(otherHand, attachment)
-                    ? Component.translatableWithFallback("taczvr.hint.held_fits", "Fits the gun in your hand").withStyle(ChatFormatting.GREEN)
-                    : Component.translatableWithFallback("taczvr.hint.held_no", "Doesn't fit the gun in your hand").withStyle(ChatFormatting.RED));
+                    ? Component.translatable("taczvr.hint.held_fits").withStyle(ChatFormatting.GREEN)
+                    : Component.translatable("taczvr.hint.held_no").withStyle(ChatFormatting.RED));
         }
         List<Component> guns = new ArrayList<>();
         int more = 0;
@@ -93,18 +93,18 @@ public final class AttachmentHint {
             // hotbar slots by their number, the rest is in the bag
             Component where = slot < Inventory.getSelectionSize()
                     ? Component.literal(String.valueOf(slot + 1))
-                    : Component.translatableWithFallback("taczvr.hint.bag", "bag");
+                    : Component.translatable("taczvr.hint.bag");
             guns.add(Component.empty().append(stack.getHoverName()).append(Component.literal(" (").append(where).append(")")
                     .withStyle(ChatFormatting.GRAY)));
         }
         if (!guns.isEmpty()) {
-            lines.add(Component.translatableWithFallback("taczvr.hint.fits", "Fits:").withStyle(ChatFormatting.GOLD));
+            lines.add(Component.translatable("taczvr.hint.fits").withStyle(ChatFormatting.GOLD));
             lines.addAll(guns);
             if (more > 0) {
-                lines.add(Component.translatableWithFallback("taczvr.hint.more", "+%s more", more).withStyle(ChatFormatting.GRAY));
+                lines.add(Component.translatable("taczvr.hint.more", more).withStyle(ChatFormatting.GRAY));
             }
         } else if (held == null || !held.allowAttachment(otherHand, attachment)) {
-            lines.add(Component.translatableWithFallback("taczvr.hint.none", "Fits none of your guns").withStyle(ChatFormatting.RED));
+            lines.add(Component.translatable("taczvr.hint.none").withStyle(ChatFormatting.RED));
         }
         return lines;
     }
@@ -144,7 +144,7 @@ public final class AttachmentHint {
             for (int i = 0; i < lines.size(); i++) {
                 Component line = lines.get(i);
                 float x = -font.width(line) / 2.0F;
-                font.drawInBatch(line, x, i * 10.0F, 0xFFFFFFFF, false, matrix, buffers, Font.DisplayMode.NORMAL, 0xB0000000,
+                font.drawInBatch(line, x, i * 10.0F, 0xFFFFFFFF, false, matrix, buffers, false, 0xB0000000,
                         LightTexture.FULL_BRIGHT);
             }
             poseStack.popPose();

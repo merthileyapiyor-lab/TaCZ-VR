@@ -1,5 +1,6 @@
 package com.taczvr.client;
 
+import com.taczvr.compat.Buttons;
 import com.taczvr.network.AssistPacket;
 import com.taczvr.network.Net;
 import com.tacz.guns.api.TimelessAPI;
@@ -173,7 +174,7 @@ public final class ClientAssist {
     @SubscribeEvent
     public static void onScreenInit(ScreenEvent.Init.Post event) {
         if (allowed && event.getScreen() instanceof PauseScreen pause) {
-            event.addListener(Button.builder(Component.translatableWithFallback("taczvr.assist.button", "Assist"),
+            event.addListener(Buttons.builder(Component.translatable("taczvr.assist.button"),
                     button -> Minecraft.getInstance().setScreen(new AssistScreen(pause))).bounds(8, 8, 110, 20).build());
         }
     }

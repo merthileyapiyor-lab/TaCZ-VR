@@ -1,5 +1,6 @@
 package com.taczvr.client;
 
+import com.taczvr.compat.Joml;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.taczvr.content.GrappleEntity;
@@ -19,7 +20,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
@@ -28,7 +29,7 @@ import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
+import com.mojang.math.Matrix4f;
 import org.joml.Quaternionf;
 import com.taczvr.vr.VrPart;
 import com.taczvr.vr.VrPose;
@@ -86,7 +87,7 @@ public final class GrappleClient {
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
         Minecraft mc = Minecraft.getInstance();
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES || anchor == null || mc.player == null || mc.level == null) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || anchor == null || mc.player == null || mc.level == null) {
             return;
         }
         Vec3 cam = event.getCamera().getPosition();
@@ -96,7 +97,7 @@ public final class GrappleClient {
         poseStack.translate(anchor.x - cam.x, anchor.y - cam.y, anchor.z - cam.z);
         Vec3 hand = handPosition(mc.player, anchorHand, event.getPartialTick());
         drawHookAndRope(poseStack, buffers, mc.getItemRenderer(), anchor, hand, cam, Vec3.ZERO, true,
-                LevelRenderer.getLightColor(mc.level, BlockPos.containing(anchor)), mc.level, mc.player.getId());
+                LevelRenderer.getLightColor(mc.level, new BlockPos(anchor)), mc.level, mc.player.getId());
         poseStack.popPose();
         buffers.endBatch();
     }
@@ -111,11 +112,11 @@ public final class GrappleClient {
         poseStack.pushPose();
         if (facing.lengthSqr() > 1.0E-6) {
             Vec3 dir = facing.normalize();
-            poseStack.mulPose(new Quaternionf().rotationTo(0.0F, -1.0F, 0.0F, (float) dir.x, (float) dir.y, (float) dir.z));
+            Joml.mulPose(poseStack, new Quaternionf().rotationTo(0.0F, -1.0F, 0.0F, (float) dir.x, (float) dir.y, (float) dir.z));
         }
         poseStack.scale(0.6F, 0.6F, 0.6F);
-        items.renderStatic(new ItemStack(ModContent.GRAPPLING_HOOK.get()), ItemDisplayContext.NONE, light,
-                OverlayTexture.NO_OVERLAY, poseStack, buffers, level, seed);
+        items.renderStatic(new ItemStack(ModContent.GRAPPLING_HOOK.get()), ItemTransforms.TransformType.NONE, light,
+                OverlayTexture.NO_OVERLAY, poseStack, buffers, seed);
         poseStack.popPose();
         if (hand != null) {
             Vec3 rope = hand.subtract(at);
@@ -167,7 +168,7 @@ public final class GrappleClient {
             Vec3 at = hook.getPosition(partialTick);
             Vec3 hand = owner == null ? null : handPosition(owner, hook.hand(), partialTick);
             drawHookAndRope(poseStack, buffers, this.items, at, hand, this.entityRenderDispatcher.camera.getPosition(), hook.getDeltaMovement(),
-                    hook.isAnchored(), light, hook.level(), hook.getId());
+                    hook.isAnchored(), light, hook.getLevel(), hook.getId());
             super.render(hook, yaw, partialTick, poseStack, buffers, light);
         }
 

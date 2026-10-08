@@ -1,7 +1,7 @@
 package com.taczvr.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
+import com.taczvr.compat.Axis;
 import com.tacz.guns.client.model.BedrockGunModel;
 import com.tacz.guns.client.model.GunModelConstant;
 import com.tacz.guns.client.model.bedrock.BedrockPart;

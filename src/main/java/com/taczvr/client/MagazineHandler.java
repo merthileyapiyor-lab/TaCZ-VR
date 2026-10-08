@@ -1,5 +1,6 @@
 package com.taczvr.client;
 
+import com.taczvr.compat.Joml;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.taczvr.TaczVRConfig;
@@ -22,7 +23,7 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -264,12 +265,12 @@ public final class MagazineHandler {
         BedrockPart magazine = path.get(path.size() - 1);
         boolean wasVisible = magazine.visible;
         magazine.visible = true;
-        int light = LevelRenderer.getLightColor(mc.level, BlockPos.containing(at.x, at.y, at.z));
+        int light = LevelRenderer.getLightColor(mc.level, new BlockPos(at.x, at.y, at.z));
         // position of the magazine pivot in the aim frame, so it can be moved to the hand
         Vector3f magLocal = GunPoseSolver.boneInAimFrame(pose, path);
         poseStack.pushPose();
         poseStack.translate(at.x - cam.x, at.y - cam.y, at.z - cam.z);
-        poseStack.mulPose(new Quaternionf(rotation));
+        Joml.mulPose(poseStack, rotation);
         poseStack.scale(scale, scale, scale);
         poseStack.translate(-magLocal.x, -magLocal.y, -magLocal.z);
         GunPoseSolver.applyAimFrameChain(poseStack, pose.viewPath);
@@ -279,7 +280,7 @@ public final class MagazineHandler {
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
         RenderType type = RenderType.entityCutout(pose.display.getModelTexture());
         VertexConsumer consumer = buffers.getBuffer(type);
-        magazine.render(poseStack, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, consumer, light, OverlayTexture.NO_OVERLAY);
+        magazine.render(poseStack, ItemTransforms.TransformType.THIRD_PERSON_RIGHT_HAND, consumer, light, OverlayTexture.NO_OVERLAY);
         buffers.endBatch(type);
         poseStack.popPose();
         magazine.visible = wasVisible;

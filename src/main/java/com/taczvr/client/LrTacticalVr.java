@@ -1,7 +1,8 @@
 package com.taczvr.client;
 
+import com.taczvr.compat.Joml;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
+import com.taczvr.compat.Axis;
 import com.taczvr.TaczVR;
 import com.taczvr.TaczVRConfig;
 import com.tacz.guns.compat.oculus.OculusCompat;
@@ -14,7 +15,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
-import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
@@ -48,7 +49,7 @@ public final class LrTacticalVr {
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES || !TaczVRConfig.CLIENT.enabled.get()) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || !TaczVRConfig.CLIENT.enabled.get()) {
             return;
         }
         Minecraft mc = Minecraft.getInstance();
@@ -87,13 +88,13 @@ public final class LrTacticalVr {
         Vec3 at = part.getPos();
         poseStack.pushPose();
         poseStack.translate(at.x - cam.x, at.y - cam.y, at.z - cam.z);
-        poseStack.mulPose(new org.joml.Quaternionf(part.getRotation()));
+        Joml.mulPose(poseStack, part.getRotation());
         // controller space (-Z forward, +Y up) to the frame an item has in a third person hand (+Y forward, +Z up)
         poseStack.mulPose(Axis.XP.rotationDegrees(-90.0F));
         poseStack.translate((left ? -1.0F : 1.0F) / 16.0F, 0.0F, 0.0F);
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
-        int light = LevelRenderer.getLightColor(mc.level, BlockPos.containing(at));
-        mc.getItemRenderer().renderStatic(player, stack, left ? ItemDisplayContext.THIRD_PERSON_LEFT_HAND : ItemDisplayContext.THIRD_PERSON_RIGHT_HAND,
+        int light = LevelRenderer.getLightColor(mc.level, new BlockPos(at));
+        mc.getItemRenderer().renderStatic(player, stack, left ? ItemTransforms.TransformType.THIRD_PERSON_LEFT_HAND : ItemTransforms.TransformType.THIRD_PERSON_RIGHT_HAND,
                 left, poseStack, buffers, mc.level, light, OverlayTexture.NO_OVERLAY, player.getId() + hand.ordinal());
         buffers.endBatch();
         poseStack.popPose();

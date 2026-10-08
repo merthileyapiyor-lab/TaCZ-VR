@@ -1,10 +1,12 @@
 package com.taczvr.client;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.taczvr.compat.Buttons;
 import com.taczvr.network.GameCommandPacket;
 import com.taczvr.network.Net;
 import com.taczvr.server.GameManager;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import com.taczvr.compat.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -42,7 +44,7 @@ public final class GameMenu {
     public static void onScreenInit(ScreenEvent.Init.Post event) {
         Minecraft mc = Minecraft.getInstance();
         if (event.getScreen() instanceof PauseScreen pause && canControl(mc) && serverHasMod()) {
-            event.addListener(Button.builder(Component.translatableWithFallback("taczvr.game.button", "Game"),
+            event.addListener(Buttons.builder(Component.translatable("taczvr.game.button"),
                     button -> mc.setScreen(new GameScreen(pause))).bounds(8, 32, 110, 20).build());
         }
     }
@@ -51,7 +53,7 @@ public final class GameMenu {
         private final Screen parent;
 
         GameScreen(Screen parent) {
-            super(Component.translatableWithFallback("taczvr.game.title", "Game"));
+            super(Component.translatable("taczvr.game.title"));
             this.parent = parent;
         }
 
@@ -65,14 +67,14 @@ public final class GameMenu {
             mode(left, y + 24, "taczvr.game.start.teams", "Team match", GameManager.TEAMS);
             mode(right, y + 24, "taczvr.game.start.lives", "Three lives", GameManager.LIVES);
             mode(left, y + 48, "taczvr.game.start.zombies", "Zombie waves", GameManager.ZOMBIES);
-            this.addRenderableWidget(Button.builder(Component.translatableWithFallback("taczvr.game.stop", "Stop the round"),
+            this.addRenderableWidget(Buttons.builder(Component.translatable("taczvr.game.stop"),
                     button -> Net.CHANNEL.sendToServer(new GameCommandPacket(GameManager.STOP))).bounds(right, y + 48, 150, 20).build());
-            this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
+            this.addRenderableWidget(Buttons.builder(CommonComponents.GUI_DONE, button -> this.onClose())
                     .bounds(this.width / 2 - 100, y + 80, 200, 20).build());
         }
 
         private void mode(int x, int y, String key, String fallback, int mode) {
-            this.addRenderableWidget(Button.builder(Component.translatableWithFallback(key, fallback), button -> start(mode))
+            this.addRenderableWidget(Buttons.builder(Component.translatable(key), button -> start(mode))
                     .bounds(x, y, 150, 20).build());
         }
 
@@ -82,13 +84,13 @@ public final class GameMenu {
         }
 
         @Override
-        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            this.renderBackground(graphics);
+        public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+            GuiGraphics graphics = new GuiGraphics(poseStack);
+            this.renderBackground(poseStack);
             graphics.drawCenteredString(this.font, this.title, this.width / 2, this.height / 4, 0xFFFFFF);
-            graphics.drawCenteredString(this.font, Component.translatableWithFallback("taczvr.game.info",
-                    "Everyone fights, nobody dies: at 0 health the round ends and nothing is lost"),
+            graphics.drawCenteredString(this.font, Component.translatable("taczvr.game.info"),
                     this.width / 2, this.height / 4 + 16, 0xA0A0A0);
-            super.render(graphics, mouseX, mouseY, partialTick);
+            super.render(poseStack, mouseX, mouseY, partialTick);
         }
 
         @Override
