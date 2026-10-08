@@ -10,16 +10,16 @@
     "common.LivingEntityShootMixin",
     "common.ModernKineticGunItemMixin",
     "common.PlayerPoseMixin",
+    "common.ProjectileMixin",
     "common.SensingMixin",
     "common.ServerGamePacketListenerAccessor"
   ],
   "client": [
-    "client.AimKeyMixin",
     "client.AnimationControllerAccessor",
     "client.BedrockModelAccessor",
     "client.CameraSetupEventMixin",
     "client.GameRendererMixin",
-    "client.GunItemRendererWrapperMixin",
+    "client.FirstPersonRenderGunEventMixin",
     "client.ItemInHandLayerMixin",
     "client.ItemInHandRendererInvoker",
     "client.ItemInHandRendererMixin",
