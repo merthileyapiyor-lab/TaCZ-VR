@@ -2,7 +2,7 @@
 
 Hold [TaCZ](https://modrinth.com/mod/timeless-and-classics-zero) guns in [Vivecraft](https://modrinth.com/mod/vivecraft) VR: real 3D guns in your hands, aim down the barrel, two-handed grip, hand reloads and working scopes.
 
-Minecraft **1.20.1**, **Forge**. [Türkçe açıklama: OKUBENI.md](OKUBENI.md)
+Minecraft **1.20.1**, **Forge**. A **1.19.2** version is on the [`1.19.2` branch](https://github.com/merthileyapiyor-lab/TaCZ-VR/tree/1.19.2), its jar is in the same releases. [Türkçe açıklama: OKUBENI.md](OKUBENI.md)
 
 ## Install
 
@@ -75,6 +75,14 @@ A **⚔ Game** button appears at the top left of the Esc menu for ops and the wo
   - Points for kills, revives and waves, and a shop between waves (**J**). Everything bought with points is taken back when the round ends.
   - A giant boss zombie every 5 waves.
 
+## Gun packs
+
+TaCZ gun packs work without any setup: TaCZ VR has no list of guns, it reads each gun's model bones (grip, muzzle, sights, magazine) the way TaCZ's own first person does. Tested in VR with Cold War Guns, Classics Reborn, World War 2 and the Fallout fix (218 guns): every gun sits in the hand, aims down the barrel and fires from its muzzle, and all but two also take hand magazine swaps (those two reload with **A**).
+
+If a pack's gun is too big or too small in your hand, give it its own size in `scaleOverrides` in `config/taczvr-client.toml`, for example `"ww2:kar98k=1.2"`.
+
+The World War 2 pack's zip (1.0.4) has three files with broken names that TaCZ can't open; unzip it into the `tacz` folder and it loads.
+
 ## Settings
 
 | Command | What it does |
@@ -103,7 +111,7 @@ Needs JDK 17. Gradle downloads TaCZ, Vivecraft and Simple Voice Chat from Modrin
 
 The jar is `build/libs/taczvr-1.20.1-<version>.jar`.
 
-`./gradlew runClient` starts a dev client. `./gradlew runClient -Pselftest` runs the built-in self-test: it fakes VR poses and checks shooting, reloading, attachments, the items and the game modes, then closes the client. `-Ptestonly=hook` (also `models`, `deagle`, `zombie`, `hint`, `lr`, `update`) runs only one part. `-Pnovoice` starts without Simple Voice Chat.
+`./gradlew runClient` starts a dev client. `./gradlew runClient -Pselftest` runs the built-in self-test: it fakes VR poses and checks shooting, reloading, attachments, the items and the game modes, then closes the client. `-Ptestonly=hook` (also `models`, `deagle`, `zombie`, `hint`, `lr`, `update`) runs only one part. `-Ptestonly=gunpacks -Prundir=run-gunpacks` holds, aims and fires every gun of the gun packs in `run-gunpacks/tacz` (`-Ppacks=ccrp,ww2` for only some), in a game folder of its own so the packs don't change the other checks. `-Pnovoice` starts without Simple Voice Chat.
 
 ## Licence
 

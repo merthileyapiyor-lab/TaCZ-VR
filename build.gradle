@@ -19,7 +19,8 @@ minecraft {
 
     runs {
         client {
-            workingDirectory project.file('run')
+            // -Prundir=run-gunpacks keeps a separate game folder, for gun packs the normal checks shouldn't see
+            workingDirectory project.file(project.findProperty('rundir') ?: 'run')
             property 'forge.logging.console.level', 'debug'
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
@@ -28,6 +29,10 @@ minecraft {
                 property 'taczvr.selftest.exit', 'true'
                 if (project.hasProperty('testonly')) {
                     property 'taczvr.selftest.only', project.property('testonly')
+                }
+                // -Ppacks=ccrp,ww2 tests only these gun pack namespaces
+                if (project.hasProperty('packs')) {
+                    property 'taczvr.selftest.packs', project.property('packs')
                 }
                 // -Pupdatelive also asks the real GitHub releases page
                 if (project.hasProperty('updatelive')) {

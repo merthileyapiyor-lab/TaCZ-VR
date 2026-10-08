@@ -121,11 +121,21 @@ LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, s
 3. **Vivecraft 1.20.1 Forge** — `vivecraft-1.20.1-1.3.15-forge.jar`
 4. **Simple Voice Chat** — `voicechat-forge-1.20.1-2.6.17.jar` (telsiz için; olmasa da mod çalışır)
 
+Minecraft **1.19.2** için ayrı jar var: `taczvr-1.19.2-<sürüm>.jar` (TACZ 1.1.4-hotfix ve Vivecraft 1.19.2 ile), aynı GitHub sürümlerinde.
+
 **Güncelleme:** Oyun açılınca mod GitHub'da (https://github.com/merthileyapiyor-lab/TaCZ-VR-releases) yeni sürüm var mı diye bakar. Varsa ana menüde **Update TaCZ VR** ekranı çıkar: **Later** ile geçersin, **Quit Game** yeni sürümü indirip mods klasörüne kurar, eskisini siler ve oyunu kapatır. Oyunu tekrar açınca yeni sürümle oynarsın. Kapatmak için `updateCheck = false`.
 
 Çok oyunculu sunucuda mod **sunucuya da** kurulmalı. Mermi yönü, şarjör, aksesuar ve silah verme sunucuda işleniyor. Sunucu ve tüm oyuncular **aynı sürümü** kullanmalı. Tek oyunculuda ekstra bir şey gerekmez.
 
 Diğer oyuncular seni silahla 3D görmek için Vivecraft kullanmalı. Mermi her durumda namludan çıkar, sunucuda Vivecraft olmasa bile.
+
+## Gun pack'ler
+
+TACZ gun pack'leri ayarsız çalışır: mod silah listesi tutmaz, her silahın modelindeki kemikleri (kabza, namlu ucu, nişangah, şarjör) TACZ'ın kendi birinci şahsı gibi okur. VR'da Cold War Guns, Classics Reborn, World War 2 ve Fallout fix ile denendi (218 silah): hepsi elde doğru durur, namludan nişan alır ve namlu ucundan ateş eder; ikisi hariç hepsinde şarjör elle de değişir (o ikisi **A** ile reload olur).
+
+Bir paketin silahı elinde fazla büyük ya da küçükse `config/taczvr-client.toml` içindeki `scaleOverrides`'a kendi boyunu ekle, örneğin `"ww2:kar98k=1.2"`.
+
+World War 2 paketinin zip'inde (1.0.4) bozuk isimli üç dosya var, TACZ açamıyor; zip'i `tacz` klasörüne çıkarınca yüklenir.
 
 ## Hizalama ayarı (oyun içinde)
 
