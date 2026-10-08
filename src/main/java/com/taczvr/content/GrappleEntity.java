@@ -85,7 +85,7 @@ public class GrappleEntity extends Projectile {
      * Fires a hook from {@code from} along {@code dir}: it holds at once on the first block within reach.
      */
     public static GrappleEntity fire(ServerPlayer player, InteractionHand hand, Vec3 from, Vec3 dir) {
-        Level level = player.level();
+        Level level = player.getLevel();
         Vec3 direction = dir.normalize();
         BlockHitResult hit = level.clip(new ClipContext(from, from.add(direction.scale(MAX_LENGTH)), ClipContext.Block.COLLIDER,
                 ClipContext.Fluid.NONE, player));
@@ -118,7 +118,7 @@ public class GrappleEntity extends Projectile {
         }
         // a miss, only there to be seen flying off
         this.setPos(this.position().add(this.getDeltaMovement()));
-        if (!this.level().isClientSide() && this.tickCount > MISS_TICKS) {
+        if (!this.getLevel().isClientSide() && this.tickCount > MISS_TICKS) {
             this.discard();
         }
     }
@@ -126,7 +126,7 @@ public class GrappleEntity extends Projectile {
     @Override
     public void remove(RemovalReason reason) {
         super.remove(reason);
-        if (!this.level().isClientSide() && this.getOwner() instanceof ServerPlayer owner && BY_OWNER.get(owner.getUUID()) == this) {
+        if (!this.getLevel().isClientSide() && this.getOwner() instanceof ServerPlayer owner && BY_OWNER.get(owner.getUUID()) == this) {
             BY_OWNER.remove(owner.getUUID());
             if (isAnchored()) {
                 Net.CHANNEL.send(PacketDistributor.PLAYER.with(() -> owner), new GrapplePacket(false, Vec3.ZERO, false));
@@ -150,7 +150,7 @@ public class GrappleEntity extends Projectile {
                 BY_OWNER.remove(entry.getKey(), hook);
                 continue;
             }
-            if (player == null || !player.isAlive() || player.isSpectator() || player.level() != hook.level()
+            if (player == null || !player.isAlive() || player.isSpectator() || player.getLevel() != hook.getLevel()
                     || !(player.getItemInHand(hook.hand()).getItem() instanceof GrapplingHookItem)
                     || hook.distanceToSqr(player) > (MAX_LENGTH + 8.0) * (MAX_LENGTH + 8.0)) {
                 hook.discard();

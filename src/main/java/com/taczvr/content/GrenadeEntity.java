@@ -10,6 +10,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -61,14 +62,14 @@ public class GrenadeEntity extends ThrowableItemProjectile {
     @Override
     public void tick() {
         super.tick();
-        if (this.level().isClientSide()) {
+        if (this.getLevel().isClientSide()) {
             return;
         }
         if (this.smoke > 0) {
             if (--this.smoke <= 0) {
                 this.discard();
             } else if (this.smoke % 20 == 0) {
-                this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.5F, 0.6F);
+                this.getLevel().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.5F, 0.6F);
             }
         } else if (--this.fuse <= 0) {
             detonate();
@@ -78,22 +79,22 @@ public class GrenadeEntity extends ThrowableItemProjectile {
     void detonate() {
         switch (kind()) {
             case FLASH -> {
-                Tactical.flash(this.level(), this.position().add(0.0, 0.1, 0.0), this.getOwner());
+                Tactical.flash(this.getLevel(), this.position().add(0.0, 0.1, 0.0), this.getOwner());
                 this.discard();
             }
             case SMOKE -> {
                 this.smoke = Tactical.SMOKE_TICKS;
-                Tactical.smoke(this.level(), this);
-                this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 1.0F, 0.5F);
+                Tactical.smoke(this.getLevel(), this);
+                this.getLevel().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 1.0F, 0.5F);
             }
             default -> explode();
         }
     }
 
     void explode() {
-        Level.ExplosionInteraction interaction = TaczVRConfig.COMMON.grenadeBreaksBlocks.get()
-                ? Level.ExplosionInteraction.TNT : Level.ExplosionInteraction.NONE;
-        this.level().explode(this, this.getX(), this.getY(0.0625), this.getZ(), POWER, interaction);
+        Explosion.BlockInteraction interaction = TaczVRConfig.COMMON.grenadeBreaksBlocks.get()
+                ? Explosion.BlockInteraction.BREAK : Explosion.BlockInteraction.NONE;
+        this.getLevel().explode(this, this.getX(), this.getY(0.0625), this.getZ(), POWER, interaction);
         this.discard();
     }
 
@@ -110,7 +111,7 @@ public class GrenadeEntity extends ThrowableItemProjectile {
         if (face == Direction.UP && bounced.lengthSqr() < 0.004) {
             bounced = Vec3.ZERO;
         } else if (motion.lengthSqr() > 0.01) {
-            this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.CHAIN_HIT, SoundSource.PLAYERS, 0.6F, 1.6F);
+            this.getLevel().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.CHAIN_HIT, SoundSource.PLAYERS, 0.6F, 1.6F);
         }
         Vec3 normal = Vec3.atLowerCornerOf(face.getNormal());
         this.setPos(hit.getLocation().add(normal.scale(0.05)));
@@ -136,7 +137,7 @@ public class GrenadeEntity extends ThrowableItemProjectile {
         this.fuse = tag.getInt("Fuse");
         this.smoke = tag.getInt("Smoke");
         if (this.smoke > 0) {
-            Tactical.smoke(this.level(), this);
+            Tactical.smoke(this.getLevel(), this);
         }
     }
 }

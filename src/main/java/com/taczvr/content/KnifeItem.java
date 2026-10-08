@@ -8,7 +8,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -37,7 +36,7 @@ public class KnifeItem extends SwordItem {
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatableWithFallback("item.taczvr.combat_knife.tip", "VR: stab forward. From behind: x2.5 damage")
+        tooltip.add(Component.translatable("item.taczvr.combat_knife.tip")
                 .withStyle(ChatFormatting.GRAY));
     }
 
@@ -54,7 +53,7 @@ public class KnifeItem extends SwordItem {
     @SubscribeEvent
     public static void onHurt(LivingHurtEvent event) {
         DamageSource source = event.getSource();
-        if (!(source.getDirectEntity() instanceof Player attacker) || !source.is(DamageTypes.PLAYER_ATTACK)
+        if (!(source.getDirectEntity() instanceof Player attacker) || !"player".equals(source.getMsgId())
                 || !(attacker.getMainHandItem().getItem() instanceof KnifeItem)) {
             return;
         }
@@ -64,8 +63,8 @@ public class KnifeItem extends SwordItem {
         }
         event.setAmount(event.getAmount() * BACKSTAB);
         backstabs++;
-        victim.level().playSound(null, victim.getX(), victim.getY(), victim.getZ(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.0F, 0.7F);
-        if (victim.level() instanceof ServerLevel level) {
+        victim.getLevel().playSound(null, victim.getX(), victim.getY(), victim.getZ(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.0F, 0.7F);
+        if (victim.getLevel() instanceof ServerLevel level) {
             level.sendParticles(ParticleTypes.CRIT, victim.getX(), victim.getY(0.6), victim.getZ(), 12, 0.2, 0.2, 0.2, 0.3);
         }
     }

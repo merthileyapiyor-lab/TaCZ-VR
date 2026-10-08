@@ -39,7 +39,7 @@ public class MedkitItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatableWithFallback("item.taczvr.medkit.tip", "Heals 4 hearts. VR: push it into your other forearm or a friend")
+        tooltip.add(Component.translatable("item.taczvr.medkit.tip")
                 .withStyle(ChatFormatting.GRAY));
     }
 
@@ -77,11 +77,11 @@ public class MedkitItem extends Item {
         if (target.getHealth() >= target.getMaxHealth()) {
             return InteractionResult.PASS;
         }
-        if (!player.level().isClientSide()) {
+        if (!player.getLevel().isClientSide()) {
             heal(target, player);
             consume(player, stack);
         }
-        return InteractionResult.sidedSuccess(player.level().isClientSide());
+        return InteractionResult.sidedSuccess(player.getLevel().isClientSide());
     }
 
     /**
@@ -95,9 +95,9 @@ public class MedkitItem extends Item {
         heals++;
         target.heal(HEAL);
         target.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 0));
-        target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.HONEY_DRINK, SoundSource.PLAYERS, 0.8F, 1.4F);
-        target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.4F, 0.6F);
-        if (target.level() instanceof ServerLevel level) {
+        target.getLevel().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.HONEY_DRINK, SoundSource.PLAYERS, 0.8F, 1.4F);
+        target.getLevel().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.4F, 0.6F);
+        if (target.getLevel() instanceof ServerLevel level) {
             // round the body, not in front of the eyes
             level.sendParticles(ParticleTypes.HEART, target.getX(), target.getY(0.35), target.getZ(), 3, 0.35, 0.15, 0.35, 0.0);
         }

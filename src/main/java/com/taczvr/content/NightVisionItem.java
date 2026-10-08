@@ -35,12 +35,12 @@ public class NightVisionItem extends ArmorItem {
 
     private static final ArmorMaterial MATERIAL = new ArmorMaterial() {
         @Override
-        public int getDurabilityForType(Type type) {
+        public int getDurabilityForSlot(EquipmentSlot slot) {
             return 150;
         }
 
         @Override
-        public int getDefenseForType(Type type) {
+        public int getDefenseForSlot(EquipmentSlot slot) {
             return 1;
         }
 
@@ -76,7 +76,7 @@ public class NightVisionItem extends ArmorItem {
     };
 
     public NightVisionItem(Properties properties) {
-        super(MATERIAL, Type.HELMET, properties);
+        super(MATERIAL, EquipmentSlot.HEAD, properties);
     }
 
     public static boolean isOn(ItemStack stack) {
@@ -93,7 +93,7 @@ public class NightVisionItem extends ArmorItem {
         }
         boolean on = !isOn(helmet);
         helmet.getOrCreateTag().putBoolean(OFF, !on);
-        player.level().playSound(null, player.getX(), player.getEyeY(), player.getZ(),
+        player.getLevel().playSound(null, player.getX(), player.getEyeY(), player.getZ(),
                 on ? SoundEvents.BEACON_POWER_SELECT : SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 0.35F, 2.0F);
         updateEffect(player);
         return true;
@@ -101,10 +101,10 @@ public class NightVisionItem extends ArmorItem {
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add((isOn(stack) ? Component.translatableWithFallback("item.taczvr.night_vision_goggles.on", "On")
-                : Component.translatableWithFallback("item.taczvr.night_vision_goggles.off", "Off"))
+        tooltip.add((isOn(stack) ? Component.translatable("item.taczvr.night_vision_goggles.on")
+                : Component.translatable("item.taczvr.night_vision_goggles.off"))
                 .withStyle(isOn(stack) ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY));
-        tooltip.add(Component.translatableWithFallback("item.taczvr.night_vision_goggles.tip", "Switch: B, in VR touch them and press grip")
+        tooltip.add(Component.translatable("item.taczvr.night_vision_goggles.tip")
                 .withStyle(ChatFormatting.GRAY));
     }
 

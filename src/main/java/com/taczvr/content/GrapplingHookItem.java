@@ -33,7 +33,7 @@ public class GrapplingHookItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatableWithFallback("item.taczvr.grappling_hook.tip", "Use: fire / let go. Reaches 200 blocks")
+        tooltip.add(Component.translatable("item.taczvr.grappling_hook.tip")
                 .withStyle(ChatFormatting.GRAY));
     }
 

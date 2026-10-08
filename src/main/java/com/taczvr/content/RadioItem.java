@@ -25,9 +25,8 @@ public class RadioItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatableWithFallback("item.taczvr.radio.tip",
-                "Hold use and talk (VR: hold it to your mouth). Everyone with a radio hears you").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatableWithFallback("item.taczvr.radio.needs", "Needs Simple Voice Chat")
+        tooltip.add(Component.translatable("item.taczvr.radio.tip").withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("item.taczvr.radio.needs")
                 .withStyle(ChatFormatting.DARK_GRAY));
     }
 

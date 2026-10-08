@@ -1,5 +1,6 @@
 package com.taczvr.content;
 
+import com.taczvr.compat.Mc;
 import com.taczvr.VrCommon;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -75,12 +76,12 @@ public class GrenadeItem extends Item {
             return;
         }
         if (held % 20 == 0 && held > 0) {
-            level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.NOTE_BLOCK_HAT.value(), SoundSource.PLAYERS, 0.5F, 2.0F);
+            level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.NOTE_BLOCK_HAT, SoundSource.PLAYERS, 0.5F, 2.0F);
         }
         if (held >= this.kind.fuse) {
             // cooked too long
             GrenadeEntity grenade = new GrenadeEntity(level, entity);
-            grenade.setItem(stack.copyWithCount(1));
+            grenade.setItem(Mc.copyWithCount(stack, 1));
             grenade.setPos(throwOrigin(entity));
             grenade.setDeltaMovement(Vec3.ZERO);
             level.addFreshEntity(grenade);
@@ -97,7 +98,7 @@ public class GrenadeItem extends Item {
         }
         int fuse = Math.max(1, this.kind.fuse - (getUseDuration(stack) - timeLeft));
         GrenadeEntity grenade = new GrenadeEntity(level, entity);
-        grenade.setItem(stack.copyWithCount(1));
+        grenade.setItem(Mc.copyWithCount(stack, 1));
         grenade.setPos(throwOrigin(entity));
         grenade.setDeltaMovement(throwVelocity(entity));
         grenade.setFuse(fuse);
