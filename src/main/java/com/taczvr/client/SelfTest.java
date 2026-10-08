@@ -41,6 +41,7 @@ import net.minecraft.world.level.block.Blocks;
 import com.taczvr.server.ServerAimStore;
 import com.taczvr.server.ServerAssist;
 import com.taczvr.server.ShieldBlock;
+import com.tacz.guns.client.model.BedrockGunModel;
 import com.tacz.guns.resource.pojo.data.gun.GunData;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -361,6 +362,8 @@ public final class SelfTest {
         await("client holds the AK", 40, mc -> clientAmmo(mc) == 30, () -> "ammo=" + clientAmmo(Minecraft.getInstance()));
         run(mc -> {
             VrCommon.testForceVr = true;
+            // the hip-fire spread would push the direction checks past their limit now and then
+            VrCommon.testNoSpread = true;
             restPose();
         });
         sleep(20);
@@ -411,6 +414,12 @@ public final class SelfTest {
         }
         if ("update".equals(System.getProperty("taczvr.selftest.only"))) {
             updateCheck();
+            finish();
+            return;
+        }
+        // -Ptestonly=gunpacks -Prundir=run-gunpacks: every gun of the gun packs in that folder's tacz/
+        if ("gunpacks".equals(System.getProperty("taczvr.selftest.only"))) {
+            gunPacks();
             finish();
             return;
         }
@@ -1617,6 +1626,8 @@ public final class SelfTest {
      * The assist menu: only for listed players, infinite ammo, aim assist and glowing targets.
      */
     private static void assist() {
+        // the real spread here, aim assist is what takes it away
+        run(mc -> VrCommon.testNoSpread = false);
         run(mc -> {
             check("assist: nobody listed, no menu", !ClientAssist.allowed(), "");
             mc.setScreen(new PauseScreen(true));
@@ -1745,6 +1756,7 @@ public final class SelfTest {
             restPose();
         });
         await("assist: menu gone once taken off the list", 20, mc -> !ClientAssist.allowed(), () -> "");
+        run(mc -> VrCommon.testNoSpread = true);
     }
 
     private static String name(@Nullable LivingEntity entity) {
@@ -3622,6 +3634,153 @@ public final class SelfTest {
         sleep(5);
     }
 
+    private static final List<String> PACK_PROBLEMS = new java.util.ArrayList<>();
+    private static final java.util.Map<String, int[]> PACK_COUNTS = new java.util.TreeMap<>();
+    private static int packDrawnBefore;
+    private static int packWaited;
+    private static int packShots;
+
+    /**
+     * Every gun of the installed gun packs (any namespace but TACZ's own) in the VR hand: it loads, points where the
+     * hand points, has a sane size, gets drawn, and a shot leaves its muzzle along the barrel.
+     */
+    private static void gunPacks() {
+        List<ResourceLocation> ids = TimelessAPI.getAllCommonGunIndex().stream().map(java.util.Map.Entry::getKey)
+                .filter(id -> !"tacz".equals(id.getNamespace()))
+                .filter(id -> System.getProperty("taczvr.selftest.packs") == null
+                        || List.of(System.getProperty("taczvr.selftest.packs").split(",")).contains(id.getNamespace()))
+                .sorted(java.util.Comparator.comparing(ResourceLocation::toString)).toList();
+        run(mc -> {
+            log("gunpacks: %d guns from packs", ids.size());
+            check("gunpacks: the packs' guns are loaded", !ids.isEmpty(), "no gun outside the tacz namespace");
+            VrCommon.testNoSpread = true;
+            mc.setWindowActive(true);
+            grabMouse(mc);
+        });
+        for (ResourceLocation id : ids) {
+            gunPackGun(id);
+        }
+        run(mc -> {
+            VrCommon.testNoSpread = false;
+            PACK_COUNTS.forEach((pack, n) -> log("gunpacks: %s %d/%d guns fine", pack, n[1], n[0]));
+            for (String problem : PACK_PROBLEMS) {
+                log("gunpacks problem: %s", problem);
+            }
+            give(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).setAmmoCount(30).setAmmoInBarrel(true).build());
+            restPose();
+        });
+    }
+
+    private static void gunPackGun(ResourceLocation id) {
+        List<String> issues = new java.util.ArrayList<>();
+        Vec3[] muzzleDir = new Vec3[2];
+        run(mc -> {
+            CommonGunIndex index = TimelessAPI.getCommonGunIndex(id).orElseThrow();
+            GunItemBuilder builder = GunItemBuilder.create().setId(id).setAmmoCount(Math.max(1, index.getGunData().getAmmoAmount()))
+                    .setAmmoInBarrel(true);
+            if (!index.getGunData().getFireModeSet().isEmpty()) {
+                builder.setFireMode(index.getGunData().getFireModeSet().get(0));
+            }
+            give(InteractionHand.MAIN_HAND, builder.build());
+            rig(eye().add(0.1, -0.2, -0.3), new Quaternionf(EAST).rotateX((float) Math.toRadians(10.0)), idleOff());
+            packDrawnBefore = VrGunRenderer.gunsDrawn;
+        });
+        // long enough for the slowest draw animations
+        sleep(24);
+        run(mc -> {
+            GunPoseSolver.Pose pose = VrGunController.lastPose();
+            if (pose == null || !id.equals(IGun.getIGunOrNull(mc.player.getMainHandItem()) == null ? null
+                    : IGun.getIGunOrNull(mc.player.getMainHandItem()).getGunId(mc.player.getMainHandItem()))) {
+                issues.add("no VR pose (model or display missing)");
+                return;
+            }
+            BedrockGunModel model = pose.model;
+            if (model.getThirdPersonHandOriginPath() == null) {
+                issues.add("no grip bone, the AK's grip spot is used");
+            }
+            if (model.getMuzzleFlashPosPath() == null) {
+                issues.add("no muzzle bone, the AK's muzzle spot is used");
+            }
+            if (model.getIronSightPath() == null && model.getIdleSightPath() == null) {
+                issues.add("no sight bones");
+            }
+            Vector3f hand = rigRot.transform(new Vector3f(0.0F, 0.0F, -1.0F));
+            double pointing = pose.forward.x * hand.x + pose.forward.y * hand.y + pose.forward.z * hand.z;
+            if (pointing < 0.99) {
+                issues.add(String.format(Locale.ROOT, "points %.0f deg off the hand", Math.toDegrees(Math.acos(Math.min(1.0, pointing)))));
+            }
+            double length = pose.muzzle.distance(pose.grip);
+            if (length < 0.05 || length > 2.5) {
+                issues.add(String.format(Locale.ROOT, "grip to muzzle %.2f m", length));
+            }
+            if (VrGunRenderer.gunsDrawn <= packDrawnBefore) {
+                issues.add("not drawn in the hand");
+            }
+            log("gunpack %s: grip-muzzle %.2f m, scale %.3f, manual magazine %s", id, length, pose.scale, MagazineHandler.appliesTo(mc.player.getMainHandItem()));
+            muzzleDir[0] = new Vec3(pose.muzzle.x, pose.muzzle.y, pose.muzzle.z);
+            muzzleDir[1] = pose.bulletDirection(25.0);
+            bulletPos = null;
+            bulletVel = null;
+            captureBullet = true;
+            packWaited = 0;
+            packShots = 0;
+            // Vivecraft reports the window active while in VR, TACZ only shoots in an active window
+            mc.setWindowActive(true);
+            grabMouse(mc);
+            VRInputAction.setKeyBindState(mc.options.keyAttack, true);
+        });
+        // pull the trigger again now and then: a bolt gun or a slow draw can swallow the first pull
+        STEPS.add(mc -> {
+            if (bulletPos != null || muzzleDir[0] == null || ++packWaited > 60) {
+                mc.options.keyAttack.setDown(false);
+                return true;
+            }
+            if (packWaited % 15 == 3) {
+                mc.options.keyAttack.setDown(false);
+            } else if (packWaited % 15 == 5) {
+                mc.setWindowActive(true);
+                grabMouse(mc);
+                VRInputAction.setKeyBindState(mc.options.keyAttack, true);
+                packShots++;
+            }
+            return false;
+        });
+        run(mc -> {
+            captureBullet = false;
+            if (muzzleDir[0] != null) {
+                if (bulletPos == null || bulletVel == null) {
+                    IGunOperator operator = IGunOperator.fromLivingEntity(mc.player);
+                    issues.add("no shot fired (ammo " + clientAmmo(mc) + ", " + packShots + " pulls, TACZ says "
+                            + IClientPlayerGunOperator.fromLocalPlayer(mc.player).shoot() + ", bolting " + operator.getSynIsBolting()
+                            + ", reload " + operator.getSynReloadState().getStateType() + ", draw " + operator.getSynDrawCoolDown()
+                            + ", sprint " + operator.getSynSprintTime() + ")");
+                } else {
+                    double fromMuzzle = bulletPos.distanceTo(muzzleDir[0]);
+                    double off = Math.toDegrees(Math.acos(Math.min(1.0, bulletVel.normalize().dot(muzzleDir[1]))));
+                    if (fromMuzzle > 0.2) {
+                        issues.add(String.format(Locale.ROOT, "shot starts %.2f m from the muzzle", fromMuzzle));
+                    }
+                    if (off > 2.0) {
+                        issues.add(String.format(Locale.ROOT, "shot flies %.1f deg off the barrel", off));
+                    }
+                }
+            }
+            int[] counts = PACK_COUNTS.computeIfAbsent(id.getNamespace(), k -> new int[2]);
+            counts[0]++;
+            if (issues.isEmpty()) {
+                counts[1]++;
+                pass("gunpack " + id);
+                // one picture per pack
+                if (counts[1] == 1) {
+                    screenshot(mc, "taczvr_gunpack_" + id.getNamespace() + ".png");
+                }
+            } else {
+                PACK_PROBLEMS.add(id + ": " + String.join(", ", issues));
+                fail("gunpack " + id, String.join(", ", issues));
+                screenshot(mc, "taczvr_gunpack_" + id.getNamespace() + "_" + id.getPath() + ".png");
+            }
+        });
+    }
     private static int standInTexture(Minecraft mc) {
         return mc.getTextureManager().getTexture(new ResourceLocation("textures/block/diamond_block.png")).getId();
     }

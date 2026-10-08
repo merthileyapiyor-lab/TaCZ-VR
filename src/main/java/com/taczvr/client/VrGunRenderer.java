@@ -347,6 +347,9 @@ public final class VrGunRenderer {
                 magazine.visible = false;
             }
             model.render(poseStack, stack, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, renderType, light, OverlayTexture.NO_OVERLAY);
+            if (local) {
+                gunsDrawn++;
+            }
             if (handsOf != null) {
                 // before cleaning up, so the hands follow the reload animation
                 GunHandRenderer.render(poseStack, model, handsOf, true, pose.twoHanded || local && leftHandOnGun(handsOf), light,
@@ -418,6 +421,7 @@ public final class VrGunRenderer {
 
     // for the self-test
     static int offhandGunsDrawn = 0;
+    static int gunsDrawn = 0;
 
     /**
      * A laser attachment's beam and dot, for everyone to see. TACZ only draws your own laser on a flat screen.
