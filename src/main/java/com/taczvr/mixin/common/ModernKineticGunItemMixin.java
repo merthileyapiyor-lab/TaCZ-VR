@@ -1,5 +1,6 @@
 package com.taczvr.mixin.common;
 
+import com.taczvr.VrCommon;
 import com.taczvr.server.ServerAimStore;
 import com.taczvr.server.ServerAssist;
 import com.tacz.guns.entity.shooter.ShooterDataHolder;
@@ -62,7 +63,7 @@ public abstract class ModernKineticGunItemMixin {
     private void taczvr$noSpreadWithAimAssist(ShooterDataHolder dataHolder, ItemStack gunItem, LivingEntity shooter,
                                               Projectile projectile, int bulletCnt, float processedSpeed, float inaccuracy,
                                               float pitch, float yaw, CallbackInfo ci) {
-        if (shooter instanceof ServerPlayer player && ServerAssist.aimAssist(player)) {
+        if (shooter instanceof ServerPlayer player && (ServerAssist.aimAssist(player) || VrCommon.testNoSpread)) {
             projectile.shootFromRotation(shooter, pitch, yaw, 0.0F, processedSpeed, 0.0F);
             ci.cancel();
         }
