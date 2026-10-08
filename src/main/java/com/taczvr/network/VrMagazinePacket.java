@@ -1,5 +1,6 @@
 package com.taczvr.network;
 
+import com.taczvr.compat.TaczCompat;
 import com.taczvr.server.ServerAssist;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.entity.IGunOperator;
@@ -40,7 +41,7 @@ public record VrMagazinePacket(Action action) {
     @Nullable
     public static GunData magazineGunData(ItemStack gun) {
         IGun iGun = IGun.getIGunOrNull(gun);
-        if (iGun == null || iGun.useInventoryAmmo(gun)) {
+        if (iGun == null || TaczCompat.useInventoryAmmo(iGun, gun)) {
             return null;
         }
         GunData data = TimelessAPI.getCommonGunIndex(iGun.getGunId(gun)).map(CommonGunIndex::getGunData).orElse(null);
@@ -66,7 +67,7 @@ public record VrMagazinePacket(Action action) {
             if (operator.getSynReloadState().getStateType().isReloading()) {
                 return;
             }
-            boolean freeAmmo = !operator.needCheckAmmo() || data.getReloadData().isInfinite();
+            boolean freeAmmo = !operator.needCheckAmmo();
             switch (msg.action) {
                 case EJECT -> {
                     // with infinite ammo the gun refills itself, giving the rounds back would make ammo out of nothing
@@ -91,7 +92,7 @@ public record VrMagazinePacket(Action action) {
                         found = gunItem.findAndExtractDummyAmmo(gun, needed);
                     } else {
                         found = player.getCapability(ForgeCapabilities.ITEM_HANDLER, null)
-                                .map(cap -> gunItem.findAndExtractInventoryAmmo(cap, gun, needed)).orElse(0);
+                                .map(cap -> gunItem.findAndExtractInventoryAmmos(cap, gun, needed)).orElse(0);
                     }
                     gunItem.setCurrentAmmoCount(gun, current + found);
                 }

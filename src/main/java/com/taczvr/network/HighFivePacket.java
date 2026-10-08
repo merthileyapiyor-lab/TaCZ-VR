@@ -37,9 +37,9 @@ public record HighFivePacket(int otherId, Vec3 at) {
                 return;
             }
             received++;
-            player.serverLevel().playSound(null, msg.at.x, msg.at.y, msg.at.z, SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.PLAYERS, 1.0F, 1.7F);
-            player.serverLevel().sendParticles(ParticleTypes.CRIT, msg.at.x, msg.at.y, msg.at.z, 8, 0.05, 0.05, 0.05, 0.2);
-            Entity other = player.level().getEntity(msg.otherId);
+            player.getLevel().playSound(null, msg.at.x, msg.at.y, msg.at.z, SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.PLAYERS, 1.0F, 1.7F);
+            player.getLevel().sendParticles(ParticleTypes.CRIT, msg.at.x, msg.at.y, msg.at.z, 8, 0.05, 0.05, 0.05, 0.2);
+            Entity other = player.getLevel().getEntity(msg.otherId);
             if (other instanceof ServerPlayer target && target != player && Net.CHANNEL.isRemotePresent(target.connection.connection)) {
                 Net.CHANNEL.send(PacketDistributor.PLAYER.with(() -> target), new HighFiveFeltPacket(msg.at));
             }

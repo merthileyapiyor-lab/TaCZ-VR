@@ -1,5 +1,6 @@
 package com.taczvr.network;
 
+import com.taczvr.compat.Mc;
 import com.taczvr.content.KnifeItem;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -36,9 +37,9 @@ public record KnifeStabPacket(int targetId) {
             if (player == null || player.isSpectator() || !(player.getMainHandItem().getItem() instanceof KnifeItem)) {
                 return;
             }
-            Entity target = player.level().getEntity(msg.targetId);
+            Entity target = player.getLevel().getEntity(msg.targetId);
             if (!(target instanceof LivingEntity living) || target == player || !living.isAlive()
-                    || target.getBoundingBox().distanceToSqr(player.getEyePosition()) > REACH * REACH) {
+                    || Mc.distanceToSqr(target.getBoundingBox(), player.getEyePosition()) > REACH * REACH) {
                 return;
             }
             Integer last = LAST_STAB.get(player);

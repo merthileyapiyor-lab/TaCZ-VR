@@ -1,5 +1,6 @@
 package com.taczvr.network;
 
+import com.taczvr.compat.Mc;
 import com.taczvr.content.MedkitItem;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -43,9 +44,9 @@ public record MedkitPacket(int targetId) {
                     return;
                 }
             }
-            Entity target = player.level().getEntity(msg.targetId);
+            Entity target = player.getLevel().getEntity(msg.targetId);
             if (!(target instanceof LivingEntity living) || !living.isAlive() || living.getHealth() >= living.getMaxHealth()
-                    || target != player && target.getBoundingBox().distanceToSqr(player.getEyePosition()) > REACH * REACH) {
+                    || target != player && Mc.distanceToSqr(target.getBoundingBox(), player.getEyePosition()) > REACH * REACH) {
                 return;
             }
             Integer last = LAST.get(player);

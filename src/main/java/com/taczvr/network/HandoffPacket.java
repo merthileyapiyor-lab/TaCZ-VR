@@ -42,7 +42,7 @@ public record HandoffPacket(int targetId) {
             if (giver == null || !TaczVRConfig.COMMON.allowHandoff.get() || giver.isSpectator() || !giver.isAlive()) {
                 return;
             }
-            Entity entity = giver.level().getEntity(msg.targetId);
+            Entity entity = giver.getLevel().getEntity(msg.targetId);
             if (!(entity instanceof ServerPlayer receiver) || receiver == giver || receiver.isSpectator()
                     || !receiver.isAlive() || receiver.distanceTo(giver) > MAX_DISTANCE || !giver.hasLineOfSight(receiver)) {
                 return;
@@ -71,11 +71,10 @@ public record HandoffPacket(int targetId) {
         }
         giver.inventoryMenu.broadcastChanges();
         receiver.inventoryMenu.broadcastChanges();
-        receiver.level().playSound(null, receiver.getX(), receiver.getY(), receiver.getZ(),
+        receiver.getLevel().playSound(null, receiver.getX(), receiver.getY(), receiver.getZ(),
                 SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.6F, 1.0F);
         // with a fallback, the receiver doesn't need this mod
-        receiver.displayClientMessage(Component.translatableWithFallback("taczvr.handoff.received",
-                "%s gave you %s", giver.getDisplayName(), given.getHoverName()), true);
+        receiver.displayClientMessage(Component.translatable("taczvr.handoff.received", giver.getDisplayName(), given.getHoverName()), true);
         return true;
     }
 }
