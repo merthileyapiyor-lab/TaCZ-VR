@@ -1,7 +1,7 @@
 package com.taczvr.mixin.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
+import com.taczvr.compat.Axis;
 import com.taczvr.client.LeftHanded;
 import com.taczvr.client.VrGunRenderer;
 import com.tacz.guns.api.item.IGun;
@@ -15,7 +15,7 @@ import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -56,7 +56,7 @@ public abstract class ItemInHandLayerMixin<T extends LivingEntity, M extends Ent
         poseStack.mulPose(Axis.XP.rotationDegrees(-90.0F));
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
         poseStack.translate(-1.0F / 16.0F, 0.125F, -0.625F);
-        this.itemInHandRenderer.renderItem(entity, gun, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, false, poseStack, buffers, light);
+        this.itemInHandRenderer.renderItem(entity, gun, ItemTransforms.TransformType.THIRD_PERSON_RIGHT_HAND, false, poseStack, buffers, light);
         poseStack.popPose();
         LeftHanded.countThirdPerson();
     }

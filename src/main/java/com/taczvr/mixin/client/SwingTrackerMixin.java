@@ -17,7 +17,7 @@ public abstract class SwingTrackerMixin {
 
     @Inject(method = "isActive", at = @At("HEAD"), cancellable = true)
     private void taczvr$noSwingWithGun(LocalPlayer player, CallbackInfoReturnable<Boolean> cir) {
-        if (player != null && TaczVRConfig.CLIENT.disableSwingWithGun.get() && IGun.mainHandHoldGun(player)) {
+        if (player != null && TaczVRConfig.CLIENT.disableSwingWithGun.get() && IGun.mainhandHoldGun(player)) {
             cir.setReturnValue(false);
         }
     }
