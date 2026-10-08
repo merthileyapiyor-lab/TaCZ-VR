@@ -1,5 +1,6 @@
 package com.taczvr.server;
 
+import com.taczvr.compat.TaczCompat;
 import com.taczvr.TaczVRConfig;
 import com.taczvr.VrCommon;
 import com.taczvr.network.Net;
@@ -73,12 +74,12 @@ public final class OffhandGunServer {
         }
         // no faster than the gun's rate of fire
         long now = System.currentTimeMillis();
-        long interval = 60_000L / Math.max(1, gunItem.getRPM(gun));
+        long interval = 60_000L / Math.max(1, TaczCompat.rpm(gunItem, gun));
         Long last = LAST_SHOT.get(player.getUUID());
         if (last != null && now - last < interval * 0.8) {
             return;
         }
-        boolean free = player.isCreative() || ServerAssist.infiniteAmmo(player) || data.getReloadData().isInfinite();
+        boolean free = player.isCreative() || ServerAssist.infiniteAmmo(player);
         if (!free && !takeRound(gunItem, gun, data)) {
             return;
         }
@@ -95,11 +96,11 @@ public final class OffhandGunServer {
         float speed = bullet.getSpeed() / 20.0F;
         float spread = ServerAssist.aimAssist(player) ? 0.0F : (float) SPREAD;
         for (int i = 0; i < Math.max(1, bullet.getBulletAmount()); i++) {
-            EntityKineticBullet shot = new EntityKineticBullet(player.serverLevel(), player, gun, data.getAmmoId(),
-                    gunItem.getGunId(gun), gunItem.getGunDisplayId(gun), bullet.hasTracerAmmo(), data, bullet);
+            EntityKineticBullet shot = new EntityKineticBullet(player.getLevel(), player, gun, data.getAmmoId(),
+                    gunItem.getGunId(gun), bullet.hasTracerAmmo(), data, bullet);
             shot.setPos(origin);
             shot.shoot(dir.x, dir.y, dir.z, speed, spread);
-            player.serverLevel().addFreshEntity(shot);
+            player.getLevel().addFreshEntity(shot);
         }
         shots++;
         SoundManager.sendSoundToNearby(player, 64, gunItem.getGunId(gun), gunItem.getGunDisplayId(gun), SoundManager.SHOOT_3P_SOUND,
@@ -138,7 +139,7 @@ public final class OffhandGunServer {
         ItemStack gun = player.getOffhandItem();
         GunData data = data(gun);
         AbstractGunItem gunItem = (AbstractGunItem) gun.getItem();
-        if (data == null || gunItem.useInventoryAmmo(gun)
+        if (data == null || TaczCompat.useInventoryAmmo(gunItem, gun)
                 || gunItem.getCurrentAmmoCount(gun) >= AttachmentDataUtils.getAmmoCountWithAttachment(gun, data) && gunItem.hasBulletInBarrel(gun)) {
             return;
         }
@@ -172,9 +173,9 @@ public final class OffhandGunServer {
         int max = AttachmentDataUtils.getAmmoCountWithAttachment(gun, data);
         int current = gunItem.getCurrentAmmoCount(gun);
         int needed = max - current;
-        boolean free = player.isCreative() || ServerAssist.infiniteAmmo(player) || data.getReloadData().isInfinite();
+        boolean free = player.isCreative() || ServerAssist.infiniteAmmo(player);
         int found = needed <= 0 ? 0 : free ? needed : gunItem.useDummyAmmo(gun) ? gunItem.findAndExtractDummyAmmo(gun, needed)
-                : player.getCapability(ForgeCapabilities.ITEM_HANDLER, null).map(cap -> gunItem.findAndExtractInventoryAmmo(cap, gun, needed)).orElse(0);
+                : player.getCapability(ForgeCapabilities.ITEM_HANDLER, null).map(cap -> gunItem.findAndExtractInventoryAmmos(cap, gun, needed)).orElse(0);
         gunItem.setCurrentAmmoCount(gun, current + found);
         // chamber the first round
         if (data.getBolt() == Bolt.CLOSED_BOLT && !gunItem.hasBulletInBarrel(gun) && gunItem.getCurrentAmmoCount(gun) > 0) {

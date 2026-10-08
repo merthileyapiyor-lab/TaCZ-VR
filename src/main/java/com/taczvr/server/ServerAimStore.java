@@ -45,7 +45,7 @@ public final class ServerAimStore {
         if (!isFinite(originOffset) || !isFinite(direction) || direction.lengthSqr() < 1.0E-6) {
             return;
         }
-        AIMS.put(player.getUUID(), new Entry(originOffset, direction.normalize(), player.level().getGameTime()));
+        AIMS.put(player.getUUID(), new Entry(originOffset, direction.normalize(), player.getLevel().getGameTime()));
         RESOLVED.remove(player.getUUID());
     }
 
@@ -59,7 +59,7 @@ public final class ServerAimStore {
         if (!TaczVRConfig.COMMON.serverVrAim.get() || !VrCommon.isVRPlayer(player) && !hasFreshAim(player)) {
             return null;
         }
-        long now = player.level().getGameTime();
+        long now = player.getLevel().getGameTime();
         Cached cached = RESOLVED.get(player.getUUID());
         if (cached != null && cached.gameTime == now && cached.playerPos.equals(player.position())) {
             return cached.aim;
@@ -74,7 +74,7 @@ public final class ServerAimStore {
      */
     public static boolean hasFreshAim(ServerPlayer player) {
         Entry entry = AIMS.get(player.getUUID());
-        return entry != null && player.level().getGameTime() - entry.gameTime <= MAX_AGE_TICKS;
+        return entry != null && player.getLevel().getGameTime() - entry.gameTime <= MAX_AGE_TICKS;
     }
 
     @Nullable
@@ -82,7 +82,7 @@ public final class ServerAimStore {
         Vec3 origin = null;
         Vec3 dir = null;
         Entry entry = AIMS.get(player.getUUID());
-        if (entry != null && player.level().getGameTime() - entry.gameTime <= MAX_AGE_TICKS) {
+        if (entry != null && player.getLevel().getGameTime() - entry.gameTime <= MAX_AGE_TICKS) {
             origin = player.position().add(entry.originOffset);
             dir = entry.direction;
         } else {
@@ -112,7 +112,7 @@ public final class ServerAimStore {
      * the line from the head to the muzzle first hits a block.
      */
     public static Vec3 clipToWalls(Player player, Vec3 eye, Vec3 origin) {
-        BlockHitResult hit = player.level().clip(new ClipContext(eye, origin, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+        BlockHitResult hit = player.getLevel().clip(new ClipContext(eye, origin, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
         if (hit.getType() == HitResult.Type.MISS) {
             return origin;
         }

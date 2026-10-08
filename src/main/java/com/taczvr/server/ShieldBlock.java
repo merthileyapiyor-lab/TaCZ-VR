@@ -53,7 +53,7 @@ public final class ShieldBlock {
         blocked++;
         ItemStack stack = player.getItemInHand(hand);
         stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(hand));
-        player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS,
+        player.getLevel().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS,
                 1.0F, 0.8F + player.getRandom().nextFloat() * 0.4F);
         shot.discard();
     }

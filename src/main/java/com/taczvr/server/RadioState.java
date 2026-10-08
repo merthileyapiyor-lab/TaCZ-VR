@@ -132,7 +132,7 @@ public final class RadioState {
                 continue;
             }
             byId.put(player.getUUID(), player);
-            nextListeners.put(player.getUUID(), new Listener(player.getUUID(), player.level().dimension(), player.position(),
+            nextListeners.put(player.getUUID(), new Listener(player.getUUID(), player.getLevel().dimension(), player.position(),
                     GameManager.teamOf(player)));
             if (talksIntoRadio(player)) {
                 nextTransmitting.add(player.getUUID());
@@ -148,9 +148,9 @@ public final class RadioState {
             ServerPlayer player = byId.get(id);
             if (player != null && player.tickCount % 10 == 0) {
                 player.displayClientMessage(voiceChatLoaded
-                        ? Component.translatableWithFallback("taczvr.radio.on_air", "Radio: on air (%s listening)", receivers(id).size())
+                        ? Component.translatable("taczvr.radio.on_air", receivers(id).size())
                                 .withStyle(ChatFormatting.GREEN)
-                        : Component.translatableWithFallback("taczvr.radio.no_voice", "The radio needs Simple Voice Chat")
+                        : Component.translatable("taczvr.radio.no_voice")
                                 .withStyle(ChatFormatting.RED), true);
             }
         }
@@ -172,7 +172,7 @@ public final class RadioState {
         for (UUID id : hear) {
             ServerPlayer player = byId.get(id);
             if (player != null) {
-                player.playNotifySound(SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.PLAYERS, 0.25F, pitch);
+                player.playNotifySound(SoundEvents.UI_BUTTON_CLICK, SoundSource.PLAYERS, 0.25F, pitch);
             }
         }
     }

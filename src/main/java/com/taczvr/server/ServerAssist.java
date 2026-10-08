@@ -1,5 +1,6 @@
 package com.taczvr.server;
 
+import com.taczvr.compat.TaczCompat;
 import com.taczvr.TaczVRConfig;
 import com.taczvr.network.AssistAllowedPacket;
 import com.taczvr.network.Net;
@@ -126,7 +127,7 @@ public final class ServerAssist {
                 || !(bullet.getOwner() instanceof ServerPlayer shooter) || !aimAssist(shooter)) {
             return;
         }
-        ServerLevel level = shooter.serverLevel();
+        ServerLevel level = shooter.getLevel();
         List<LivingEntity> mobs = level.getEntitiesOfClass(LivingEntity.class, bullet.getBoundingBox().inflate(LOCK_RANGE),
                 entity -> !(entity instanceof Player) && !(entity instanceof ArmorStand));
         LivingEntity target = lockTarget(shooter, bullet.position(), bullet.getDeltaMovement(), level.players(), mobs);
@@ -180,7 +181,7 @@ public final class ServerAssist {
     }
 
     private static boolean visible(Entity shooter, Vec3 from, Vec3 to) {
-        BlockHitResult wall = shooter.level().clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, shooter));
+        BlockHitResult wall = shooter.getLevel().clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, shooter));
         return wall.getType() == HitResult.Type.MISS || wall.getLocation().distanceTo(from) >= from.distanceTo(to) - 0.5;
     }
 
@@ -197,11 +198,11 @@ public final class ServerAssist {
             Homing homing = it.next();
             EntityKineticBullet bullet = homing.bullet;
             LivingEntity target = homing.target;
-            if (bullet.isRemoved() || target.isRemoved() || !target.isAlive() || bullet.level() != target.level()) {
+            if (bullet.isRemoved() || target.isRemoved() || !target.isAlive() || bullet.getLevel() != target.getLevel()) {
                 it.remove();
                 continue;
             }
-            if (bullet.level() != event.level) {
+            if (bullet.getLevel() != event.level) {
                 continue;
             }
             Vec3 motion = target.position().subtract(target.xo, target.yo, target.zo);
@@ -225,7 +226,7 @@ public final class ServerAssist {
 
     private static void topUp(ItemStack gun) {
         IGun iGun = IGun.getIGunOrNull(gun);
-        if (iGun == null || iGun.useInventoryAmmo(gun)) {
+        if (iGun == null || TaczCompat.useInventoryAmmo(iGun, gun)) {
             return;
         }
         GunData data = TimelessAPI.getCommonGunIndex(iGun.getGunId(gun)).map(CommonGunIndex::getGunData).orElse(null);

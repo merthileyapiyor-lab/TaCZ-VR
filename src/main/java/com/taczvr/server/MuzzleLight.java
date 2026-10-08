@@ -37,7 +37,7 @@ public final class MuzzleLight {
     @SubscribeEvent
     public static void onFire(GunFireEvent event) {
         if (event.getLogicalSide().isClient() || !TaczVRConfig.COMMON.muzzleLight.get()
-                || !(event.getShooter().level() instanceof ServerLevel level)) {
+                || !(event.getShooter().getLevel() instanceof ServerLevel level)) {
             return;
         }
         LivingEntity shooter = event.getShooter();
@@ -51,7 +51,7 @@ public final class MuzzleLight {
         if (muzzle == null) {
             muzzle = shooter.getEyePosition().add(shooter.getLookAngle().scale(0.8));
         }
-        BlockPos pos = BlockPos.containing(muzzle);
+        BlockPos pos = new BlockPos(muzzle);
         if (!level.getBlockState(pos).isAir() || level.getMaxLocalRawBrightness(pos) >= DARK_BELOW) {
             return;
         }

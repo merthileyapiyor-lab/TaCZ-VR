@@ -223,20 +223,19 @@ public final class GameManager {
      */
     public static void start(ServerPlayer by, int newMode, List<ServerPlayer> players) {
         if (running()) {
-            by.sendSystemMessage(Component.translatableWithFallback("taczvr.game.already", "A round is already on"));
+            by.sendSystemMessage(Component.translatable("taczvr.game.already"));
             return;
         }
-        if (newMode == ZOMBIES && by.serverLevel().getDifficulty() == Difficulty.PEACEFUL) {
-            by.sendSystemMessage(Component.translatableWithFallback("taczvr.game.peaceful",
-                    "Zombies can't come on Peaceful, set the difficulty higher"));
+        if (newMode == ZOMBIES && by.getLevel().getDifficulty() == Difficulty.PEACEFUL) {
+            by.sendSystemMessage(Component.translatable("taczvr.game.peaceful"));
             return;
         }
         if (newMode == TEAMS && players.size() < 2) {
-            by.sendSystemMessage(Component.translatableWithFallback("taczvr.game.two", "A team match needs at least 2 players"));
+            by.sendSystemMessage(Component.translatable("taczvr.game.two"));
             return;
         }
         server = by.server;
-        arena = by.serverLevel();
+        arena = by.getLevel();
         clearState();
         for (ServerPlayer player : players) {
             PLAYERS.put(player.getUUID(), player);
@@ -260,13 +259,13 @@ public final class GameManager {
 
     private static Component rule(ServerPlayer player) {
         return switch (mode) {
-            case ZOMBIES -> Component.translatableWithFallback("taczvr.game.rule.zombies", "Survive the zombie waves together");
-            case LAST_STANDING -> Component.translatableWithFallback("taczvr.game.rule.last", "Last one standing wins");
+            case ZOMBIES -> Component.translatable("taczvr.game.rule.zombies");
+            case LAST_STANDING -> Component.translatable("taczvr.game.rule.last");
             case TEAMS -> RED.equals(TEAM_OF.get(player.getUUID()))
-                    ? Component.translatableWithFallback("taczvr.game.team.red", "You're on the red team").withStyle(ChatFormatting.RED)
-                    : Component.translatableWithFallback("taczvr.game.team.blue", "You're on the blue team").withStyle(ChatFormatting.BLUE);
-            case LIVES -> Component.translatableWithFallback("taczvr.game.rule.lives", "Everyone has %s lives", START_LIVES);
-            default -> Component.translatableWithFallback("taczvr.game.rule", "First to fall loses");
+                    ? Component.translatable("taczvr.game.team.red").withStyle(ChatFormatting.RED)
+                    : Component.translatable("taczvr.game.team.blue").withStyle(ChatFormatting.BLUE);
+            case LIVES -> Component.translatable("taczvr.game.rule.lives", START_LIVES);
+            default -> Component.translatable("taczvr.game.rule");
         };
     }
 
@@ -309,7 +308,7 @@ public final class GameManager {
         List<ServerPlayer> everyone = players();
         end();
         for (ServerPlayer player : everyone) {
-            title(player, Component.translatableWithFallback("taczvr.game.stopped", "Round stopped"), Component.empty());
+            title(player, Component.translatable("taczvr.game.stopped"), Component.empty());
         }
     }
 
@@ -336,7 +335,7 @@ public final class GameManager {
                 for (ServerPlayer player : players()) {
                     // the rule (or your team) stays under the numbers
                     title(player, seconds > 0 ? Component.literal(String.valueOf(seconds))
-                                    : Component.translatableWithFallback("taczvr.game.go", "Fight!"),
+                                    : Component.translatable("taczvr.game.go"),
                             seconds > 0 ? rule(player) : Component.empty());
                 }
                 if (seconds == 0 && mode == ZOMBIES) {
@@ -383,7 +382,7 @@ public final class GameManager {
         if (waveBreak > 0) {
             if (waveBreak % 20 == 0) {
                 for (ServerPlayer player : alive()) {
-                    player.displayClientMessage(Component.translatableWithFallback("taczvr.game.break", "Next wave in %s s, shop: J",
+                    player.displayClientMessage(Component.translatable("taczvr.game.break",
                             waveBreak / 20).withStyle(ChatFormatting.GOLD), true);
                 }
             }
@@ -438,8 +437,8 @@ public final class GameManager {
                 }
                 ZombieShop.add(player, ZombieShop.WAVE_POINTS * wave);
             }
-            announce(Component.translatableWithFallback("taczvr.game.wave.cleared", "Wave %s cleared!", wave),
-                    Component.translatableWithFallback("taczvr.game.wave.shop", "+%s points, the shop is open", ZombieShop.WAVE_POINTS * wave));
+            announce(Component.translatable("taczvr.game.wave.cleared", wave),
+                    Component.translatable("taczvr.game.wave.shop", ZombieShop.WAVE_POINTS * wave));
             ZombieShop.openFor(alive(), WAVE_BREAK_TICKS);
         }
     }
@@ -484,13 +483,12 @@ public final class GameManager {
                 continue;
             }
             if (helper != null) {
-                Component bar = Component.translatableWithFallback("taczvr.game.reviving", "Getting up... %s%%", progress * 100 / REVIVE_TICKS)
+                Component bar = Component.translatable("taczvr.game.reviving", progress * 100 / REVIVE_TICKS)
                         .withStyle(ChatFormatting.GREEN);
                 downed.displayClientMessage(bar, true);
                 helper.displayClientMessage(bar, true);
             } else if (downed.tickCount % 10 == 0) {
-                downed.displayClientMessage(Component.translatableWithFallback("taczvr.game.downed.wait",
-                        "You're down: %s s for a friend to get you up", left / 20).withStyle(ChatFormatting.RED), true);
+                downed.displayClientMessage(Component.translatable("taczvr.game.downed.wait", left / 20).withStyle(ChatFormatting.RED), true);
             }
         }
     }
@@ -528,8 +526,8 @@ public final class GameManager {
         player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, 3, false, false));
         player.addEffect(new MobEffectInstance(MobEffects.GLOWING, 40, 0, false, false));
         String name = player.getGameProfile().getName();
-        announce(Component.translatableWithFallback("taczvr.game.downed", "%s is down!", name).withStyle(ChatFormatting.RED),
-                Component.translatableWithFallback("taczvr.game.downed.help", "Crouch by them or use a syringe"));
+        announce(Component.translatable("taczvr.game.downed", name).withStyle(ChatFormatting.RED),
+                Component.translatable("taczvr.game.downed.help"));
     }
 
     /**
@@ -547,7 +545,7 @@ public final class GameManager {
         PROTECTED.put(player.getUUID(), RESPAWN_PROTECTION_TICKS);
         if (by != null) {
             ZombieShop.add(by, ZombieShop.REVIVE_POINTS);
-            announce(Component.translatableWithFallback("taczvr.game.revived", "%s got %s up", by.getGameProfile().getName(),
+            announce(Component.translatable("taczvr.game.revived", by.getGameProfile().getName(),
                     player.getGameProfile().getName()).withStyle(ChatFormatting.GREEN), Component.empty());
         }
         return true;
@@ -563,8 +561,8 @@ public final class GameManager {
         if (standing().isEmpty()) {
             gameOver();
         } else {
-            announce(Component.translatableWithFallback("taczvr.game.fell", "%s fell!", player.getGameProfile().getName()),
-                    Component.translatableWithFallback("taczvr.game.fell.watch", "watching until the end"));
+            announce(Component.translatable("taczvr.game.fell", player.getGameProfile().getName()),
+                    Component.translatable("taczvr.game.fell.watch"));
         }
     }
 
@@ -586,8 +584,8 @@ public final class GameManager {
         List<ServerPlayer> everyone = players();
         end();
         for (ServerPlayer player : everyone) {
-            title(player, Component.translatableWithFallback("taczvr.game.over", "Game over!"),
-                    Component.translatableWithFallback("taczvr.game.over.wave", "You reached wave %s", reached));
+            title(player, Component.translatable("taczvr.game.over"),
+                    Component.translatable("taczvr.game.over.wave", reached));
             sound(player);
         }
     }
@@ -644,12 +642,12 @@ public final class GameManager {
         }
         if (wave % BOSS_EVERY == 0) {
             spawnBoss(center, standing);
-            announce(Component.translatableWithFallback("taczvr.game.wave.boss", "Wave %s: the boss!", wave).withStyle(ChatFormatting.DARK_RED),
-                    Component.translatableWithFallback("taczvr.game.wave.count", "%s zombies", count));
+            announce(Component.translatable("taczvr.game.wave.boss", wave).withStyle(ChatFormatting.DARK_RED),
+                    Component.translatable("taczvr.game.wave.count", count));
             return;
         }
-        announce(Component.translatableWithFallback("taczvr.game.wave", "Wave %s", wave),
-                Component.translatableWithFallback("taczvr.game.wave.count", "%s zombies", count));
+        announce(Component.translatable("taczvr.game.wave", wave),
+                Component.translatable("taczvr.game.wave.count", count));
     }
 
     /**
@@ -658,7 +656,7 @@ public final class GameManager {
     private static void spawnBoss(Vec3 center, List<ServerPlayer> standing) {
         double angle = arena.random.nextDouble() * Math.PI * 2.0;
         BlockPos pos = arena.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                BlockPos.containing(center.x + Math.cos(angle) * 18.0, 0, center.z + Math.sin(angle) * 18.0));
+                new BlockPos(center.x + Math.cos(angle) * 18.0, 0, center.z + Math.sin(angle) * 18.0));
         Zombie big = EntityType.ZOMBIE.create(arena);
         if (big == null) {
             return;
@@ -666,7 +664,7 @@ public final class GameManager {
         big.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0.0F, 0.0F);
         big.finalizeSpawn(arena, arena.getCurrentDifficultyAt(pos), MobSpawnType.EVENT, null, null);
         big.setBaby(false);
-        Component name = Component.translatableWithFallback("taczvr.game.boss", "Giant Zombie").withStyle(ChatFormatting.DARK_RED);
+        Component name = Component.translatable("taczvr.game.boss").withStyle(ChatFormatting.DARK_RED);
         big.setCustomName(name);
         big.setCustomNameVisible(true);
         big.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.NETHERITE_HELMET));
@@ -768,7 +766,7 @@ public final class GameManager {
             return;
         }
         loser.setHealth(loser.getMaxHealth());
-        if (loser.getY() < loser.level().getMinBuildHeight()) {
+        if (loser.getY() < loser.getLevel().getMinBuildHeight()) {
             ServerLevel overworld = loser.server.overworld();
             BlockPos spawn = overworld.getSharedSpawnPos();
             loser.teleportTo(overworld, spawn.getX() + 0.5, spawn.getY(), spawn.getZ() + 0.5, loser.getYRot(), loser.getXRot());
@@ -781,7 +779,7 @@ public final class GameManager {
                     winners.add(player.getGameProfile().getName());
                 }
             }
-            finish(Component.translatableWithFallback("taczvr.game.fell", "%s fell!", name), winners);
+            finish(Component.translatable("taczvr.game.fell", name), winners);
             return;
         }
         if (mode == ZOMBIES) {
@@ -803,8 +801,8 @@ public final class GameManager {
             if (left > 0) {
                 refresh(loser);
                 PROTECTED.put(loser.getUUID(), RESPAWN_PROTECTION_TICKS);
-                announce(Component.translatableWithFallback("taczvr.game.fell", "%s fell!", name),
-                        Component.translatableWithFallback("taczvr.game.lives.left", "%s lives left", left));
+                announce(Component.translatable("taczvr.game.fell", name),
+                        Component.translatable("taczvr.game.lives.left", left));
                 return;
             }
         }
@@ -818,7 +816,7 @@ public final class GameManager {
             boolean teamLeft = standing.stream().anyMatch(player -> team != null && team.equals(TEAM_OF.get(player.getUUID())));
             if (!teamLeft) {
                 boolean redWon = !RED.equals(team);
-                finishTeams(Component.translatableWithFallback("taczvr.game.fell", "%s fell!", name), redWon);
+                finishTeams(Component.translatable("taczvr.game.fell", name), redWon);
                 return;
             }
         } else if (standing.size() <= 1) {
@@ -826,16 +824,16 @@ public final class GameManager {
             for (ServerPlayer player : standing) {
                 winners.add(player.getGameProfile().getName());
             }
-            finish(Component.translatableWithFallback("taczvr.game.fell", "%s fell!", name), winners);
+            finish(Component.translatable("taczvr.game.fell", name), winners);
             return;
         }
-        announce(Component.translatableWithFallback("taczvr.game.fell", "%s fell!", name),
-                Component.translatableWithFallback("taczvr.game.fell.watch", "watching until the end"));
+        announce(Component.translatable("taczvr.game.fell", name),
+                Component.translatable("taczvr.game.fell.watch"));
     }
 
     private static void finish(Component title, List<String> winners) {
         Component subtitle = winners.isEmpty() ? Component.empty()
-                : Component.translatableWithFallback("taczvr.game.winner", "Winner: %s", String.join(", ", winners));
+                : Component.translatable("taczvr.game.winner", String.join(", ", winners));
         List<ServerPlayer> everyone = players();
         end();
         for (ServerPlayer player : everyone) {
@@ -846,8 +844,8 @@ public final class GameManager {
 
     private static void finishTeams(Component title, boolean redWon) {
         Component subtitle = redWon
-                ? Component.translatableWithFallback("taczvr.game.team.red.won", "Red team wins!").withStyle(ChatFormatting.RED)
-                : Component.translatableWithFallback("taczvr.game.team.blue.won", "Blue team wins!").withStyle(ChatFormatting.BLUE);
+                ? Component.translatable("taczvr.game.team.red.won").withStyle(ChatFormatting.RED)
+                : Component.translatable("taczvr.game.team.blue.won").withStyle(ChatFormatting.BLUE);
         List<ServerPlayer> everyone = players();
         end();
         for (ServerPlayer player : everyone) {
@@ -950,7 +948,7 @@ public final class GameManager {
     }
 
     private static void sound(ServerPlayer player) {
-        player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE,
+        player.getLevel().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE,
                 SoundSource.PLAYERS, 0.8F, 1.0F);
     }
 

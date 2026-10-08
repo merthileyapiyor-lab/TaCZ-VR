@@ -97,7 +97,7 @@ public final class Tactical {
         float looking = facing > 0.5 ? 1.0F : facing > 0.0 ? 0.7F : facing > -0.5 ? 0.45F : 0.3F;
         float near = distance <= FLASH_FULL_RANGE ? 1.0F : (float) (1.0 - (distance - FLASH_FULL_RANGE) / (FLASH_RANGE - FLASH_FULL_RANGE));
         float strength = looking * near;
-        if (!clear(player.serverLevel(), at, eye, player)) {
+        if (!clear(player.getLevel(), at, eye, player)) {
             strength = distance < 8.0 ? strength * 0.15F : 0.0F;
         }
         if (NightVisionItem.isOn(player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD))) {
@@ -143,7 +143,7 @@ public final class Tactical {
         Vec3 from = mob.getEyePosition();
         Vec3 to = target.getEyePosition();
         for (GrenadeEntity cloud : CLOUDS) {
-            if (cloud.level() != mob.level() || !cloud.isSmoking()) {
+            if (cloud.getLevel() != mob.getLevel() || !cloud.isSmoking()) {
                 continue;
             }
             double r = smokeRadius(cloud);
@@ -186,7 +186,7 @@ public final class Tactical {
                 it.remove();
                 continue;
             }
-            if (cloud.tickCount % 2 != 0 || !(cloud.level() instanceof ServerLevel level)) {
+            if (cloud.tickCount % 2 != 0 || !(cloud.getLevel() instanceof ServerLevel level)) {
                 continue;
             }
             double r = smokeRadius(cloud);

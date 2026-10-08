@@ -53,7 +53,7 @@ public final class ZombieShop {
 
     public static final List<Offer> OFFERS = List.of(
             gun("glock_17", 100), gun("deagle", 300), gun("uzi", 350), gun("ump45", 450), gun("m870", 500),
-            gun("ak47", 700), gun("kar98", 750), gun("m4a1", 800), gun("m249", 1500),
+            gun("ak47", 700), gun("m700", 750), gun("m4a1", 800), gun("m249", 1500),
             new Offer("ammo", 80, ZombieShop::ammoForHeld),
             new Offer("grenade", 120, p -> new ItemStack(ModContent.GRENADE.get(), 2)),
             new Offer("flashbang", 80, p -> new ItemStack(ModContent.FLASHBANG.get(), 2)),
@@ -115,7 +115,7 @@ public final class ZombieShop {
         }
         sidebarBefore = scoreboard.getDisplayObjective(Scoreboard.DISPLAY_SLOT_SIDEBAR);
         Objective objective = scoreboard.addObjective(OBJECTIVE, ObjectiveCriteria.DUMMY,
-                Component.translatableWithFallback("taczvr.shop.points", "Points").withStyle(ChatFormatting.GOLD), ObjectiveCriteria.RenderType.INTEGER);
+                Component.translatable("taczvr.shop.points").withStyle(ChatFormatting.GOLD), ObjectiveCriteria.RenderType.INTEGER);
         scoreboard.setDisplayObjective(Scoreboard.DISPLAY_SLOT_SIDEBAR, objective);
         for (ServerPlayer player : players) {
             add(player, 0);
@@ -184,13 +184,13 @@ public final class ZombieShop {
         Offer offer = OFFERS.get(index);
         int have = points(player);
         if (have < offer.price) {
-            player.displayClientMessage(Component.translatableWithFallback("taczvr.shop.poor", "Not enough points")
+            player.displayClientMessage(Component.translatable("taczvr.shop.poor")
                     .withStyle(ChatFormatting.RED), true);
             return false;
         }
         ItemStack stack = offer.make.apply(player);
         if (stack.isEmpty()) {
-            player.displayClientMessage(Component.translatableWithFallback("taczvr.shop.no_gun", "Hold the gun you want ammo for")
+            player.displayClientMessage(Component.translatable("taczvr.shop.no_gun")
                     .withStyle(ChatFormatting.RED), true);
             return false;
         }
@@ -200,7 +200,7 @@ public final class ZombieShop {
             player.drop(stack, false);
         }
         player.inventoryMenu.broadcastChanges();
-        player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.6F, 1.2F);
+        player.getLevel().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.6F, 1.2F);
         purchases++;
         return true;
     }
