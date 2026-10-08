@@ -1,5 +1,7 @@
 package com.taczvr.client;
 
+import com.taczvr.compat.TaczCompat;
+import com.taczvr.compat.Joml;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.taczvr.TaczVR;
@@ -29,7 +31,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.level.ClipContext;
@@ -179,7 +181,7 @@ public final class VrGunRenderer {
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES || !TaczVRConfig.CLIENT.enabled.get()) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || !TaczVRConfig.CLIENT.enabled.get()) {
             return;
         }
         Minecraft mc = Minecraft.getInstance();
@@ -294,11 +296,11 @@ public final class VrGunRenderer {
     static void drawPose(Minecraft mc, GunPoseSolver.Pose pose, ItemStack stack, PoseStack poseStack, Vec3 cam,
                          float partialTick, boolean local, @Nullable Player owner, @Nullable AbstractClientPlayer handsOf) {
         BedrockGunModel model = pose.model;
-        int light = LevelRenderer.getLightColor(mc.level, BlockPos.containing(pose.grip.x, pose.grip.y, pose.grip.z));
+        int light = LevelRenderer.getLightColor(mc.level, new BlockPos(pose.grip.x, pose.grip.y, pose.grip.z));
 
         poseStack.pushPose();
         poseStack.translate(pose.origin.x - cam.x, pose.origin.y - cam.y, pose.origin.z - cam.z);
-        poseStack.mulPose(pose.rotation);
+        Joml.mulPose(poseStack, pose.rotation);
         poseStack.scale(pose.scale, pose.scale, pose.scale);
         GunPoseSolver.applyAimFrameChain(poseStack, pose.viewPath);
         BedrockPart magazine = null;
@@ -336,9 +338,7 @@ public final class VrGunRenderer {
                 // the hands only sit on the gun in the idle pose
                 RestPose.apply(pose.display, model);
             }
-            RenderType renderType = pose.display.enablesTransparency()
-                    ? RenderType.entityTranslucent(pose.display.getModelTexture())
-                    : RenderType.entityCutout(pose.display.getModelTexture());
+            RenderType renderType = RenderType.entityCutout(pose.display.getModelTexture());
             // magazine taken out for a manual reload
             boolean magazineOut = local ? MagazineHandler.isMagazineOut() : owner != null && RemoteGunEffects.magazineOut(owner);
             magazine = magazineOut ? MagazineHandler.magazinePart(model) : null;
@@ -346,7 +346,7 @@ public final class VrGunRenderer {
                 magazineVisible = magazine.visible;
                 magazine.visible = false;
             }
-            model.render(poseStack, stack, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, renderType, light, OverlayTexture.NO_OVERLAY);
+            model.render(poseStack, stack, ItemTransforms.TransformType.THIRD_PERSON_RIGHT_HAND, renderType, light, OverlayTexture.NO_OVERLAY);
             if (local) {
                 gunsDrawn++;
             }
@@ -385,13 +385,13 @@ public final class VrGunRenderer {
         }
         offhandGunsDrawn++;
         BedrockGunModel model = pose.model;
-        int light = LevelRenderer.getLightColor(mc.level, BlockPos.containing(pose.grip.x, pose.grip.y, pose.grip.z));
+        int light = LevelRenderer.getLightColor(mc.level, new BlockPos(pose.grip.x, pose.grip.y, pose.grip.z));
         long flash = local ? OffhandGun.firedMillis() : RemoteGunEffects.offhandFlashStart(player);
         boolean flashing = flash >= 0 && System.currentTimeMillis() - flash <= MUZZLE_FLASH_MILLIS;
         long savedStamp = MuzzleFlashRenderAccessor.taczvr$getShootTimeStamp();
         poseStack.pushPose();
         poseStack.translate(pose.origin.x - cam.x, pose.origin.y - cam.y, pose.origin.z - cam.z);
-        poseStack.mulPose(pose.rotation);
+        Joml.mulPose(poseStack, pose.rotation);
         poseStack.scale(pose.scale, pose.scale, pose.scale);
         GunPoseSolver.applyAimFrameChain(poseStack, pose.viewPath);
         try {
@@ -401,10 +401,8 @@ public final class VrGunRenderer {
                 MuzzleFlashRenderAccessor.taczvr$setMuzzleFlashStartMark(true);
                 MuzzleFlashRender.isSelf = true;
             }
-            RenderType renderType = pose.display.enablesTransparency()
-                    ? RenderType.entityTranslucent(pose.display.getModelTexture())
-                    : RenderType.entityCutout(pose.display.getModelTexture());
-            model.render(poseStack, stack, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, renderType, light, OverlayTexture.NO_OVERLAY);
+            RenderType renderType = RenderType.entityCutout(pose.display.getModelTexture());
+            model.render(poseStack, stack, ItemTransforms.TransformType.THIRD_PERSON_RIGHT_HAND, renderType, light, OverlayTexture.NO_OVERLAY);
             if (player instanceof AbstractClientPlayer clientPlayer && drawsGunHands(player)) {
                 GunHandRenderer.render(poseStack, model, clientPlayer, true, false, light, pose.leftHanded);
             }
@@ -444,7 +442,7 @@ public final class VrGunRenderer {
         if (entityHit != null) {
             end = entityHit.getLocation();
         }
-        int color = iGun.getLaserColor(stack);
+        int color = TaczCompat.LASER_COLOR;
         int r = color >> 16 & 0xFF;
         int g = color >> 8 & 0xFF;
         int b = color & 0xFF;

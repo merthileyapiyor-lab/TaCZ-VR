@@ -8,11 +8,10 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.blaze3d.vertex.VertexSorting;
 import com.taczvr.TaczVR;
 import com.taczvr.content.NightVisionItem;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.sounds.SoundEvents;
@@ -21,7 +20,7 @@ import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.gui.overlay.ForgeGui;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import org.joml.Matrix4f;
+import com.mojang.math.Matrix4f;
 
 /**
  * What flashbangs and night vision goggles do to your picture: a white flash that fades (over the whole screen flat,
@@ -48,8 +47,8 @@ public final class ScreenEffects {
         flashPower = Math.min(1.0F, Math.max(left, strength));
         flashStart = mc.level.getGameTime();
         flashesSeen++;
-        mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_BELL.value(), 2.0F, 0.5F * strength));
-        mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_CHIME.value(), 1.9F, 0.35F * strength));
+        mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_BELL, 2.0F, 0.5F * strength));
+        mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_CHIME, 1.9F, 0.35F * strength));
     }
 
     /**
@@ -78,17 +77,17 @@ public final class ScreenEffects {
         event.registerAboveAll(TaczVR.MOD_ID + "_flash", ScreenEffects::renderGui);
     }
 
-    private static void renderGui(ForgeGui gui, GuiGraphics graphics, float partialTick, int width, int height) {
+    private static void renderGui(ForgeGui gui, PoseStack poseStack, float partialTick, int width, int height) {
         float alpha = VrClient.isVRActive() ? 0.0F : flashAlpha(partialTick);
         if (alpha > 0.0F) {
-            graphics.fill(0, 0, width, height, ((int) (alpha * 255.0F) << 24) | 0xFFFFFF);
+            GuiComponent.fill(poseStack, 0, 0, width, height, ((int) (alpha * 255.0F) << 24) | 0xFFFFFF);
             flashFramesFlat++;
         }
     }
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_WEATHER) {
             return;
         }
         if (nightVisionOn()) {
@@ -111,8 +110,9 @@ public final class ScreenEffects {
      */
     private static void fullscreen(float r, float g, float b, float a) {
         Matrix4f projection = RenderSystem.getProjectionMatrix();
-        VertexSorting sorting = RenderSystem.getVertexSorting();
-        RenderSystem.setProjectionMatrix(new Matrix4f(), VertexSorting.ORTHOGRAPHIC_Z);
+        Matrix4f identity = new Matrix4f();
+        identity.setIdentity();
+        RenderSystem.setProjectionMatrix(identity);
         PoseStack modelView = RenderSystem.getModelViewStack();
         modelView.pushPose();
         modelView.setIdentity();
@@ -135,6 +135,6 @@ public final class ScreenEffects {
         RenderSystem.disableBlend();
         modelView.popPose();
         RenderSystem.applyModelViewMatrix();
-        RenderSystem.setProjectionMatrix(projection, sorting);
+        RenderSystem.setProjectionMatrix(projection);
     }
 }

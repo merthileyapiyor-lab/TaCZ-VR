@@ -1,5 +1,7 @@
 package com.taczvr.client;
 
+import com.taczvr.compat.TaczCompat;
+import com.taczvr.compat.Cmd;
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.taczvr.TaczVR;
@@ -21,9 +23,8 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.resources.model.BakedModel;
@@ -73,8 +74,10 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.client.server.IntegratedServer;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.NonNullList;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -92,8 +95,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
-import net.minecraft.world.level.WorldDataConfiguration;
-import net.minecraft.world.level.levelgen.WorldOptions;
+import net.minecraft.world.level.DataPackConfig;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -259,7 +261,8 @@ public final class SelfTest {
         patched("com.tacz.guns.entity.shooter.LivingEntityShoot");
         patched("com.tacz.guns.entity.EntityKineticBullet");
         patched("com.tacz.guns.client.event.CameraSetupEvent");
-        patched("com.tacz.guns.client.input.AimKey");
+        patched("com.tacz.guns.client.event.FirstPersonRenderGunEvent");
+        patched("net.minecraft.world.entity.projectile.Projectile");
         patched("com.tacz.guns.client.event.RenderCrosshairEvent");
         patched("org.vivecraft.client_vr.gameplay.trackers.SwingTracker");
         patched("net.minecraft.client.renderer.ItemInHandRenderer");
@@ -283,10 +286,11 @@ public final class SelfTest {
         Minecraft mc = Minecraft.getInstance();
         String name = "taczvr_selftest_" + System.currentTimeMillis();
         LevelSettings settings = new LevelSettings(name, GameType.CREATIVE, false, Difficulty.PEACEFUL, true,
-                new GameRules(), WorldDataConfiguration.DEFAULT);
-        mc.execute(() -> mc.createWorldOpenFlows().createFreshLevel(name, settings, new WorldOptions(0L, false, false),
-                registries -> registries.registryOrThrow(Registries.WORLD_PRESET)
-                        .getHolderOrThrow(WorldPresets.FLAT).value().createWorldDimensions()));
+                new GameRules(), DataPackConfig.DEFAULT);
+        RegistryAccess.Frozen registries = RegistryAccess.builtinCopy().freeze();
+        mc.execute(() -> mc.createWorldOpenFlows().createFreshLevel(name, settings, registries,
+                registries.registryOrThrow(Registry.WORLD_PRESET_REGISTRY).getHolderOrThrow(WorldPresets.FLAT).value()
+                        .createWorldGenSettings(0L, false, false)));
     }
 
     @SubscribeEvent
@@ -325,13 +329,13 @@ public final class SelfTest {
             if (mc.screen != null) {
                 mc.setScreen(null);
             }
-            mc.player.connection.sendCommand("time set 6000");
-            mc.player.connection.sendCommand("weather clear");
-            mc.player.connection.sendCommand("gamerule doDaylightCycle false");
-            mc.player.connection.sendCommand("gamerule doMobSpawning false");
-            mc.player.connection.sendCommand("tp @s 0 -60 0 180 0");
-            mc.player.connection.sendCommand("gamemode survival");
-            mc.player.connection.sendCommand("effect give @s minecraft:resistance 600 4 true");
+            Cmd.send(mc.player, "time set 6000");
+            Cmd.send(mc.player, "weather clear");
+            Cmd.send(mc.player, "gamerule doDaylightCycle false");
+            Cmd.send(mc.player, "gamerule doMobSpawning false");
+            Cmd.send(mc.player, "tp @s 0 -60 0 180 0");
+            Cmd.send(mc.player, "gamemode survival");
+            Cmd.send(mc.player, "effect give @s minecraft:resistance 600 4 true");
         });
         sleep(30);
         run(mc -> {
@@ -362,7 +366,7 @@ public final class SelfTest {
         await("client holds the AK", 40, mc -> clientAmmo(mc) == 30, () -> "ammo=" + clientAmmo(Minecraft.getInstance()));
         run(mc -> {
             VrCommon.testForceVr = true;
-            // the hip-fire spread would push the direction checks past their limit now and then
+            // 1.19.2 spreads shots on a bell curve without a limit, the direction checks would fail now and then
             VrCommon.testNoSpread = true;
             restPose();
         });
@@ -498,7 +502,7 @@ public final class SelfTest {
         });
         sleep(2);
         run(mc -> mc.options.keyAttack.setDown(false));
-        await("server without VR mod: a bullet was fired", 20, mc -> bulletPos != null, () -> "none");
+        await("server without VR mod: a bullet was fired", 20, mc -> bulletPos != null, () -> "none, last trigger shot " + TaczCompat.lastShot);
         run(mc -> {
             captureBullet = false;
             if (bulletPos == null || bulletVel == null) {
@@ -535,20 +539,36 @@ public final class SelfTest {
             byte[] bad = fakeJar("modId = \"something_else\"");
             http[0] = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
             base[0] = "http://127.0.0.1:" + http[0].getAddress().getPort();
-            String jarName = "taczvr-1.20.1-9.9.9.jar";
+            String jarName = "taczvr-1.19.2-9.9.9.jar";
             String latest = "{\"tag_name\":\"v9.9.9\",\"body\":\"## What's new\\r\\n- **Longer** grappling hook\\r\\n- The `update` menu\","
-                    + "\"assets\":[{\"name\":\"taczvr-1.20.1-9.9.9-sources.zip\",\"size\":3,\"browser_download_url\":\"" + base[0] + "/nope\"},"
+                    + "\"assets\":[{\"name\":\"taczvr-1.19.2-9.9.9-sources.zip\",\"size\":3,\"browser_download_url\":\"" + base[0] + "/nope\"},"
+                    // the 1.20.1 jar comes first in a release, a 1.19.2 game must skip it
+                    + "{\"name\":\"taczvr-1.20.1-9.9.9.jar\",\"size\":5,\"browser_download_url\":\"" + base[0] + "/nope\"},"
                     + "{\"name\":\"" + jarName + "\",\"size\":" + served[0].length + ",\"browser_download_url\":\"" + base[0] + "/" + jarName + "\"}]}";
-            String same = "{\"tag_name\":\"1.3.8\",\"body\":\"\",\"assets\":[{\"name\":\"" + jarName + "\",\"size\":1,\"browser_download_url\":\"x\"}]}";
+            String otherMc = "{\"tag_name\":\"v9.9.9\",\"body\":\"\",\"assets\":[{\"name\":\"taczvr-1.20.1-9.9.9.jar\",\"size\":5,\"browser_download_url\":\"x\"}]}";
+            String same = "{\"tag_name\":\"1.3.8\",\"body\":\"\",\"assets\":[{\"name\":\"taczvr-1.19.2-1.3.8.jar\",\"size\":1,\"browser_download_url\":\"x\"}]}";
+            // the list GitHub answers: the latest release is 1.20.1 only, our jar comes in a release of its own
+            String list = "[{\"tag_name\":\"v9.9.9\",\"body\":\"\",\"assets\":[{\"name\":\"taczvr-1.20.1-9.9.9.jar\",\"size\":5,\"browser_download_url\":\"x\"}]},"
+                    + "{\"tag_name\":\"v9.9.8-beta\",\"prerelease\":true,\"body\":\"\",\"assets\":[{\"name\":\"taczvr-1.19.2-9.9.8.jar\",\"size\":5,\"browser_download_url\":\"x\"}]},"
+                    + "{\"tag_name\":\"v9.9.7-mc1.19.2\",\"body\":\"for 1.19.2\",\"assets\":[{\"name\":\"taczvr-1.19.2-9.9.7.jar\",\"size\":5,\"browser_download_url\":\"y\"}]}]";
             serve(http[0], "/latest", latest.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             serve(http[0], "/same", same.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            serve(http[0], "/other_mc", otherMc.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            serve(http[0], "/list", list.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             serve(http[0], "/" + jarName, served[0]);
             serve(http[0], "/bad.jar", bad);
             http[0].start();
             release[0] = UpdateChecker.check(base[0] + "/latest", "1.3.8");
-            check("update: finds 9.9.9 and its jar, not the sources", release[0] != null && "9.9.9".equals(release[0].version())
+            check("update: finds 9.9.9 and its 1.19.2 jar, not the sources or the 1.20.1 jar", release[0] != null && "9.9.9".equals(release[0].version())
                     && jarName.equals(release[0].jarName()), String.valueOf(release[0]));
             check("update: nothing to do when it's our version", UpdateChecker.check(base[0] + "/same", "1.3.8") == null, "");
+            check("update: a release with only another Minecraft version's jar isn't for us",
+                    UpdateChecker.check(base[0] + "/other_mc", "1.3.8") == null, "");
+            UpdateChecker.Release fromList = UpdateChecker.check(base[0] + "/list", "1.3.8");
+            check("update: from the release list, the newest 1.19.2 jar (no prerelease) and its own notes", fromList != null
+                    && "9.9.7".equals(fromList.version()) && "taczvr-1.19.2-9.9.7.jar".equals(fromList.jarName()) && "for 1.19.2".equals(fromList.notes()),
+                    String.valueOf(fromList));
+            check("update: nothing from the list when we have that version", UpdateChecker.check(base[0] + "/list", "9.9.7") == null, "");
             try {
                 UpdateChecker.check(base[0] + "/missing", "1.3.8");
                 fail("update: a missing release is an error", "no exception");
@@ -558,7 +578,7 @@ public final class SelfTest {
             if (Boolean.getBoolean("taczvr.update.live")) {
                 UpdateChecker.Release live = UpdateChecker.check(UpdateChecker.RELEASES_API, "1.0.0");
                 check("update: GitHub has this version with its jar", live != null && live.version().equals(UpdateChecker.currentVersion())
-                        && live.jarName().equals("taczvr-1.20.1-" + UpdateChecker.currentVersion() + ".jar") && live.jarSize() > 100000,
+                        && live.jarName().equals("taczvr-1.19.2-" + UpdateChecker.currentVersion() + ".jar") && live.jarSize() > 100000,
                         String.valueOf(live));
                 check("update: and nothing newer than this version", UpdateChecker.check(UpdateChecker.RELEASES_API, UpdateChecker.currentVersion()) == null, "");
             }
@@ -586,7 +606,7 @@ public final class SelfTest {
             dir[0] = mc.gameDirectory.toPath().resolve("taczvr-update-test");
             deleteTree(dir[0]);
             java.nio.file.Files.createDirectories(dir[0].resolve("locked"));
-            java.nio.file.Path old = dir[0].resolve("taczvr-1.20.1-1.3.8.jar");
+            java.nio.file.Path old = dir[0].resolve("taczvr-1.19.2-1.3.8.jar");
             java.nio.file.Files.write(old, fakeJar("modId = \"taczvr\" old"));
             UpdateScreen.testJar = old;
             UpdateScreen.stopGame = () -> stopped[0] = true;
@@ -597,54 +617,54 @@ public final class SelfTest {
         await("update: Quit Game downloads, swaps the jar and quits", 200, mc -> stopped[0],
                 () -> "error=" + (Minecraft.getInstance().screen instanceof UpdateScreen s && s.error() != null ? s.error().getString() : "none"));
         run(mc -> {
-            java.nio.file.Path now = dir[0].resolve("taczvr-1.20.1-9.9.9.jar");
-            check("update: the old jar is gone", !java.nio.file.Files.exists(dir[0].resolve("taczvr-1.20.1-1.3.8.jar")), "");
+            java.nio.file.Path now = dir[0].resolve("taczvr-1.19.2-9.9.9.jar");
+            check("update: the old jar is gone", !java.nio.file.Files.exists(dir[0].resolve("taczvr-1.19.2-1.3.8.jar")), "");
             check("update: the new jar is in place, byte for byte", java.nio.file.Files.exists(now)
                     && java.util.Arrays.equals(java.nio.file.Files.readAllBytes(now), served[0]), "");
-            check("update: no half download left", !java.nio.file.Files.exists(dir[0].resolve("taczvr-1.20.1-9.9.9.jar.part")), "");
+            check("update: no half download left", !java.nio.file.Files.exists(dir[0].resolve("taczvr-1.19.2-9.9.9.jar.part")), "");
 
             // a download that isn't TaCZ VR is refused and the old jar stays
-            java.nio.file.Path keep = dir[0].resolve("taczvr-1.20.1-1.3.8.jar");
+            java.nio.file.Path keep = dir[0].resolve("taczvr-1.19.2-1.3.8.jar");
             java.nio.file.Files.write(keep, fakeJar("modId = \"taczvr\" old"));
             java.nio.file.Files.delete(now);
             try {
-                UpdateChecker.install(new UpdateChecker.Release("9.9.9", "", "taczvr-1.20.1-9.9.9.jar", base[0] + "/bad.jar", -1), keep, p -> {
+                UpdateChecker.install(new UpdateChecker.Release("9.9.9", "", "taczvr-1.19.2-9.9.9.jar", base[0] + "/bad.jar", -1), keep, p -> {
                 });
                 fail("update: a jar that isn't TaCZ VR is refused", "installed it");
             } catch (java.io.IOException e) {
                 check("update: a jar that isn't TaCZ VR is refused (" + e.getMessage() + ")", java.nio.file.Files.exists(keep)
-                        && !java.nio.file.Files.exists(now) && !java.nio.file.Files.exists(dir[0].resolve("taczvr-1.20.1-9.9.9.jar.part")), "");
+                        && !java.nio.file.Files.exists(now) && !java.nio.file.Files.exists(dir[0].resolve("taczvr-1.19.2-9.9.9.jar.part")), "");
             }
 
             // Windows keeps a running jar locked: then a helper swaps it once the game has closed
-            java.nio.file.Path locked = dir[0].resolve("locked").resolve("taczvr-1.20.1-1.3.8.jar");
+            java.nio.file.Path locked = dir[0].resolve("locked").resolve("taczvr-1.19.2-1.3.8.jar");
             java.nio.file.Files.write(locked, fakeJar("modId = \"taczvr\" old"));
             lock[0] = new java.io.RandomAccessFile(locked.toFile(), "r");
             boolean swapped = UpdateChecker.install(release[0], locked, p -> {
             });
             check("update: a locked jar waits for the game to close", !swapped && java.nio.file.Files.exists(locked)
-                    && java.nio.file.Files.exists(dir[0].resolve("locked").resolve("taczvr-1.20.1-9.9.9.jar.part")), "swapped=" + swapped);
+                    && java.nio.file.Files.exists(dir[0].resolve("locked").resolve("taczvr-1.19.2-9.9.9.jar.part")), "swapped=" + swapped);
 
             // the helper itself, waiting for a short process instead of the game
             java.nio.file.Path helperDir = dir[0].resolve("helper");
             java.nio.file.Files.createDirectories(helperDir);
-            java.nio.file.Path helperOld = helperDir.resolve("taczvr-1.20.1-1.3.8.jar");
-            java.nio.file.Path helperPart = helperDir.resolve("taczvr-1.20.1-9.9.9.jar.part");
+            java.nio.file.Path helperOld = helperDir.resolve("taczvr-1.19.2-1.3.8.jar");
+            java.nio.file.Path helperPart = helperDir.resolve("taczvr-1.19.2-9.9.9.jar.part");
             java.nio.file.Files.write(helperOld, fakeJar("old"));
             java.nio.file.Files.write(helperPart, served[0]);
             sleeper[0] = System.getProperty("os.name", "").toLowerCase().contains("win")
                     ? new ProcessBuilder("ping", "-n", "4", "127.0.0.1").redirectOutput(ProcessBuilder.Redirect.DISCARD).start()
                     : new ProcessBuilder("sleep", "3").start();
-            UpdateChecker.swapAfterExit(sleeper[0].pid(), helperOld, helperPart, helperDir.resolve("taczvr-1.20.1-9.9.9.jar"));
+            UpdateChecker.swapAfterExit(sleeper[0].pid(), helperOld, helperPart, helperDir.resolve("taczvr-1.19.2-9.9.9.jar"));
         });
         sleep(20);
         run(mc -> check("update: the helper waits while the game still runs",
-                java.nio.file.Files.exists(dir[0].resolve("helper").resolve("taczvr-1.20.1-1.3.8.jar")), ""));
+                java.nio.file.Files.exists(dir[0].resolve("helper").resolve("taczvr-1.19.2-1.3.8.jar")), ""));
         await("update: once it's closed, the helper swaps the jars", 400, mc -> {
             java.nio.file.Path helperDir = dir[0].resolve("helper");
-            return !java.nio.file.Files.exists(helperDir.resolve("taczvr-1.20.1-1.3.8.jar"))
-                    && java.nio.file.Files.exists(helperDir.resolve("taczvr-1.20.1-9.9.9.jar"))
-                    && !java.nio.file.Files.exists(helperDir.resolve("taczvr-1.20.1-9.9.9.jar.part"));
+            return !java.nio.file.Files.exists(helperDir.resolve("taczvr-1.19.2-1.3.8.jar"))
+                    && java.nio.file.Files.exists(helperDir.resolve("taczvr-1.19.2-9.9.9.jar"))
+                    && !java.nio.file.Files.exists(helperDir.resolve("taczvr-1.19.2-9.9.9.jar.part"));
         }, () -> "sleeper alive=" + sleeper[0].isAlive());
         run(mc -> {
             // the locked one stays locked until this client exits, then its helper swaps it
@@ -723,7 +743,7 @@ public final class SelfTest {
             float health = server(sp -> {
                 sp.removeAllEffects();
                 sp.setHealth(20.0F);
-                sp.hurt(sp.damageSources().generic(), 6.0F);
+                sp.hurt(DamageSource.GENERIC, 6.0F);
                 return sp.getHealth();
             });
             check("game: nobody gets hurt during the countdown", health >= 20.0F, "health " + health);
@@ -731,7 +751,7 @@ public final class SelfTest {
         sleep(75);
         run(mc -> {
             Object[] r = server(sp -> {
-                sp.hurt(sp.damageSources().generic(), 1000.0F);
+                sp.hurt(DamageSource.GENERIC, 1000.0F);
                 return new Object[]{sp.isAlive() && !sp.isDeadOrDying(), sp.getHealth(), GameManager.running(),
                         IGun.getIGunOrNull(sp.getMainHandItem()) != null};
             });
@@ -742,7 +762,7 @@ public final class SelfTest {
         });
         // past the short invulnerability after being hit
         sleep(25);
-        run(mc -> server(sp -> sp.hurt(sp.damageSources().generic(), 3.0F)));
+        run(mc -> server(sp -> sp.hurt(DamageSource.GENERIC, 3.0F)));
         run(mc -> check("game: normal damage again after the round", server(sp -> sp.getHealth()) < 20.0F, ""));
         zombieWaves();
         lastStanding();
@@ -753,14 +773,14 @@ public final class SelfTest {
     // fake players are invulnerable and not in the player list, so they join through GameManager.start and fall
     // through GameManager.fall; the real player falls the normal way, by damage
     private static FakePlayer gamer(ServerPlayer sp, String name) {
-        FakePlayer fake = FakePlayerFactory.get(sp.serverLevel(), new GameProfile(UUID.nameUUIDFromBytes(name.getBytes()), name));
+        FakePlayer fake = FakePlayerFactory.get(sp.getLevel(), new GameProfile(UUID.nameUUIDFromBytes(name.getBytes()), name));
         fake.setGameMode(GameType.SURVIVAL);
         fake.setPos(sp.getX() + 3.0, sp.getY(), sp.getZ());
         return fake;
     }
 
     private static FakePlayer fake(ServerPlayer sp, String name) {
-        return FakePlayerFactory.get(sp.serverLevel(), new GameProfile(UUID.nameUUIDFromBytes(name.getBytes()), name));
+        return FakePlayerFactory.get(sp.getLevel(), new GameProfile(UUID.nameUUIDFromBytes(name.getBytes()), name));
     }
 
     private static void startGame(int mode, String... fakes) {
@@ -786,7 +806,7 @@ public final class SelfTest {
                 GameManager.fall(a);
                 boolean onAfterOne = GameManager.running();
                 boolean aOut = GameManager.isOut(a) && a.gameMode.getGameModeForPlayer() == GameType.SPECTATOR;
-                sp.hurt(sp.damageSources().generic(), 1000.0F);
+                sp.hurt(DamageSource.GENERIC, 1000.0F);
                 return new Object[]{onAfterOne, aOut, GameManager.running(), sp.isAlive(), sp.gameMode.getGameModeForPlayer(),
                         a.gameMode.getGameModeForPlayer()};
             });
@@ -859,9 +879,9 @@ public final class SelfTest {
                     }
                 }
                 // a teammate's shot does nothing, an enemy's does
-                sp.hurt(sp.damageSources().playerAttack(mate), 4.0F);
+                sp.hurt(DamageSource.playerAttack(mate), 4.0F);
                 float afterMate = sp.getHealth();
-                sp.hurt(sp.damageSources().playerAttack(enemies.get(0)), 4.0F);
+                sp.hurt(DamageSource.playerAttack(enemies.get(0)), 4.0F);
                 float afterEnemy = sp.getHealth();
                 GameManager.fall(mate);
                 boolean onWithMateDown = GameManager.running();
@@ -890,7 +910,7 @@ public final class SelfTest {
         sleep(65);
         run(mc -> {
             Object[] r = server(sp -> {
-                sp.hurt(sp.damageSources().generic(), 1000.0F);
+                sp.hurt(DamageSource.GENERIC, 1000.0F);
                 return new Object[]{GameManager.livesLeft(sp), GameManager.running(), sp.getHealth(), sp.gameMode.getGameModeForPlayer()};
             });
             check("lives: falling costs a life", (Integer) r[0] == 2, "lives " + r[0]);
@@ -901,13 +921,13 @@ public final class SelfTest {
         sleep(15);
         run(mc -> check("lives: short protection after losing a life",
                 server(sp -> {
-                    sp.hurt(sp.damageSources().generic(), 5.0F);
+                    sp.hurt(DamageSource.GENERIC, 5.0F);
                     return sp.getHealth();
                 }) >= 20.0F, ""));
         sleep(55);
         run(mc -> check("lives: protection wears off",
                 server(sp -> {
-                    sp.hurt(sp.damageSources().generic(), 3.0F);
+                    sp.hurt(DamageSource.GENERIC, 3.0F);
                     return sp.getHealth();
                 }) < 20.0F, ""));
         run(mc -> {
@@ -932,7 +952,7 @@ public final class SelfTest {
     }
 
     private static int countWaveZombies(ServerPlayer sp) {
-        return sp.serverLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(64.0), z -> z.getTags().contains("taczvr_wave")).size();
+        return sp.getLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(64.0), z -> z.getTags().contains("taczvr_wave")).size();
     }
 
     /**
@@ -958,12 +978,12 @@ public final class SelfTest {
             float[] r = server(sp -> {
                 sp.setHealth(20.0F);
                 FakePlayer friend = gamer(sp, "ZombieFriend");
-                sp.hurt(sp.damageSources().playerAttack(friend), 6.0F);
+                sp.hurt(DamageSource.playerAttack(friend), 6.0F);
                 float afterFriend = sp.getHealth();
-                sp.hurt(sp.damageSources().explosion(null, sp), 6.0F);
+                sp.hurt(DamageSource.explosion(sp), 6.0F);
                 float afterOwnBlast = sp.getHealth();
-                Zombie zombie = sp.serverLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(64.0)).get(0);
-                sp.hurt(sp.damageSources().mobAttack(zombie), 3.0F);
+                Zombie zombie = sp.getLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(64.0)).get(0);
+                sp.hurt(DamageSource.mobAttack(zombie), 3.0F);
                 return new float[]{afterFriend, afterOwnBlast, sp.getHealth()};
             });
             check("zombies: a friend's hit does nothing", r[0] >= 20.0F, "health " + r[0]);
@@ -971,7 +991,7 @@ public final class SelfTest {
             check("zombies: the zombies still hurt", r[2] < 20.0F, "health " + r[2]);
         });
         run(mc -> server(sp -> {
-            for (Zombie zombie : sp.serverLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(64.0))) {
+            for (Zombie zombie : sp.getLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(64.0))) {
                 zombie.kill();
             }
             return null;
@@ -1028,7 +1048,7 @@ public final class SelfTest {
         await("shop: closes when the wave comes", 10, mc -> !ShopScreen.isOpen() && !(mc.screen instanceof ShopScreen), () -> "");
         run(mc -> {
             Object[] r = server(sp -> {
-                sp.hurt(sp.damageSources().generic(), 1000.0F);
+                sp.hurt(DamageSource.GENERIC, 1000.0F);
                 boolean anyBought = false;
                 boolean acog = false;
                 for (ItemStack stack : sp.getInventory().items) {
@@ -1081,11 +1101,11 @@ public final class SelfTest {
         sleep(70);
         run(mc -> {
             Object[] r = server(sp -> {
-                sp.hurt(sp.damageSources().fellOutOfWorld(), 1000.0F);
+                sp.hurt(DamageSource.OUT_OF_WORLD, 1000.0F);
                 boolean downed = GameManager.isDowned(sp);
                 float health = sp.getHealth();
-                sp.hurt(sp.damageSources().fellOutOfWorld(), 3.0F);
-                Zombie zombie = sp.serverLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(64.0)).get(0);
+                sp.hurt(DamageSource.OUT_OF_WORLD, 3.0F);
+                Zombie zombie = sp.getLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(64.0)).get(0);
                 zombie.setTarget(sp);
                 return new Object[]{downed, GameManager.running(), sp.gameMode.getGameModeForPlayer(), health, sp.getHealth(),
                         zombie.getSensing().hasLineOfSight(sp)};
@@ -1101,7 +1121,7 @@ public final class SelfTest {
             boolean crawling = server(sp -> sp.getPose() == net.minecraft.world.entity.Pose.SWIMMING);
             check("downed: crawling (for you and for others)", crawling && mc.player.getPose() == net.minecraft.world.entity.Pose.SWIMMING,
                     mc.player.getPose().toString());
-            boolean targetDropped = server(sp -> sp.serverLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(64.0))
+            boolean targetDropped = server(sp -> sp.getLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(64.0))
                     .stream().noneMatch(z -> z.getTarget() == sp));
             check("downed: zombies leave you alone", targetDropped, "");
             mc.options.hideGui = false;
@@ -1131,7 +1151,7 @@ public final class SelfTest {
         sleep(65);
         run(mc -> {
             boolean[] r = server(sp -> {
-                sp.hurt(sp.damageSources().fellOutOfWorld(), 1000.0F);
+                sp.hurt(DamageSource.OUT_OF_WORLD, 1000.0F);
                 boolean downed = GameManager.isDowned(sp);
                 MedkitItem.heal(sp, fake(sp, "Buddy"));
                 return new boolean[]{downed, GameManager.isDowned(sp)};
@@ -1141,7 +1161,7 @@ public final class SelfTest {
         sleep(65);
         // nobody comes: out
         run(mc -> server(sp -> {
-            sp.hurt(sp.damageSources().fellOutOfWorld(), 1000.0F);
+            sp.hurt(DamageSource.OUT_OF_WORLD, 1000.0F);
             GameManager.testBleed(sp, 3);
             return null;
         }));
@@ -1156,7 +1176,7 @@ public final class SelfTest {
         // the boss wave: straight to wave 5
         run(mc -> server(sp -> {
             GameManager.testWave(4);
-            for (Zombie zombie : sp.serverLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(96.0))) {
+            for (Zombie zombie : sp.getLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(96.0))) {
                 zombie.kill();
             }
             return null;
@@ -1169,14 +1189,14 @@ public final class SelfTest {
         await("boss: every fifth wave", 20, mc -> server(sp -> GameManager.wave() == 5 && GameManager.bossBar() != null), () -> "");
         run(mc -> {
             Object[] r = server(sp -> {
-                Zombie big = sp.serverLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(96.0),
+                Zombie big = sp.getLevel().getEntitiesOfClass(Zombie.class, sp.getBoundingBox().inflate(96.0),
                         z -> z.getTags().contains("taczvr_boss")).stream().findFirst().orElse(null);
                 if (big == null) {
                     return new Object[]{false, 0.0F, 0};
                 }
                 float health = big.getMaxHealth();
                 int before = ZombieShop.points(fake(sp, "Buddy"));
-                big.hurt(sp.damageSources().playerAttack(fake(sp, "Buddy")), 10000.0F);
+                big.hurt(DamageSource.playerAttack(fake(sp, "Buddy")), 10000.0F);
                 return new Object[]{big.hasCustomName(), health, ZombieShop.points(fake(sp, "Buddy")) - before};
             });
             check("boss: a big one with a name and a boss bar", (Boolean) r[0] && (Float) r[1] >= 200.0F, r[0] + " " + r[1]);
@@ -1210,20 +1230,20 @@ public final class SelfTest {
                 IGun iGun = IGun.getIGunOrNull(gun);
                 GunData data = TimelessAPI.getCommonGunIndex(iGun.getGunId(gun)).orElseThrow().getGunData();
                 target = testPig(sp, sp.position().add(8.0, 0.0, -1.0), 90.0F);
-                EntityKineticBullet bullet = new EntityKineticBullet(sp.serverLevel(), sp, gun, data.getAmmoId(),
-                        iGun.getGunId(gun), iGun.getGunId(gun), false, data, data.getBulletData());
+                EntityKineticBullet bullet = new EntityKineticBullet(sp.getLevel(), sp, gun, data.getAmmoId(),
+                        iGun.getGunId(gun), false, data, data.getBulletData());
                 bullet.setOwner(target);
                 // along the x axis, a metre in front of your face, a little up against the drop
                 bullet.setPos(sp.getEyePosition().add(8.0, 0.0, -1.0));
                 bullet.shoot(-1.0, 0.06, 0.0, 4.0F, 0.0F);
-                sp.serverLevel().addFreshEntity(bullet);
+                sp.getLevel().addFreshEntity(bullet);
                 return null;
             });
         });
         for (int i = 0; i < 6; i++) {
             run(mc -> {
                 List<EntityKineticBullet> bullets = mc.level.getEntitiesOfClass(EntityKineticBullet.class, mc.player.getBoundingBox().inflate(64.0));
-                int onServer = server(sp -> sp.serverLevel().getEntitiesOfClass(EntityKineticBullet.class, sp.getBoundingBox().inflate(64.0)).size());
+                int onServer = server(sp -> sp.getLevel().getEntitiesOfClass(EntityKineticBullet.class, sp.getBoundingBox().inflate(64.0)).size());
                 log("whiz tick: client bullets %d %s, server bullets %d", bullets.size(),
                         bullets.isEmpty() ? "" : v(bullets.get(0).position()) + " owner " + bullets.get(0).getOwner(), onServer);
             });
@@ -1242,7 +1262,7 @@ public final class SelfTest {
         // the grenades and the team match's hits push the player around, back to the middle of the room to be
         run(mc -> {
             log("echo: player at %s", v(mc.player.position()));
-            mc.player.connection.sendCommand("tp @s 0 -60 0");
+            Cmd.send(mc.player, "tp @s 0 -60 0");
         });
         // the gun was just handed back, TACZ won't fire while it's still being drawn
         sleep(25);
@@ -1258,8 +1278,8 @@ public final class SelfTest {
             check("echo: the shot out in the open was fired", clientAmmo(mc) < ammoBefore, "ammo " + ammoBefore + " -> " + clientAmmo(mc));
             check("echo: none out in the open", GunEcho.echoes == echoesBefore, (GunEcho.echoes - echoesBefore) + " echoes");
             check("muzzle light: none in daylight", MuzzleLight.flashCount() == flashesBefore, "");
-            mc.player.connection.sendCommand("fill -4 -61 -4 4 -55 4 minecraft:stone hollow");
-            mc.player.connection.sendCommand("time set 18000");
+            Cmd.send(mc.player, "fill -4 -61 -4 4 -55 4 minecraft:stone hollow");
+            Cmd.send(mc.player, "time set 18000");
         });
         sleep(10);
         run(mc -> {
@@ -1274,9 +1294,9 @@ public final class SelfTest {
             check("echo: the room echoes the shot", GunEcho.echoes > echoesBefore,
                     String.format(Locale.ROOT, "enclosed %.2f at %s", GunEcho.lastEnclosed, v(mc.player.position())));
             check("muzzle light: gone again right after", server(sp -> lightBlocksAround(sp)) == 0, "light left behind");
-            mc.player.connection.sendCommand("fill -4 -61 -4 4 -55 4 minecraft:air");
-            mc.player.connection.sendCommand("fill -4 -61 -4 4 -61 4 minecraft:grass_block");
-            mc.player.connection.sendCommand("time set 6000");
+            Cmd.send(mc.player, "fill -4 -61 -4 4 -55 4 minecraft:air");
+            Cmd.send(mc.player, "fill -4 -61 -4 4 -61 4 minecraft:grass_block");
+            Cmd.send(mc.player, "time set 6000");
         });
         sleep(10);
     }
@@ -1386,7 +1406,7 @@ public final class SelfTest {
         int found = 0;
         BlockPos center = sp.blockPosition();
         for (BlockPos pos : BlockPos.betweenClosed(center.offset(-3, -1, -3), center.offset(3, 3, 3))) {
-            if (sp.serverLevel().getBlockState(pos).is(Blocks.LIGHT)) {
+            if (sp.getLevel().getBlockState(pos).is(Blocks.LIGHT)) {
                 found++;
             }
         }
@@ -1400,12 +1420,12 @@ public final class SelfTest {
         run(mc -> server(sp -> {
             sp.removeEffect(MobEffects.DAMAGE_RESISTANCE);
             sp.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.SHIELD));
-            Pig spawned = EntityType.PIG.create(sp.serverLevel());
+            Pig spawned = EntityType.PIG.create(sp.getLevel());
             spawned.moveTo(sp.getX(), sp.getY(), sp.getZ() - 5.0, 0.0F, 0.0F);
             spawned.setNoAi(true);
             spawned.setNoGravity(true);
             spawned.setInvulnerable(true);
-            sp.serverLevel().addFreshEntity(spawned);
+            sp.getLevel().addFreshEntity(spawned);
             target = spawned;
             return null;
         }));
@@ -1445,15 +1465,15 @@ public final class SelfTest {
                 IGun iGun = IGun.getIGunOrNull(gun);
                 GunData data = TimelessAPI.getCommonGunIndex(iGun.getGunId(gun)).orElseThrow().getGunData();
                 // TACZ needs a shooter holding the gun to build the bullet, then the pig fires it
-                EntityKineticBullet bullet = new EntityKineticBullet(sp.serverLevel(), sp, gun, data.getAmmoId(),
-                        iGun.getGunId(gun), iGun.getGunId(gun), false, data, data.getBulletData());
+                EntityKineticBullet bullet = new EntityKineticBullet(sp.getLevel(), sp, gun, data.getAmmoId(),
+                        iGun.getGunId(gun), false, data, data.getBulletData());
                 bullet.setOwner(target);
                 Vec3 from = target.getEyePosition();
                 Vec3 chest = sp.position().add(0.0, 1.25, 0.0);
                 Vec3 dir = chest.subtract(from).normalize();
                 bullet.setPos(from);
                 bullet.shoot(dir.x, dir.y, dir.z, 5.0F, 0.0F);
-                sp.serverLevel().addFreshEntity(bullet);
+                sp.getLevel().addFreshEntity(bullet);
                 return null;
             });
         });
@@ -1504,10 +1524,10 @@ public final class SelfTest {
         // held too long: goes off in the hand, a pig next to you gets hurt
         run(mc -> {
             server(sp -> {
-                Pig spawned = EntityType.PIG.create(sp.serverLevel());
+                Pig spawned = EntityType.PIG.create(sp.getLevel());
                 spawned.moveTo(sp.getX() + 1.5, sp.getY(), sp.getZ(), 0.0F, 0.0F);
                 spawned.setNoAi(true);
-                sp.serverLevel().addFreshEntity(spawned);
+                sp.getLevel().addFreshEntity(spawned);
                 target = spawned;
                 pigHealth = spawned.getHealth();
                 return null;
@@ -1523,7 +1543,7 @@ public final class SelfTest {
         sleep(3);
         // holding A on after the blast pulled the next pin: throw it away and clean up
         run(mc -> server(sp -> {
-            for (GrenadeEntity left : sp.serverLevel().getEntitiesOfClass(GrenadeEntity.class, sp.getBoundingBox().inflate(64.0))) {
+            for (GrenadeEntity left : sp.getLevel().getEntitiesOfClass(GrenadeEntity.class, sp.getBoundingBox().inflate(64.0))) {
                 left.discard();
             }
             if (target.isAlive()) {
@@ -1567,7 +1587,7 @@ public final class SelfTest {
 
     @Nullable
     private static GrenadeEntity lastGrenade(ServerPlayer sp) {
-        List<GrenadeEntity> grenades = sp.serverLevel().getEntitiesOfClass(GrenadeEntity.class, sp.getBoundingBox().inflate(64.0));
+        List<GrenadeEntity> grenades = sp.getLevel().getEntitiesOfClass(GrenadeEntity.class, sp.getBoundingBox().inflate(64.0));
         return grenades.isEmpty() ? null : grenades.get(grenades.size() - 1);
     }
 
@@ -1592,7 +1612,7 @@ public final class SelfTest {
             captureBullet = true;
         });
         pullTrigger(2);
-        await(name + ": shot fired", 20, mc -> bulletPos != null, () -> "none");
+        await(name + ": shot fired", 20, mc -> bulletPos != null, () -> "none, last trigger shot " + TaczCompat.lastShot);
         run(mc -> captureBullet = false);
     }
 
@@ -1669,13 +1689,13 @@ public final class SelfTest {
         run(mc -> check("infinite ammo: off again", !server(ServerAssist::infiniteAmmo), ""));
         // aim assist: a target 6 blocks ahead, the gun held 5 degrees to the right of it
         run(mc -> server(sp -> {
-            Pig spawned = EntityType.PIG.create(sp.serverLevel());
+            Pig spawned = EntityType.PIG.create(sp.getLevel());
             Vec3 at = sp.position().add(0.0, 0.86, -6.0);
             spawned.moveTo(at.x, at.y, at.z, 0.0F, 0.0F);
             spawned.setNoAi(true);
             spawned.setNoGravity(true);
             spawned.setInvulnerable(true);
-            sp.serverLevel().addFreshEntity(spawned);
+            sp.getLevel().addFreshEntity(spawned);
             target = spawned;
             return null;
         }));
@@ -1717,7 +1737,7 @@ public final class SelfTest {
             String[] picked = server(sp -> {
                 Vec3 from = sp.getEyePosition();
                 Vec3 north = new Vec3(0.0, 0.0, -1.0);
-                FakePlayer other = FakePlayerFactory.get(sp.serverLevel(),
+                FakePlayer other = FakePlayerFactory.get(sp.getLevel(),
                         new GameProfile(UUID.nameUUIDFromBytes("taczvr_selftest_target".getBytes()), "LockTarget"));
                 other.setGameMode(GameType.SURVIVAL);
                 // 40 degrees to the right, 12 blocks out
@@ -1815,7 +1835,7 @@ public final class SelfTest {
             VrCommon.testForceVr = false;
             mc.options.fov().set(70);
             savedModelType = ClientDataHolderVR.getInstance().vrSettings.playerModelType;
-            RemotePlayer other = new RemotePlayer(mc.level, new GameProfile(REMOTE_ID, "VRFriend"));
+            RemotePlayer other = new RemotePlayer(mc.level, new GameProfile(REMOTE_ID, "VRFriend"), null);
             // 2m in front of the camera, facing east: the camera sees its right side, where the gun is
             Vec3 at = mc.player.position().add(0.0, 0.0, -2.0);
             other.moveTo(at.x, at.y, at.z, -90.0F, 0.0F);
@@ -1893,17 +1913,8 @@ public final class SelfTest {
             remote.setItemInHand(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).build());
             remote.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
         });
-        // their laser attachment's beam
-        run(mc -> {
-            lasersBefore = VrGunRenderer.lasersDrawn;
-            remote.setItemInHand(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(new ResourceLocation("tacz:m4a1"))
-                    .putAttachment(AttachmentType.LASER, LASER).build());
-        });
-        sleep(4);
-        run(mc -> {
-            check("laser: their laser beam is drawn for others", VrGunRenderer.lasersDrawn > lasersBefore, "");
-            screenshot(mc, "taczvr_remote_laser.png");
-        });
+        // their laser attachment's beam: TACZ 1.1.4 has no laser attachments
+        run(mc -> pass("laser: TACZ 1.1.4 has no laser attachments, nothing to draw"));
         run(mc -> remote.setItemInHand(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).build()));
         // client side lock-on picks this player even with the gun pointing well past it
         run(mc -> {
@@ -1954,14 +1965,14 @@ public final class SelfTest {
     }
 
     private static Pig testPig(ServerPlayer sp, Vec3 at, float yaw) {
-        Pig spawned = EntityType.PIG.create(sp.serverLevel());
+        Pig spawned = EntityType.PIG.create(sp.getLevel());
         spawned.moveTo(at.x, at.y, at.z, yaw, 0.0F);
         spawned.setYBodyRot(yaw);
         spawned.setYHeadRot(yaw);
         spawned.setNoAi(true);
         spawned.getAttribute(Attributes.MAX_HEALTH).setBaseValue(100.0);
         spawned.setHealth(100.0F);
-        sp.serverLevel().addFreshEntity(spawned);
+        sp.getLevel().addFreshEntity(spawned);
         return spawned;
     }
 
@@ -1978,10 +1989,11 @@ public final class SelfTest {
      */
     private static void creativeTab() {
         run(mc -> {
-            CreativeModeTab tab = BuiltInRegistries.CREATIVE_MODE_TAB.get(new ResourceLocation("taczvr:main"));
-            check("tab: registered with the logo icon", tab != null && tab.getIconItem().is(ModContent.LOGO.get()), "");
-            CreativeModeTabs.tryRebuildTabContents(mc.player.connection.enabledFeatures(), true, mc.level.registryAccess());
-            List<Item> items = tab == null ? List.of() : tab.getDisplayItems().stream().map(ItemStack::getItem).toList();
+            CreativeModeTab tab = ModContent.TAB;
+            check("tab: registered with the logo icon", tab.getIconItem().is(ModContent.LOGO.get()), "");
+            NonNullList<ItemStack> shown = NonNullList.create();
+            tab.fillItemList(shown);
+            List<Item> items = shown.stream().map(ItemStack::getItem).toList();
             check("tab: holds all 7 items", items.containsAll(List.of(ModContent.GRENADE.get(), ModContent.FLASHBANG.get(),
                     ModContent.SMOKE_GRENADE.get(), ModContent.COMBAT_KNIFE.get(), ModContent.MEDKIT.get(),
                     ModContent.NIGHT_VISION_GOGGLES.get(), ModContent.GRAPPLING_HOOK.get())) && !items.contains(ModContent.LOGO.get()),
@@ -1995,13 +2007,13 @@ public final class SelfTest {
                 return true;
             });
             check("tab: every new item has a recipe", recipes, "");
-            mc.player.connection.sendCommand("gamemode creative");
+            Cmd.send(mc.player, "gamemode creative");
         });
         await("tab: creative for the inventory", 20, mc -> mc.gameMode.hasInfiniteItems(), () -> "");
         run(mc -> {
-            CreativeModeTab tab = BuiltInRegistries.CREATIVE_MODE_TAB.get(new ResourceLocation("taczvr:main"));
+            CreativeModeTab tab = ModContent.TAB;
             mc.options.hideGui = false;
-            CreativeModeInventoryScreen screen = new CreativeModeInventoryScreen(mc.player, mc.player.connection.enabledFeatures(), true);
+            CreativeModeInventoryScreen screen = new CreativeModeInventoryScreen(mc.player);
             mc.setScreen(screen);
             Method select = CreativeModeInventoryScreen.class.getDeclaredMethod("selectTab", CreativeModeTab.class);
             select.setAccessible(true);
@@ -2013,7 +2025,7 @@ public final class SelfTest {
             // like Escape does, so the inventory menu is the open one again
             mc.screen.onClose();
             mc.options.hideGui = true;
-            mc.player.connection.sendCommand("gamemode survival");
+            Cmd.send(mc.player, "gamemode survival");
         });
         await("tab: back to survival", 20, mc -> !mc.gameMode.hasInfiniteItems(), () -> "");
     }
@@ -2024,7 +2036,7 @@ public final class SelfTest {
      */
     private static void flashbang() {
         run(mc -> {
-            mc.player.connection.sendCommand("tp @s 0 -60 0 180 0");
+            Cmd.send(mc.player, "tp @s 0 -60 0 180 0");
             VrCommon.testForceVr = false;
             VrClient.testPose = null;
             mc.options.hideGui = false;
@@ -2034,12 +2046,12 @@ public final class SelfTest {
         sleep(5);
         run(mc -> server(sp -> {
             target = testPig(sp, sp.position().add(0.0, 0.0, -5.0), 0.0F);
-            GrenadeEntity bang = new GrenadeEntity(sp.serverLevel(), sp);
+            GrenadeEntity bang = new GrenadeEntity(sp.getLevel(), sp);
             bang.setItem(new ItemStack(ModContent.FLASHBANG.get()));
             bang.setPos(sp.getEyePosition().add(0.0, -0.3, -3.0));
             bang.setDeltaMovement(Vec3.ZERO);
             bang.setFuse(2);
-            sp.serverLevel().addFreshEntity(bang);
+            sp.getLevel().addFreshEntity(bang);
             return null;
         }));
         await("flashbang: goes off and blinds you", 20, mc -> ScreenEffects.flashesSeen > flashesBefore, () -> "");
@@ -2086,12 +2098,12 @@ public final class SelfTest {
             boolean seenBefore = server(sp -> {
                 target = testPig(sp, sp.position().add(0.0, 0.0, -12.0), 0.0F);
                 boolean seen = target.getSensing().hasLineOfSight(sp);
-                GrenadeEntity smoke = new GrenadeEntity(sp.serverLevel(), sp);
+                GrenadeEntity smoke = new GrenadeEntity(sp.getLevel(), sp);
                 smoke.setItem(new ItemStack(ModContent.SMOKE_GRENADE.get()));
                 smoke.setPos(sp.position().add(0.0, 0.2, -6.0));
                 smoke.setDeltaMovement(Vec3.ZERO);
                 smoke.setFuse(2);
-                sp.serverLevel().addFreshEntity(smoke);
+                sp.getLevel().addFreshEntity(smoke);
                 return seen;
             });
             check("smoke: the pig sees you before", seenBefore, "");
@@ -2105,7 +2117,7 @@ public final class SelfTest {
             screenshot(mc, "taczvr_smoke.png");
         });
         run(mc -> server(sp -> {
-            for (GrenadeEntity left : sp.serverLevel().getEntitiesOfClass(GrenadeEntity.class, sp.getBoundingBox().inflate(64.0))) {
+            for (GrenadeEntity left : sp.getLevel().getEntitiesOfClass(GrenadeEntity.class, sp.getBoundingBox().inflate(64.0))) {
                 left.discard();
             }
             target.discard();
@@ -2216,7 +2228,7 @@ public final class SelfTest {
                 syringe.interactLivingEntity(sp, friend, InteractionHand.MAIN_HAND);
                 float friendHealth = friend.getHealth();
                 sp.setHealth(10.0F);
-                syringe.finishUsingItem(sp.level(), sp);
+                syringe.finishUsingItem(sp.getLevel(), sp);
                 return new Object[]{friendHealth, sp.getHealth(), syringe.getCount()};
             });
             check("medkit: used on a friend it heals them", (Float) r[0] >= 13.0F, "friend " + r[0]);
@@ -2229,8 +2241,8 @@ public final class SelfTest {
      */
     private static void nightVision() {
         run(mc -> {
-            mc.player.connection.sendCommand("fill -5 -61 -5 5 -55 5 minecraft:stone hollow");
-            mc.player.connection.sendCommand("time set 18000");
+            Cmd.send(mc.player, "fill -5 -61 -5 5 -55 5 minecraft:stone hollow");
+            Cmd.send(mc.player, "time set 18000");
             give(InteractionHand.MAIN_HAND, new ItemStack(ModContent.NIGHT_VISION_GOGGLES.get()));
             framesBefore = ScreenEffects.nightVisionFrames;
         });
@@ -2280,9 +2292,9 @@ public final class SelfTest {
         });
         await("night vision: gone when taken off", 30, mc -> !server(sp -> sp.hasEffect(MobEffects.NIGHT_VISION)), () -> "");
         run(mc -> {
-            mc.player.connection.sendCommand("fill -5 -61 -5 5 -55 5 minecraft:air");
-            mc.player.connection.sendCommand("fill -5 -61 -5 5 -61 5 minecraft:grass_block");
-            mc.player.connection.sendCommand("time set 6000");
+            Cmd.send(mc.player, "fill -5 -61 -5 5 -55 5 minecraft:air");
+            Cmd.send(mc.player, "fill -5 -61 -5 5 -61 5 minecraft:grass_block");
+            Cmd.send(mc.player, "time set 6000");
         });
         sleep(5);
     }
@@ -2294,8 +2306,8 @@ public final class SelfTest {
         run(mc -> {
             VrCommon.testForceVr = false;
             VrClient.testPose = null;
-            mc.player.connection.sendCommand("fill -4 -60 -16 4 -44 -16 minecraft:stone");
-            mc.player.connection.sendCommand("tp @s 0 -60 0 180 -25");
+            Cmd.send(mc.player, "fill -4 -60 -16 4 -44 -16 minecraft:stone");
+            Cmd.send(mc.player, "tp @s 0 -60 0 180 -25");
             give(InteractionHand.MAIN_HAND, new ItemStack(ModContent.GRAPPLING_HOOK.get()));
         });
         sleep(10);
@@ -2339,9 +2351,9 @@ public final class SelfTest {
         run(mc -> {
             mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
             // the near wall would be in the way
-            mc.player.connection.sendCommand("fill -4 -60 -16 4 -44 -16 minecraft:air");
-            mc.player.connection.sendCommand("fill -3 -60 -150 3 -25 -150 minecraft:stone");
-            mc.player.connection.sendCommand("tp @s 0 -60 0 180 -5");
+            Cmd.send(mc.player, "fill -4 -60 -16 4 -44 -16 minecraft:air");
+            Cmd.send(mc.player, "fill -3 -60 -150 3 -25 -150 minecraft:stone");
+            Cmd.send(mc.player, "tp @s 0 -60 0 180 -5");
         });
         sleep(20);
         run(mc -> VRInputAction.setKeyBindState(mc.options.keyUse, true));
@@ -2357,8 +2369,8 @@ public final class SelfTest {
         sleep(2);
         run(mc -> {
             mc.options.keyUse.setDown(false);
-            mc.player.connection.sendCommand("tp @s 0 -60 0 180 0");
-            mc.player.connection.sendCommand("fill -3 -60 -150 3 -25 -150 minecraft:air");
+            Cmd.send(mc.player, "tp @s 0 -60 0 180 0");
+            Cmd.send(mc.player, "fill -3 -60 -150 3 -25 -150 minecraft:air");
         });
         await("hook: let go far away too", 20, mc -> server(sp -> GrappleEntity.of(sp) == null) && GrappleClient.anchor() == null, () -> "");
         // in VR it flies where the hand points
@@ -2368,7 +2380,7 @@ public final class SelfTest {
             VrCommon.testPose = new FakePose(base.add(0.25, 1.3, -0.2), EAST, null, base.add(0.0, 1.62, 0.0), NORTH);
             server(sp -> {
                 sp.getCooldowns().removeCooldown(ModContent.GRAPPLING_HOOK.get());
-                sp.getMainHandItem().use(sp.level(), sp, InteractionHand.MAIN_HAND);
+                sp.getMainHandItem().use(sp.getLevel(), sp, InteractionHand.MAIN_HAND);
                 return null;
             });
             Vec3 velocity = server(sp -> {
@@ -2383,8 +2395,8 @@ public final class SelfTest {
             check("hook: in VR it flies where the hand points", velocity.normalize().dot(new Vec3(1.0, 0.0, 0.0)) > 0.95, v(velocity));
             VrCommon.testPose = null;
             mc.options.hideGui = true;
-            mc.player.connection.sendCommand("fill -4 -60 -16 4 -44 -16 minecraft:air");
-            mc.player.connection.sendCommand("tp @s 0 -60 0 180 0");
+            Cmd.send(mc.player, "fill -4 -60 -16 4 -44 -16 minecraft:air");
+            Cmd.send(mc.player, "tp @s 0 -60 0 180 0");
         });
         sleep(20);
         run(mc -> give(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).setAmmoCount(30).setAmmoInBarrel(true).build()));
@@ -2518,31 +2530,31 @@ public final class SelfTest {
                 BakedModel model = mc.getItemRenderer().getModel(stack, mc.level, null, 0);
                 String name = item.getId().getPath();
                 boolean missing = model == mc.getModelManager().getMissingModel();
-                float hand = depth(model.applyTransform(ItemDisplayContext.FIRST_PERSON_RIGHT_HAND, new PoseStack(), false));
-                float gui = depth(model.applyTransform(ItemDisplayContext.GUI, new PoseStack(), false));
+                float hand = depth(model.applyTransform(ItemTransforms.TransformType.FIRST_PERSON_RIGHT_HAND, new PoseStack(), false));
+                float gui = depth(model.applyTransform(ItemTransforms.TransformType.GUI, new PoseStack(), false));
                 check("3D: " + name + " is 3D in the hand", !missing && hand > 0.1F, String.format(Locale.ROOT, "depth %.3f", hand));
                 check("3D: " + name + " keeps its flat inventory picture", gui < 0.07F, String.format(Locale.ROOT, "depth %.3f", gui));
             }
             ItemStack syringe = new ItemStack(ModContent.MEDKIT.get());
             check("3D: the syringe isn't a bow in VR", !org.vivecraft.client_vr.gameplay.trackers.BowTracker.isBow(syringe), "");
             // on stands, on the ground, and a grenade lying there
-            mc.player.connection.sendCommand("tp @s 0 -60 0 180 10");
+            Cmd.send(mc.player, "tp @s 0 -60 0 180 10");
             String[] ids = {"grenade", "flashbang", "smoke_grenade", "combat_knife", "medkit", "grappling_hook", "radio"};
             for (int i = 0; i < ids.length; i++) {
                 double x = -3.0 + i;
-                mc.player.connection.sendCommand(String.format(Locale.ROOT,
+                Cmd.send(mc.player, String.format(Locale.ROOT,
                         "summon armor_stand %.1f -60 -4 {ShowArms:1b,NoBasePlate:1b,NoGravity:1b,Rotation:[0f,0f],HandItems:[{id:\"taczvr:%s\",Count:1b},{}]}",
                         x + 0.5, ids[i]));
-                mc.player.connection.sendCommand(String.format(Locale.ROOT,
+                Cmd.send(mc.player, String.format(Locale.ROOT,
                         "summon item %.1f -60 -2.2 {Item:{id:\"taczvr:%s\",Count:1b},PickupDelay:32767,NoGravity:1b}", x + 0.5, ids[i]));
             }
             server(sp -> {
-                GrenadeEntity lying = new GrenadeEntity(sp.serverLevel(), sp);
+                GrenadeEntity lying = new GrenadeEntity(sp.getLevel(), sp);
                 lying.setItem(new ItemStack(ModContent.GRENADE.get()));
                 lying.setPos(0.5, -59.95, -1.2);
                 lying.setDeltaMovement(Vec3.ZERO);
                 lying.setFuse(400);
-                sp.serverLevel().addFreshEntity(lying);
+                sp.getLevel().addFreshEntity(lying);
                 return null;
             });
             modelsBefore = GrenadeRenderer.drawn;
@@ -2552,9 +2564,9 @@ public final class SelfTest {
             check("3D: a grenade on the ground is drawn as its model", GrenadeRenderer.drawn > modelsBefore, "");
             screenshot(mc, "taczvr_3d_items.png");
             // close up from the side: a grenade in the right hand, the radio in the left
-            mc.player.connection.sendCommand("summon armor_stand 0.5 -60 -1.6 {ShowArms:1b,NoBasePlate:1b,NoGravity:1b,Rotation:[-90f,0f],"
+            Cmd.send(mc.player, "summon armor_stand 0.5 -60 -1.6 {ShowArms:1b,NoBasePlate:1b,NoGravity:1b,Rotation:[-90f,0f],"
                     + "HandItems:[{id:\"taczvr:grenade\",Count:1b},{id:\"taczvr:radio\",Count:1b}]}");
-            mc.player.connection.sendCommand("tp @s 0 -60 0 180 20");
+            Cmd.send(mc.player, "tp @s 0 -60 0 180 20");
         });
         sleep(10);
         run(mc -> screenshot(mc, "taczvr_3d_stand_close.png"));
@@ -2570,15 +2582,15 @@ public final class SelfTest {
         }
         run(mc -> {
             mc.options.hideGui = true;
-            mc.player.connection.sendCommand("kill @e[type=armor_stand]");
-            mc.player.connection.sendCommand("kill @e[type=item]");
+            Cmd.send(mc.player, "kill @e[type=armor_stand]");
+            Cmd.send(mc.player, "kill @e[type=item]");
             server(sp -> {
-                for (GrenadeEntity left : sp.serverLevel().getEntitiesOfClass(GrenadeEntity.class, sp.getBoundingBox().inflate(64.0))) {
+                for (GrenadeEntity left : sp.getLevel().getEntitiesOfClass(GrenadeEntity.class, sp.getBoundingBox().inflate(64.0))) {
                     left.discard();
                 }
                 return null;
             });
-            mc.player.connection.sendCommand("tp @s 0 -60 0 180 0");
+            Cmd.send(mc.player, "tp @s 0 -60 0 180 0");
             give(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).setAmmoCount(30).setAmmoInBarrel(true).build());
         });
         sleep(5);
@@ -2704,7 +2716,7 @@ public final class SelfTest {
         });
         // someone else, left-handed and not in VR
         run(mc -> {
-            RemotePlayer other = new RemotePlayer(mc.level, new GameProfile(UUID.nameUUIDFromBytes("taczvr_selftest_lefty".getBytes()), "Lefty"));
+            RemotePlayer other = new RemotePlayer(mc.level, new GameProfile(UUID.nameUUIDFromBytes("taczvr_selftest_lefty".getBytes()), "Lefty"), null);
             Vec3 at = mc.player.position().add(0.0, 0.0, -2.5);
             other.moveTo(at.x, at.y, at.z, 30.0F, 0.0F);
             other.setYHeadRot(30.0F);
@@ -2785,7 +2797,7 @@ public final class SelfTest {
         });
         sleep(2);
         run(mc -> mc.options.keyAttack.setDown(false));
-        await("trigger: a bullet was fired", 20, mc -> bulletPos != null, () -> "none");
+        await("trigger: a bullet was fired", 20, mc -> bulletPos != null, () -> "none, last trigger shot " + TaczCompat.lastShot);
         run(mc -> {
             captureBullet = false;
             Vec3 pos = bulletPos;
@@ -2822,7 +2834,8 @@ public final class SelfTest {
             check("two-handed shot: holding the handguard", pose.twoHanded, "");
             expectedMuzzle = new Vec3(pose.muzzle.x, pose.muzzle.y, pose.muzzle.z);
             expectedDir = pose.bulletDirection(25.0);
-            Vec3 oneHanded = new Vec3(rigRot.transform(new Vector3f(0.0F, 0.0F, -1.0F)));
+            Vector3f oneDir = rigRot.transform(new Vector3f(0.0F, 0.0F, -1.0F));
+            Vec3 oneHanded = new Vec3(oneDir.x, oneDir.y, oneDir.z);
             check("two-handed shot: the barrel follows the off-hand, not the grip controller",
                     Math.toDegrees(Math.acos(Math.min(1.0, expectedDir.dot(oneHanded.normalize())))) > 2.0, "");
             bulletPos = null;
@@ -2834,7 +2847,7 @@ public final class SelfTest {
         });
         sleep(2);
         run(mc -> mc.options.keyAttack.setDown(false));
-        await("two-handed shot: a bullet was fired", 20, mc -> bulletPos != null, () -> "none");
+        await("two-handed shot: a bullet was fired", 20, mc -> bulletPos != null, () -> "none, last trigger shot " + TaczCompat.lastShot);
         run(mc -> {
             captureBullet = false;
             if (bulletPos == null || bulletVel == null) {
@@ -2858,12 +2871,12 @@ public final class SelfTest {
      */
     private static void meleeThrust() {
         run(mc -> server(sp -> {
-            Pig spawned = EntityType.PIG.create(sp.serverLevel());
+            Pig spawned = EntityType.PIG.create(sp.getLevel());
             Vec3 at = sp.position().add(1.6, 0.86, 0.0);
             spawned.moveTo(at.x, at.y, at.z, 0.0F, 0.0F);
             spawned.setNoAi(true);
             spawned.setNoGravity(true);
-            sp.serverLevel().addFreshEntity(spawned);
+            sp.getLevel().addFreshEntity(spawned);
             pig = spawned;
             pigHealth = spawned.getHealth();
             return null;
@@ -3150,7 +3163,7 @@ public final class SelfTest {
     private static void handoff() {
         run(mc -> {
             boolean[] r = server(sp -> {
-                FakePlayer other = FakePlayerFactory.get(sp.serverLevel(),
+                FakePlayer other = FakePlayerFactory.get(sp.getLevel(),
                         new GameProfile(UUID.nameUUIDFromBytes("taczvr_selftest".getBytes()), "TaczVRTest"));
                 other.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
                 boolean dirt = HandoffPacket.canHandOff(new ItemStack(Items.DIRT));
@@ -3274,7 +3287,7 @@ public final class SelfTest {
             ItemStack off = sp.getOffhandItem();
             IAttachment attachment = IAttachment.getIAttachmentOrNull(off);
             String offHand = off.isEmpty() ? "empty" : attachment != null ? attachment.getAttachmentId(off).toString()
-                    : BuiltInRegistries.ITEM.getKey(off.getItem()).toString();
+                    : Registry.ITEM.getKey(off.getItem()).toString();
             if (iGun == null) {
                 return new GunState(-1, false, "", inventory, offHand, false);
             }
@@ -3372,7 +3385,7 @@ public final class SelfTest {
     @SubscribeEvent
     public static void onRender(RenderLevelStageEvent event) {
         Minecraft mc = Minecraft.getInstance();
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES || mc.level == null || mc.player == null) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || mc.level == null || mc.player == null) {
             return;
         }
         Vec3 cam = event.getCamera().getPosition();
@@ -3497,7 +3510,7 @@ public final class SelfTest {
         // how someone else holds it, for comparison
         run(mc -> {
             VrClient.testPose = null;
-            RemotePlayer other = new RemotePlayer(mc.level, new GameProfile(UUID.nameUUIDFromBytes("taczvr_selftest_lr".getBytes()), "Raisin"));
+            RemotePlayer other = new RemotePlayer(mc.level, new GameProfile(UUID.nameUUIDFromBytes("taczvr_selftest_lr".getBytes()), "Raisin"), null);
             Vec3 at = mc.player.position().add(0.0, 0.0, -2.2);
             other.moveTo(at.x, at.y, at.z, 30.0F, 0.0F);
             other.setYHeadRot(30.0F);
@@ -3593,45 +3606,9 @@ public final class SelfTest {
      * The golden Deagle with its pistol scope (long eye relief): held close and at arm's length.
      */
     private static void pistolScope() {
-        run(mc -> {
-            give(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(DEAGLE_GOLDEN).setAmmoCount(9).setAmmoInBarrel(true)
-                    .putAttachment(AttachmentType.SCOPE, CONTENDER).build());
-            restPose();
-        });
-        sleep(10);
-        for (double behind : new double[]{0.1, 0.3}) {
-            run(mc -> {
-                ItemStack stack = mc.player.getMainHandItem();
-                IGun iGun = IGun.getIGunOrNull(stack);
-                var index = TimelessAPI.getClientAttachmentIndex(CONTENDER).orElse(null);
-                log("deagle: gun %s scope %s isScope=%s zoom=%.2f eyepiece=%.3f views=%s", iGun == null ? "none" : iGun.getGunId(stack),
-                        iGun == null ? "none" : iGun.getAttachmentId(stack, AttachmentType.SCOPE), index != null && index.isScope(),
-                        iGun == null ? 0.0F : iGun.getAimingZoom(stack), index == null ? -1.0F : ScopeView.eyepieceDistance(index, 0),
-                        index == null ? "-" : java.util.Arrays.toString(index.getViews()));
-                GunPoseSolver.Pose pose = VrGunController.lastPose();
-                Vec3 target = eye().add(0.0, 0.0, -behind);
-                rig(rigMain.add(target.subtract(pose.origin.x, pose.origin.y, pose.origin.z)), NORTH, idleOff());
-            });
-            // TACZ only aims once the gun is drawn, which takes longer after some items than others
-            await("pistol scope " + behind + " m: aims", 40, mc -> IClientPlayerGunOperator.fromLocalPlayer(mc.player).isAim(), () -> "");
-            run(mc -> {
-                GunPoseSolver.Pose pose = VrGunController.lastPose();
-                boolean aim = IClientPlayerGunOperator.fromLocalPlayer(mc.player).isAim();
-                log("deagle %.1f m: origin %s eye %s forward %s grip %s aim=%s viewing=%s fov=%.2f scale=%.3f", behind, v(pose.origin), v(eye()),
-                        v(pose.forward), v(pose.grip), aim, ScopeView.isViewing(), ScopeView.fovDegrees(), pose.scale);
-                check("pistol scope " + behind + " m: magnified view on", ScopeView.isViewing(), "");
-                scopeEye = true;
-            });
-            sleep(3);
-            run(mc -> {
-                screenshot(mc, "taczvr_deagle_scope_" + (int) (behind * 100) + ".png");
-                scopeEye = false;
-                restPose();
-            });
-            sleep(10);
-        }
-        run(mc -> give(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).setAmmoCount(30).setAmmoInBarrel(true).build()));
-        sleep(5);
+        // TACZ 1.1.4, the newest for 1.19.2, has no pistol scope; the Contender scope came later
+        run(mc -> check("pistol scope: TACZ 1.1.4 has none to test", TimelessAPI.getClientAttachmentIndex(CONTENDER).isEmpty(),
+                "it has one now, test it like on 1.20.1"));
     }
 
     private static final List<String> PACK_PROBLEMS = new java.util.ArrayList<>();

@@ -1,5 +1,6 @@
 package com.taczvr.client;
 
+import com.taczvr.compat.TaczCompat;
 import com.taczvr.TaczVRConfig;
 import com.taczvr.client.interact.AttachmentModule;
 import com.taczvr.network.Net;
@@ -9,7 +10,6 @@ import com.tacz.guns.api.entity.IGunOperator;
 import com.tacz.guns.api.event.common.GunFireEvent;
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.client.input.ShootKey;
-import com.tacz.guns.client.renderer.item.GunItemRendererWrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.player.LocalPlayer;
@@ -55,8 +55,11 @@ public final class VrGunController {
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
-        // START so TACZ's own shoot handler at END sees the trigger state of this tick
-        if (event.phase != TickEvent.Phase.START) {
+        // the trigger fires at END, after this tick's aim went to the server, like TACZ 1.1.8's own shoot handler
+        if (event.phase == TickEvent.Phase.END) {
+            if (shootHeld) {
+                TaczCompat.shootControllerTick(true);
+            }
             return;
         }
         Minecraft mc = Minecraft.getInstance();
@@ -74,13 +77,13 @@ public final class VrGunController {
         if (meleeCooldown > 0) {
             meleeCooldown--;
         }
-        // TACZ shifts your own tracers by the flat screen muzzle offset, our bullets already start at the real muzzle
-        GunItemRendererWrapper.muzzleRenderOffset.set(0.0F, 0.0F, 0.0F);
         boolean inGame = mc.screen == null && mc.getOverlay() == null;
 
         // Vivecraft maps the trigger to the vanilla attack key, TACZ listens to its own shoot key
         boolean trigger = inGame && mc.options.keyAttack.isDown();
-        ShootKey.shootControllerTick(trigger);
+        if (!trigger && shootHeld) {
+            TaczCompat.shootControllerTick(false);
+        }
         shootHeld = trigger;
 
         VrPose vrPose = VrClient.localTickPose();
@@ -241,7 +244,7 @@ public final class VrGunController {
                                      VrPose vrPose, GunPoseSolver.Pose gun) {
         TaczVRConfig.Client cfg = TaczVRConfig.CLIENT;
         // guns that feed from the inventory have no magazine to reload
-        if (iGun.useInventoryAmmo(stack)) {
+        if (TaczCompat.useInventoryAmmo(iGun, stack)) {
             return;
         }
         boolean reloading = IGunOperator.fromLivingEntity(player).getSynReloadState().getStateType().isReloading();
@@ -265,7 +268,7 @@ public final class VrGunController {
 
     private static void release(@Nullable LocalPlayer player) {
         if (shootHeld) {
-            ShootKey.shootControllerTick(false);
+            TaczCompat.shootControllerTick(false);
             shootHeld = false;
         }
         if (aimOwned) {

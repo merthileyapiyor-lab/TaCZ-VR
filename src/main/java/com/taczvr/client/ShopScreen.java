@@ -1,5 +1,7 @@
 package com.taczvr.client;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.taczvr.compat.Buttons;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.taczvr.content.ModContent;
 import com.taczvr.network.Net;
@@ -9,7 +11,7 @@ import com.tacz.guns.api.item.builder.GunItemBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import com.taczvr.compat.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -38,7 +40,7 @@ public final class ShopScreen extends Screen {
     static int opened = 0;
 
     private ShopScreen() {
-        super(Component.translatableWithFallback("taczvr.shop.title", "Shop"));
+        super(Component.translatable("taczvr.shop.title"));
     }
 
     public static boolean isOpen() {
@@ -100,7 +102,7 @@ public final class ShopScreen extends Screen {
 
     static Component name(String key) {
         if ("ammo".equals(key)) {
-            return Component.translatableWithFallback("taczvr.shop.ammo", "Ammo for your gun");
+            return Component.translatable("taczvr.shop.ammo");
         }
         return icon(key).getHoverName();
     }
@@ -114,7 +116,7 @@ public final class ShopScreen extends Screen {
             int x = left + (i % COLUMNS) * CELL_W + 20;
             int y = top + (i / COLUMNS) * 24;
             int index = i;
-            Button button = Button.builder(Component.empty().append(name(offer.key())).append(" ").append(
+            Button button = Buttons.builder(Component.empty().append(name(offer.key())).append(" ").append(
                                     Component.literal(String.valueOf(offer.price())).withStyle(ChatFormatting.GOLD)),
                             b -> Net.CHANNEL.sendToServer(new ShopActionPacket(index)))
                     .bounds(x, y, BUTTON_W, 20).build();
@@ -122,9 +124,9 @@ public final class ShopScreen extends Screen {
             this.addRenderableWidget(button);
         }
         int rows = (ZombieShop.OFFERS.size() + COLUMNS - 1) / COLUMNS;
-        Button readyButton = Button.builder(ready
-                        ? Component.translatableWithFallback("taczvr.shop.waiting", "Waiting for the others...")
-                        : Component.translatableWithFallback("taczvr.shop.ready", "Ready, next wave"),
+        Button readyButton = Buttons.builder(ready
+                        ? Component.translatable("taczvr.shop.waiting")
+                        : Component.translatable("taczvr.shop.ready"),
                 b -> Net.CHANNEL.sendToServer(new ShopActionPacket(ShopActionPacket.READY)))
                 .bounds(this.width / 2 - 100, top + rows * 24 + 6, 200, 20).build();
         readyButton.active = !ready;
@@ -132,13 +134,14 @@ public final class ShopScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(graphics);
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        GuiGraphics graphics = new GuiGraphics(poseStack);
+        this.renderBackground(poseStack);
         int top = this.height / 2 - 72;
         long left = Minecraft.getInstance().level == null ? 0 : Math.max(0, (breakEnds - Minecraft.getInstance().level.getGameTime()) / 20);
-        graphics.drawCenteredString(this.font, Component.translatableWithFallback("taczvr.shop.header", "Shop  |  %s points  |  next wave in %s s",
+        graphics.drawCenteredString(this.font, Component.translatable("taczvr.shop.header",
                 points, left), this.width / 2, top - 22, 0xFFD24A);
-        graphics.drawCenteredString(this.font, Component.translatableWithFallback("taczvr.shop.note", "What you buy is taken back when the round ends"),
+        graphics.drawCenteredString(this.font, Component.translatable("taczvr.shop.note"),
                 this.width / 2, top - 11, 0x9A9A9A);
         int columnsLeft = this.width / 2 - COLUMNS * CELL_W / 2;
         for (int i = 0; i < ZombieShop.OFFERS.size(); i++) {
@@ -146,7 +149,7 @@ public final class ShopScreen extends Screen {
             int y = top + (i / COLUMNS) * 24;
             graphics.renderItem(icon(ZombieShop.OFFERS.get(i).key()), x, y + 2);
         }
-        super.render(graphics, mouseX, mouseY, partialTick);
+        super.render(poseStack, mouseX, mouseY, partialTick);
     }
 
     @Override

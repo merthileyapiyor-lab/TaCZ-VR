@@ -1,9 +1,11 @@
 package com.taczvr.client;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.taczvr.compat.Buttons;
 import com.taczvr.TaczVR;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import com.taczvr.compat.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -36,7 +38,7 @@ public final class UpdateScreen extends Screen {
     private volatile boolean installed = false;
 
     UpdateScreen(Screen parent, UpdateChecker.Release release, String ours) {
-        super(Component.translatableWithFallback("taczvr.update.title", "Update TaCZ VR"));
+        super(Component.translatable("taczvr.update.title"));
         this.parent = parent;
         this.release = release;
         this.ours = ours;
@@ -45,9 +47,9 @@ public final class UpdateScreen extends Screen {
     @Override
     protected void init() {
         int y = this.height - 40;
-        this.later = this.addRenderableWidget(Button.builder(Component.translatableWithFallback("taczvr.update.later", "Later"), b -> this.onClose())
+        this.later = this.addRenderableWidget(Buttons.builder(Component.translatable("taczvr.update.later"), b -> this.onClose())
                 .bounds(this.width / 2 - 154, y, 150, 20).build());
-        this.quit = this.addRenderableWidget(Button.builder(Component.translatableWithFallback("taczvr.update.quit", "Quit Game"), b -> this.install())
+        this.quit = this.addRenderableWidget(Buttons.builder(Component.translatable("taczvr.update.quit"), b -> this.install())
                 .bounds(this.width / 2 + 4, y, 150, 20).build());
         this.updateButtons();
     }
@@ -55,7 +57,7 @@ public final class UpdateScreen extends Screen {
     private void install() {
         Path jar = testJar != null ? testJar : UpdateChecker.currentJar();
         if (jar == null) {
-            this.error = Component.translatableWithFallback("taczvr.update.no_jar", "Couldn't find the TaCZ VR jar in your mods folder, get it from GitHub");
+            this.error = Component.translatable("taczvr.update.no_jar");
             return;
         }
         this.error = null;
@@ -69,7 +71,7 @@ public final class UpdateScreen extends Screen {
                 Minecraft.getInstance().execute(stopGame);
             } catch (Exception e) {
                 TaczVR.LOGGER.warn("Update failed", e);
-                this.error = Component.translatableWithFallback("taczvr.update.failed", "Couldn't install it: %s", String.valueOf(e.getMessage()));
+                this.error = Component.translatable("taczvr.update.failed", String.valueOf(e.getMessage()));
                 this.percent = -1;
                 Minecraft.getInstance().execute(this::updateButtons);
             }
@@ -85,15 +87,16 @@ public final class UpdateScreen extends Screen {
     @Override
     public void tick() {
         if (this.percent >= 0 && !this.installed) {
-            this.quit.setMessage(Component.translatableWithFallback("taczvr.update.downloading", "Downloading... %s%%", this.percent));
+            this.quit.setMessage(Component.translatable("taczvr.update.downloading", this.percent));
         } else if (this.percent < 0) {
-            this.quit.setMessage(Component.translatableWithFallback("taczvr.update.quit", "Quit Game"));
+            this.quit.setMessage(Component.translatable("taczvr.update.quit"));
         }
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(graphics);
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        GuiGraphics graphics = new GuiGraphics(poseStack);
+        this.renderBackground(poseStack);
         int y = 30;
         graphics.pose().pushPose();
         graphics.pose().translate(this.width / 2.0F, y, 0.0F);
@@ -101,7 +104,7 @@ public final class UpdateScreen extends Screen {
         graphics.drawCenteredString(this.font, this.title, 0, 0, 0xFFD24A);
         graphics.pose().popPose();
         y += 30;
-        graphics.drawCenteredString(this.font, Component.translatableWithFallback("taczvr.update.new", "TaCZ VR %s is out, you have %s.",
+        graphics.drawCenteredString(this.font, Component.translatable("taczvr.update.new",
                 Component.literal(this.release.version()).withStyle(ChatFormatting.GREEN), this.ours), this.width / 2, y, 0xFFFFFF);
         y += 18;
         for (FormattedCharSequence line : this.noteLines()) {
@@ -109,8 +112,7 @@ public final class UpdateScreen extends Screen {
             y += 10;
         }
         y += 8;
-        for (FormattedCharSequence line : this.font.split(Component.translatableWithFallback("taczvr.update.how",
-                "Quit Game installs it and closes Minecraft. Start the game again to play with the new version."), 300)) {
+        for (FormattedCharSequence line : this.font.split(Component.translatable("taczvr.update.how"), 300)) {
             graphics.drawCenteredString(this.font, line, this.width / 2, y, 0x9A9A9A);
             y += 10;
         }
@@ -122,7 +124,7 @@ public final class UpdateScreen extends Screen {
                 y += 10;
             }
         }
-        super.render(graphics, mouseX, mouseY, partialTick);
+        super.render(poseStack, mouseX, mouseY, partialTick);
     }
 
     /**

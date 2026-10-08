@@ -81,7 +81,7 @@ public final class TaczVRCommands {
                 "TACZ VR: scale=%.3f grip=(%.3f, %.3f, %.3f) pitch=%.1f aimline=%s",
                 cfg.gunScale.get(), cfg.gripOffsetX.get(), cfg.gripOffsetY.get(), cfg.gripOffsetZ.get(),
                 cfg.gripPitch.get(), cfg.showAimLine.get() ? "on" : "off");
-        ctx.getSource().sendSuccess(() -> Component.literal(text), false);
+        ctx.getSource().sendSuccess(Component.literal(text), false);
         return 1;
     }
 }

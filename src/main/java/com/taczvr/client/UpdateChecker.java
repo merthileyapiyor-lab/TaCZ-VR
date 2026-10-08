@@ -8,6 +8,7 @@ import com.taczvr.TaczVR;
 import com.taczvr.TaczVRConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -26,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.IntConsumer;
@@ -38,7 +40,11 @@ import java.util.zip.ZipFile;
  * The jars are published in a public repository of their own, because the source repository is private.
  */
 public final class UpdateChecker {
-    static final String RELEASES_API = "https://api.github.com/repos/merthileyapiyor-lab/TaCZ-VR-releases/releases/latest";
+    /**
+     * The newest releases. The latest one is for 1.20.1 (its older jars take the first jar of the latest release), the
+     * 1.19.2 jars come in releases of their own.
+     */
+    static final String RELEASES_API = "https://api.github.com/repos/merthileyapiyor-lab/TaCZ-VR-releases/releases?per_page=30";
     private static final Pattern SAFE_JAR_NAME = Pattern.compile("[A-Za-z0-9._+-]+\\.jar");
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
@@ -93,7 +99,8 @@ public final class UpdateChecker {
     }
 
     /**
-     * The latest release, if it's newer than {@code ours} and has our jar.
+     * The newest release with a jar for our Minecraft version, if it's newer than {@code ours}. {@code url} answers a
+     * list of releases (newest first) or a single one.
      */
     @Nullable
     static Release check(String url, String ours) throws IOException, InterruptedException {
@@ -106,22 +113,41 @@ public final class UpdateChecker {
         if (response.statusCode() != 200) {
             throw new IOException("GitHub answered " + response.statusCode());
         }
-        JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
-        String version = json.get("tag_name").getAsString().replaceFirst("^[vV]", "");
-        if (compareVersions(version, ours) <= 0) {
-            return null;
+        JsonElement root = JsonParser.parseString(response.body());
+        List<JsonObject> releases = new ArrayList<>();
+        if (root.isJsonArray()) {
+            root.getAsJsonArray().forEach(element -> releases.add(element.getAsJsonObject()));
+        } else {
+            releases.add(root.getAsJsonObject());
         }
-        JsonElement body = json.get("body");
-        String notes = body == null || body.isJsonNull() ? "" : body.getAsString();
-        JsonArray assets = json.getAsJsonArray("assets");
-        for (JsonElement element : assets) {
-            JsonObject asset = element.getAsJsonObject();
-            String name = asset.get("name").getAsString();
-            if (name.startsWith(TaczVR.MOD_ID + "-") && SAFE_JAR_NAME.matcher(name).matches()) {
+        // every Minecraft version has its own jar, only ours will do; the version comes from its name, the tags of
+        // 1.19.2 releases carry the Minecraft version too
+        String prefix = TaczVR.MOD_ID + "-" + FMLLoader.versionInfo().mcVersion() + "-";
+        for (JsonObject json : releases) {
+            if (flag(json, "draft") || flag(json, "prerelease")) {
+                continue;
+            }
+            for (JsonElement element : json.getAsJsonArray("assets")) {
+                JsonObject asset = element.getAsJsonObject();
+                String name = asset.get("name").getAsString();
+                if (!name.startsWith(prefix) || !SAFE_JAR_NAME.matcher(name).matches()) {
+                    continue;
+                }
+                String version = name.substring(prefix.length(), name.length() - ".jar".length());
+                if (compareVersions(version, ours) <= 0) {
+                    return null;
+                }
+                JsonElement body = json.get("body");
+                String notes = body == null || body.isJsonNull() ? "" : body.getAsString();
                 return new Release(version, notes, name, asset.get("browser_download_url").getAsString(), asset.get("size").getAsLong());
             }
         }
         return null;
+    }
+
+    private static boolean flag(JsonObject json, String key) {
+        JsonElement value = json.get(key);
+        return value != null && !value.isJsonNull() && value.getAsBoolean();
     }
 
     /**

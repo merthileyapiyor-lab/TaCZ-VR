@@ -1,5 +1,6 @@
 package com.taczvr.client;
 
+import com.taczvr.compat.TaczCompat;
 import com.taczvr.TaczVRConfig;
 import com.taczvr.network.Net;
 import com.taczvr.network.OffhandReloadPacket;
@@ -109,7 +110,7 @@ public final class OffhandGun {
         ItemStack gun = player.getOffhandItem();
         IGun iGun = IGun.getIGunOrNull(gun);
         FireMode mode = iGun.getFireMode(gun);
-        long interval = 60_000L / Math.max(1, iGun.getRPM(gun));
+        long interval = 60_000L / Math.max(1, TaczCompat.rpm(iGun, gun));
         long now = System.currentTimeMillis();
         if (mode != FireMode.AUTO && !pressed || now - lastShot < interval) {
             return;
@@ -130,7 +131,7 @@ public final class OffhandGun {
         shotsSent++;
         firedMillis = now;
         if (display != null && data != null) {
-            SoundPlayManager.playShootSound(player, display, data);
+            SoundPlayManager.playShootSound(player, display);
         }
         if (TaczVRConfig.CLIENT.haptics.get()) {
             VrClient.haptic(VrHand.OFF_HAND, 0.06F, 1.0F);

@@ -1,5 +1,6 @@
 package com.taczvr.client;
 
+import com.taczvr.compat.Joml;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -23,7 +24,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
+import com.mojang.math.Matrix4f;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 
@@ -110,9 +111,8 @@ public final class ScopeView {
         if (model == null) {
             return FALLBACK_LENS_DISTANCE;
         }
-        int[] views = index.getViews();
-        List<com.tacz.guns.client.model.bedrock.BedrockPart> viewPath = views == null || views.length == 0
-                ? null : model.getScopeViewPath(views[zoomNumber % views.length] - 1);
+        // TACZ 1.1.4 scopes have one view for all their zoom levels
+        List<com.tacz.guns.client.model.bedrock.BedrockPart> viewPath = model.getScopeViewPath();
         Vector3f ocular = GunPoseSolver.boneInModel(model, "ocular");
         if (viewPath == null || viewPath.isEmpty() || ocular == null) {
             return FALLBACK_LENS_DISTANCE;
@@ -121,7 +121,7 @@ public final class ScopeView {
         for (com.tacz.guns.client.model.bedrock.BedrockPart part : viewPath) {
             part.translateAndRotateAndScale(poseStack);
         }
-        Vector3f view = poseStack.last().pose().getTranslation(new Vector3f());
+        Vector3f view = Joml.translation(poseStack);
         // the eyepiece is in front of (-Z) the view point. Its glass and ring can sit behind the bone's pivot (the
         // Contender pistol scope), the picture has to go behind all of it or the scope's own tube covers it
         float back = Math.max(backOf(model, "ocular"), backOf(model, "ocular_ring"));
@@ -186,7 +186,7 @@ public final class ScopeView {
 
         poseStack.pushPose();
         poseStack.translate(center.x - cam.x, center.y - cam.y, center.z - cam.z);
-        poseStack.mulPose(gun.rotation);
+        Joml.mulPose(poseStack, gun.rotation);
         Matrix4f matrix = poseStack.last().pose();
 
         RenderSystem.enableDepthTest();
