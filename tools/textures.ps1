@@ -198,4 +198,25 @@ foreach ($lx in 9, 13) {
 }
 Put 11 11 '#'; Put 12 11 '#'
 Draw 'night_vision_layer_1' $rows 's=#2c3322;#=#141612;G=#4dff63;g=#c8ffd0' 64 32 'models\armor'
+
+# blood vision goggles: the same goggles, dark red frame and blood red lenses
+Draw 'blood_vision_goggles' @(
+'................',
+'................',
+'................',
+'................',
+'.ssssssssssssss.',
+'sSSSSSSSSSSSSSSs',
+'sS####SSSS####Ss',
+'sS#gG#SSSS#gG#Ss',
+'sS#GG#S##S#GG#Ss',
+'sS####S..S####Ss',
+'.sSSSs....sSSSs.',
+'..sss......sss..',
+'................',
+'................',
+'................',
+'................'
+) 's=#1f1416;S=#5a2a2e;#=#120c0d;G=#e01818;g=#ffb0b0'
+Draw 'blood_vision_layer_1' $rows 's=#3a1c1f;#=#140c0d;G=#e01818;g=#ffb0b0' 64 32 'models\armor'
 'done'
