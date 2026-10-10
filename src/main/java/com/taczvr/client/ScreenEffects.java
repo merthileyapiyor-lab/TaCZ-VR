@@ -24,8 +24,8 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.joml.Matrix4f;
 
 /**
- * What flashbangs and night vision goggles do to your picture: a white flash that fades (over the whole screen flat,
- * over each eye's view in VR) and a green tint while the goggles are on.
+ * What flashbangs and goggles do to your picture: a white flash that fades (over the whole screen flat, over each
+ * eye's view in VR), a green tint while night vision goggles are on, and {@link BloodVision}.
  */
 public final class ScreenEffects {
     private static long flashStart = -1000L;
@@ -98,6 +98,7 @@ public final class ScreenEffects {
             RenderSystem.defaultBlendFunc();
             nightVisionFrames++;
         }
+        BloodVision.render(event);
         float alpha = VrClient.isVRActive() ? flashAlpha(event.getPartialTick()) : 0.0F;
         if (alpha > 0.0F) {
             RenderSystem.defaultBlendFunc();
@@ -109,7 +110,7 @@ public final class ScreenEffects {
     /**
      * A quad over the whole view being drawn, each eye in VR, blended with whatever blend function is set.
      */
-    private static void fullscreen(float r, float g, float b, float a) {
+    static void fullscreen(float r, float g, float b, float a) {
         Matrix4f projection = RenderSystem.getProjectionMatrix();
         VertexSorting sorting = RenderSystem.getVertexSorting();
         RenderSystem.setProjectionMatrix(new Matrix4f(), VertexSorting.ORTHOGRAPHIC_Z);

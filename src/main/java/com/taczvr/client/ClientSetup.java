@@ -34,6 +34,7 @@ public final class ClientSetup {
         MinecraftForge.EVENT_BUS.register(HighFive.class);
         MinecraftForge.EVENT_BUS.register(OffhandGun.class);
         MinecraftForge.EVENT_BUS.register(ScreenEffects.class);
+        MinecraftForge.EVENT_BUS.register(BloodVision.class);
         MinecraftForge.EVENT_BUS.register(HandTools.class);
         MinecraftForge.EVENT_BUS.register(GrappleClient.class);
         MinecraftForge.EVENT_BUS.register(ClientKeys.class);

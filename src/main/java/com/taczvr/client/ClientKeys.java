@@ -26,6 +26,7 @@ public final class ClientKeys {
 
     public static void onRegisterKeys(RegisterKeyMappingsEvent event) {
         event.register(NIGHT_VISION);
+        event.register(BloodVision.KEY);
         event.register(ShopScreen.KEY);
     }
 
