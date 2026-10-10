@@ -21,6 +21,8 @@
   "item.taczvr.night_vision_goggles.tip": "Switch: B, in VR touch them and press grip",
   "item.taczvr.blood_vision_goggles": "Blood Vision Goggles",
   "item.taczvr.blood_vision_goggles.tip": "Hold: in VR your gun hand at the side of your head, or K",
+  "item.taczvr.dual_vision_goggles": "Dual Vision Goggles",
+  "item.taczvr.dual_vision_goggles.tip": "Right side of your head + grip: night vision on/off (B). Hand at the left side: blood vision (K)",
   "item.taczvr.grappling_hook": "Grappling Hook",
   "item.taczvr.grappling_hook.tip": "Use: fire / let go. Reaches 200 blocks",
   "entity.taczvr.grapple": "Grappling Hook",

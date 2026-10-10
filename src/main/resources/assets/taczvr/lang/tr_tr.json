@@ -21,6 +21,8 @@
   "item.taczvr.night_vision_goggles.tip": "Aç/kapa: B, VR'da gözlüğe dokunup grip",
   "item.taczvr.blood_vision_goggles": "Kan Görüşü Gözlüğü",
   "item.taczvr.blood_vision_goggles.tip": "Basılı tut: VR'da silah elini kafanın yanına götür, ya da K",
+  "item.taczvr.dual_vision_goggles": "Çift Görüş Gözlüğü",
+  "item.taczvr.dual_vision_goggles.tip": "Kafanın sağı + grip: gece görüşü aç/kapa (B). Elin kafanın solunda: kan görüşü (K)",
   "item.taczvr.grappling_hook": "Kanca",
   "item.taczvr.grappling_hook.tip": "Kullan: fırlat / bırak. 200 blok gider",
   "entity.taczvr.grapple": "Kanca",
