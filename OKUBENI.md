@@ -59,6 +59,7 @@ Hepsi yaratıcı envanterde kendi **TaCZ VR** sekmesinde (VR gözlüklü logo), 
 - **Savaş bıçağı** (demir + çubuk, çapraz): Hızlı vurur. VR'da bıçağı ileri **saplamak** yeter; yavaş itmek saplama sayılmaz. Arkadan saplarsan **2,5 kat hasar**.
 - **Sağlık iğnesi** (cam şişe + parlayan karpuz + demir parçacığı → 2): 4 kalp iyileştirir, biraz can yenileme verir. VR'da iğneyi **diğer kolunun ön koluna** ya da bir arkadaşına batır. VR dışında basılı tutup kendine, arkadaşına sağ tıklayıp ona.
 - **Gece görüş gözlüğü** (demir-kızıltaş-demir, altında iki yeşil cam): Kask yerine takılır. Açıkken karanlıkta görürsün, görüntü yeşildir. Aç/kapa: **B** tuşu (Vivecraft ayarlarında kontrolcüye atanabilir) ya da VR'da **elini gözlüğe götürüp grip**.
+- **Kan görüşü gözlüğü** (demir-mayalanmış örümcek gözü-demir, altında iki kırmızı cam): Kask yerine takılır. VR'da **silah elini kafanın yanına götür** (sağ elini kafanın sağına, solaksan sol elini soluna): dünya koyu kırmızıya döner, 40 blok içindeki bütün canlılar **duvarların arkasından bile** kırmızı parlar. Elini çekince yavaşça kaybolur. Nişan alırken el yüzün önünde olduğu için kendiliğinden açılmaz. VR dışında **K** tuşunu basılı tut. Açılınca bir kalp atışı sesi gelir, kol titrer. Fikir Vampirism'in blood vision'ından, kod bu modun kendi kodudur.
 - **Kanca** (üç demir, tuzak kancası, kayış): **A** / sağ tık ile elinin gösterdiği yere fırlatılır (VR dışında baktığın yere), 200 bloğa kadar gider, tıkladığın an takılır. Bir bloğa takılınca seni oraya çeker, orada asılı kalırsın, düşme hasarı birikmez. Tekrar **A** ile bırakırsın. Elinden bırakırsan ip kopar.
 - **Telsiz** (üstte paratoner, ortada bakır-kızıltaş-bakır, altta bakır-demir-bakır): Elindeyken **kullan tuşunu basılı tut**: telsiz ağzına kalkar, konuştuğun her şeyi envanterinde telsiz olan herkes duyar, ne kadar uzakta olursa olsun. Ses telsiz gibi cızırtılı gelir, basınca ve bırakınca "klik" sesi olur, ekranda kaç kişinin duyduğu yazar. VR'da telsizi **ağzına götürmen** yeterli. Takım maçında sadece takım arkadaşların duyar. 6 bloktan yakındakiler seni zaten normal sesle duyar, telsizden ikinci kez gelmez. Telsiz sesinin seviyesini Simple Voice Chat ayarlarında "Telsiz" kaydırıcısından ayarlayabilirsin.
 
@@ -116,7 +117,7 @@ LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, s
 
 `mods` klasörüne şunlar:
 
-1. `taczvr-1.20.1-1.4.2.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
+1. `taczvr-1.20.1-1.4.3.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
 2. TACZ `tacz-1.20.1-1.1.8-hotfix` (veya daha yeni 1.1.8+)
 3. **Vivecraft 1.20.1 Forge** — `vivecraft-1.20.1-1.3.15-forge.jar`
 4. **Simple Voice Chat** — `voicechat-forge-1.20.1-2.6.17.jar` (telsiz için; olmasa da mod çalışır)
@@ -152,6 +153,6 @@ Tüm ayarlar `config/taczvr-client.toml` dosyasında (oyun açıkken düzenleneb
 
 ## Bilinen sınırlar
 
-- Oculus/Iris shader'larıyla elde silah ve dürbün görüntüsü sorunlu olabilir.
+- Oculus/Iris shader'larıyla elde silah ve dürbün görüntüsü sorunlu olabilir. Kan görüşü de shader'la denenmedi.
 - Silah verme için elin arkadaşının eline yakınken tetik de "ver" olur (ateş etmez).
 - Diğer oyuncular VR oyuncusunun şarjör değiştirmesini ve animasyonlarını görmez (silah onlara hep duruş pozunda görünür).

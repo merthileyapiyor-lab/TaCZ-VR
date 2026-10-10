@@ -59,6 +59,7 @@ All in their own **TaCZ VR** creative tab, all craftable, and all except the gog
 - **Combat knife:** stab forward in VR. From behind it does 2.5× damage.
 - **Medical syringe:** heals 4 hearts. In VR, push it into your other forearm or a friend. It also gets a downed friend back up.
 - **Night vision goggles:** worn as a helmet. Toggle with **B**, or touch them in VR and press grip.
+- **Blood vision goggles:** worn as a helmet. In VR, hold your gun hand at the side of your head (flat screen: hold **K**). The world turns dark red, and every living thing within 40 blocks glows red, even through walls. Pull the hand away and it fades. The idea comes from Vampirism's blood vision; the code is this mod's own.
 - **Grappling hook:** grabs where your hand points, up to 200 blocks away, the moment you click. It pulls you there and you hang with no fall damage. Click again to let go.
 - **Radio:** hold use (in VR, hold it to your mouth) and everyone with a radio hears you, however far away, with a crackly radio sound. In team matches only your team hears you. Needs Simple Voice Chat on everyone.
 
