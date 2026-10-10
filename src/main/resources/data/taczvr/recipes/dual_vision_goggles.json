@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    {"item": "taczvr:night_vision_goggles"},
+    {"item": "taczvr:blood_vision_goggles"}
+  ],
+  "result": {"item": "taczvr:dual_vision_goggles"}
+}
