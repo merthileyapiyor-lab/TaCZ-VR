@@ -10,6 +10,10 @@ import com.taczvr.content.GrenadeEntity;
 import com.taczvr.content.ModContent;
 import com.taczvr.content.NightVisionItem;
 import com.taczvr.content.BloodVisionItem;
+import com.taczvr.content.DualVisionItem;
+import net.minecraft.world.entity.animal.Pig;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.InventoryMenu;
 import com.taczvr.client.interact.NightVisionModule;
 import com.taczvr.server.RadioState;
 import com.taczvr.server.ZombieShop;
@@ -399,6 +403,7 @@ public final class SelfTest {
         }
         if ("blood".equals(System.getProperty("taczvr.selftest.only"))) {
             bloodVision();
+            dualVision();
             finish();
             return;
         }
@@ -451,6 +456,7 @@ public final class SelfTest {
         medkit();
         nightVision();
         bloodVision();
+        dualVision();
         grapplingHook();
         radio();
         run(mc -> {
@@ -2011,13 +2017,14 @@ public final class SelfTest {
             check("tab: registered with the logo icon", tab != null && tab.getIconItem().is(ModContent.LOGO.get()), "");
             CreativeModeTabs.tryRebuildTabContents(mc.player.connection.enabledFeatures(), true, mc.level.registryAccess());
             List<Item> items = tab == null ? List.of() : tab.getDisplayItems().stream().map(ItemStack::getItem).toList();
-            check("tab: holds all 8 items", items.containsAll(List.of(ModContent.GRENADE.get(), ModContent.FLASHBANG.get(),
+            check("tab: holds all 9 items", items.containsAll(List.of(ModContent.GRENADE.get(), ModContent.FLASHBANG.get(),
                     ModContent.SMOKE_GRENADE.get(), ModContent.COMBAT_KNIFE.get(), ModContent.MEDKIT.get(),
-                    ModContent.NIGHT_VISION_GOGGLES.get(), ModContent.BLOOD_VISION_GOGGLES.get(), ModContent.GRAPPLING_HOOK.get()))
+                    ModContent.NIGHT_VISION_GOGGLES.get(), ModContent.BLOOD_VISION_GOGGLES.get(),
+                    ModContent.DUAL_VISION_GOGGLES.get(), ModContent.GRAPPLING_HOOK.get()))
                     && !items.contains(ModContent.LOGO.get()), items.toString());
             boolean recipes = server(sp -> {
                 for (String id : new String[]{"flashbang", "smoke_grenade", "combat_knife", "medkit", "night_vision_goggles",
-                        "blood_vision_goggles", "grappling_hook"}) {
+                        "blood_vision_goggles", "dual_vision_goggles", "grappling_hook"}) {
                     if (sp.server.getRecipeManager().byKey(new ResourceLocation("taczvr", id)).isEmpty()) {
                         return false;
                     }
@@ -2426,6 +2433,106 @@ public final class SelfTest {
             mc.player.connection.sendCommand("fill -2 -60 -4 2 -57 -4 minecraft:air");
         });
         sleep(3);
+    }
+
+    /**
+     * Dual vision goggles: night and blood vision goggles put together in the inventory. Night vision switches at the
+     * right side of the head, blood vision shows with a hand at the left side, both work at once, and blood vision
+     * reaches as far as the render distance.
+     */
+    private static void dualVision() {
+        VrPose[] poseBefore = new VrPose[1];
+        int[] farPig = {-1};
+        run(mc -> {
+            poseBefore[0] = VrClient.testPose;
+            VrClient.testPose = null;
+            mc.player.connection.sendCommand("kill @e[type=minecraft:pig]");
+            mc.player.connection.sendCommand("tp @s 0.5 -60 0.5 180 0");
+            give(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).setAmmoCount(30).build());
+            Object[] r = server(sp -> {
+                // night vision goggles worn, blood vision goggles dropped onto them
+                sp.setItemSlot(EquipmentSlot.HEAD, new ItemStack(ModContent.NIGHT_VISION_GOGGLES.get()));
+                sp.inventoryMenu.setCarried(new ItemStack(ModContent.BLOOD_VISION_GOGGLES.get()));
+                sp.inventoryMenu.clicked(InventoryMenu.ARMOR_SLOT_START, 0, ClickType.PICKUP, sp);
+                Object first = sp.getItemBySlot(EquipmentSlot.HEAD).getItem();
+                boolean firstUsed = sp.inventoryMenu.getCarried().isEmpty();
+                // the other way round, with the night vision switched off
+                sp.setItemSlot(EquipmentSlot.HEAD, new ItemStack(ModContent.BLOOD_VISION_GOGGLES.get()));
+                ItemStack off = new ItemStack(ModContent.NIGHT_VISION_GOGGLES.get());
+                off.getOrCreateTag().putBoolean("Off", true);
+                sp.inventoryMenu.setCarried(off);
+                sp.inventoryMenu.clicked(InventoryMenu.ARMOR_SLOT_START, 0, ClickType.PICKUP, sp);
+                ItemStack head = sp.getItemBySlot(EquipmentSlot.HEAD);
+                Object[] out = {first, firstUsed, head.getItem(), sp.inventoryMenu.getCarried().isEmpty(), NightVisionItem.isOn(head)};
+                // on again for the rest
+                head.getOrCreateTag().putBoolean("Off", false);
+                sp.inventoryMenu.broadcastChanges();
+                return out;
+            });
+            check("dual vision: blood vision goggles dropped onto worn night vision goggles join",
+                    r[0] == ModContent.DUAL_VISION_GOGGLES.get() && (Boolean) r[1], r[0] + " " + r[1]);
+            check("dual vision: night vision goggles dropped onto blood vision goggles join",
+                    r[2] == ModContent.DUAL_VISION_GOGGLES.get() && (Boolean) r[3], r[2] + " " + r[3]);
+            check("dual vision: the night vision switch carries over", !(Boolean) r[4], "");
+            mc.player.connection.sendCommand("summon minecraft:pig 0.5 -60 -59.5 {NoAI:1b}");
+        });
+        await("dual vision: on the head", 20, mc -> DualVisionItem.isWorn(mc.player) && BloodVisionItem.isWorn(mc.player), () -> "");
+        await("dual vision: the pig 60 blocks away is there", 40, mc -> {
+            List<Pig> pigs = mc.level.getEntitiesOfClass(Pig.class, mc.player.getBoundingBox().inflate(80.0));
+            farPig[0] = pigs.isEmpty() ? -1 : pigs.get(0).getId();
+            return farPig[0] != -1;
+        }, () -> "");
+        run(mc -> {
+            check("dual vision: blood vision reaches the render distance",
+                    BloodVision.range(mc) == mc.options.getEffectiveRenderDistance() * 16.0, BloodVision.range(mc) + "");
+            BloodVision.KEY.setDown(true);
+        });
+        await("dual vision: K shows blood vision", 20, mc -> BloodVision.active() && BloodVision.strength() >= 1.0F, () -> "");
+        await("dual vision: night vision on together with it", 40,
+                mc -> server(sp -> sp.hasEffect(MobEffects.NIGHT_VISION)) && ScreenEffects.nightVisionOn() && BloodVision.active(), () -> "");
+        sleep(3);
+        run(mc -> {
+            check("dual vision: the pig 60 blocks away glows (render distance " + mc.options.getEffectiveRenderDistance() + ")",
+                    BloodVision.range(mc) < 60.0 || BloodVision.lastDrawn.contains(farPig[0]),
+                    "range " + BloodVision.range(mc) + " drawn " + BloodVision.lastDrawn);
+            screenshot(mc, "taczvr_dual_vision.png");
+            BloodVision.KEY.setDown(false);
+            // VR: a hand at the left side of the head
+            VrClient.testPose = new FakePose(eye().add(0.13, -0.17, -0.42), NORTH, eye().add(-0.12, 0.0, 0.02), eye(), NORTH);
+        });
+        await("dual vision: VR hand at the left side of the head shows blood vision", 10, mc -> BloodVision.active(), () -> "");
+        run(mc -> VrClient.testPose = new FakePose(eye().add(0.12, 0.0, 0.02), NORTH, eye().add(-0.22, -0.4, -0.2), eye(), NORTH));
+        sleep(4);
+        run(mc -> {
+            check("dual vision: the right side is not blood vision", !BloodVision.active(), "");
+            NightVisionModule module = new NightVisionModule();
+            boolean right = module.isActive(mc.player, InteractionHand.MAIN_HAND, eye().add(0.12, 0.0, 0.02));
+            boolean forehead = module.isActive(mc.player, InteractionHand.MAIN_HAND, eye().add(0.0, 0.05, -0.08));
+            boolean left = module.isActive(mc.player, InteractionHand.OFF_HAND, eye().add(-0.12, 0.0, 0.02));
+            check("dual vision: night vision switch only at the right side of the head", right && !forehead && !left,
+                    right + " " + forehead + " " + left);
+            nightVisionWasOn = server(sp -> NightVisionItem.isOn(sp.getItemBySlot(EquipmentSlot.HEAD)));
+            if (right) {
+                module.onPress(mc.player, InteractionHand.MAIN_HAND);
+            }
+        });
+        await("dual vision: grip there switches night vision", 20,
+                mc -> server(sp -> NightVisionItem.isOn(sp.getItemBySlot(EquipmentSlot.HEAD))) != nightVisionWasOn, () -> "");
+        run(mc -> {
+            VrClient.testPose = null;
+            KeyMapping.click(ClientKeys.NIGHT_VISION.getKey());
+        });
+        await("dual vision: B switches night vision too", 20,
+                mc -> server(sp -> NightVisionItem.isOn(sp.getItemBySlot(EquipmentSlot.HEAD))) == nightVisionWasOn, () -> "");
+        run(mc -> {
+            VrClient.testPose = poseBefore[0];
+            server(sp -> {
+                sp.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+                return null;
+            });
+            mc.player.connection.sendCommand("kill @e[type=minecraft:pig]");
+        });
+        await("dual vision: night vision gone when taken off", 30, mc -> !server(sp -> sp.hasEffect(MobEffects.NIGHT_VISION)), () -> "");
     }
 
     /**

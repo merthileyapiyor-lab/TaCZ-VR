@@ -91,10 +91,12 @@ public final class ScreenEffects {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
             return;
         }
-        if (nightVisionOn()) {
+        // blood vision brings its own red picture, the green steps back meanwhile so it doesn't turn black
+        float green = 1.0F - BloodVision.strength();
+        if (nightVisionOn() && green > 0.0F) {
             // multiplied in, so it stays a picture and not a green fog
             RenderSystem.blendFunc(GlStateManager.SourceFactor.DST_COLOR, GlStateManager.DestFactor.ZERO);
-            fullscreen(0.45F, 1.0F, 0.5F, 1.0F);
+            fullscreen(1.0F - 0.55F * green, 1.0F, 1.0F - 0.5F * green, 1.0F);
             RenderSystem.defaultBlendFunc();
             nightVisionFrames++;
         }

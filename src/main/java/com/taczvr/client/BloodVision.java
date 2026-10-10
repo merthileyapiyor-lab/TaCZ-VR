@@ -11,6 +11,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.taczvr.VrCommon;
 import com.taczvr.content.BloodVisionItem;
+import com.taczvr.content.DualVisionItem;
 import com.taczvr.vr.VrHand;
 import com.taczvr.vr.VrPart;
 import com.taczvr.vr.VrPose;
@@ -33,14 +34,15 @@ import net.minecraftforge.client.event.RenderNameTagEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * Blood vision, from the blood vision goggles: while they're on your head and you hold your gun hand at that side of
- * your head (in VR) or hold the key, the world turns dark red and every living thing within {@link #RANGE} blocks
- * glows red, walls or not. Pull the hand away and it fades out.
+ * Blood vision, from the blood vision or dual vision goggles: while they're on your head and you hold your hand at the
+ * side of your head (in VR) or hold the key, the world turns dark red and every living thing within your render
+ * distance glows red, walls or not. Pull the hand away and it fades out.
  * <p>
  * The look follows Vampirism's blood vision. The code is our own: the creatures are drawn again over everything as
  * red shapes, in each eye's view, so it works in VR and doesn't need Minecraft's glowing outline.
@@ -48,8 +50,7 @@ import org.lwjgl.glfw.GLFW;
 public final class BloodVision {
     public static final KeyMapping KEY = new KeyMapping("key.taczvr.blood_vision", InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_K, "key.categories.taczvr");
-    static final double RANGE = 40.0;
-    // the hand's spot: beside the eyes on the gun hand's side, in meters
+    // the hand's spot: beside the eyes, in meters
     private static final double SIDE = 0.12;
     // close enough to switch on, and far enough to switch off again, so it doesn't flicker at the edge
     private static final double ON_WITHIN = 0.17;
@@ -73,6 +74,8 @@ public final class BloodVision {
     static int activations = 0;
     static int framesDrawn = 0;
     static int creaturesDrawn = 0;
+    // entity ids drawn in the last frame, for the self-test
+    static final java.util.Set<Integer> lastDrawn = new java.util.HashSet<>();
 
     private BloodVision() {
     }
@@ -86,18 +89,38 @@ public final class BloodVision {
     }
 
     /**
-     * Whether the gun hand is at the side of the head, on the gun hand's side, and not out in front of the face, where
-     * it is while aiming down a scope. Further out than when it came in counts as still there.
+     * How far it reaches: as far as you see, your render distance.
      */
-    static boolean handAtHead(VrPose pose, boolean wasThere) {
+    static double range(Minecraft mc) {
+        return mc.options.getEffectiveRenderDistance() * 16.0;
+    }
+
+    /**
+     * Whether a hand is held at the side of the head, not out in front of the face where it is while aiming down a
+     * scope. Blood vision goggles: the gun hand at the gun hand's side. Dual vision goggles: either hand at the left
+     * side, the right side switches their night vision. Further out than when it came in counts as still there.
+     */
+    static boolean handAtHead(VrPose pose, boolean wasThere, boolean dual) {
         VrPart head = pose.getHead();
-        VrPart hand = pose.getMainHand();
-        if (head == null || hand == null) {
+        if (head == null) {
+            return false;
+        }
+        if (dual) {
+            return handAtSide(head, pose.getMainHand(), -1.0F, wasThere) || handAtSide(head, pose.getOffHand(), -1.0F, wasThere);
+        }
+        return handAtSide(head, pose.getMainHand(), pose.isLeftHanded() ? -1.0F : 1.0F, wasThere);
+    }
+
+    /**
+     * @param side 1 for the right side of the head, -1 for the left
+     */
+    private static boolean handAtSide(VrPart head, @Nullable VrPart hand, float side, boolean wasThere) {
+        if (hand == null) {
             return false;
         }
         float scale = VrClient.localWorldScale();
-        Vector3f side = head.getRotation().transform(new Vector3f(pose.isLeftHanded() ? -1.0F : 1.0F, 0.0F, 0.0F));
-        Vec3 spot = head.getPos().add(side.x * SIDE * scale, side.y * SIDE * scale, side.z * SIDE * scale);
+        Vector3f out = head.getRotation().transform(new Vector3f(side, 0.0F, 0.0F));
+        Vec3 spot = head.getPos().add(out.x * SIDE * scale, out.y * SIDE * scale, out.z * SIDE * scale);
         double distance = hand.getPos().distanceTo(spot) / scale;
         double ahead = hand.getPos().subtract(head.getPos()).dot(head.getDir()) / scale;
         return wasThere ? distance < OFF_BEYOND && ahead < AHEAD_OFF : distance < ON_WITHIN && ahead < AHEAD_ON;
@@ -113,7 +136,7 @@ public final class BloodVision {
         boolean want = false;
         if (mc.player != null && BloodVisionItem.isWorn(mc.player)) {
             VrPose pose = VrClient.isVRActive() ? VrClient.localTickPose() : null;
-            handAtHead = pose != null && handAtHead(pose, handAtHead);
+            handAtHead = pose != null && handAtHead(pose, handAtHead, DualVisionItem.isWorn(mc.player));
             want = handAtHead || KEY.isDown();
         } else {
             handAtHead = false;
@@ -168,8 +191,10 @@ public final class BloodVision {
         float partialTick = event.getPartialTick();
         PoseStack poseStack = new PoseStack();
         poseStack.last().pose().set(VIEW);
+        double range = range(mc);
         Shapes shapes = new Shapes(BUFFER);
         BUFFER.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        lastDrawn.clear();
         drawing = true;
         try {
             for (Entity entity : mc.level.entitiesForRendering()) {
@@ -178,11 +203,11 @@ public final class BloodVision {
                 }
                 Vec3 at = entity.getPosition(partialTick);
                 double distance = at.distanceTo(cam);
-                if (distance > RANGE) {
+                if (distance > range) {
                     continue;
                 }
                 // close ones bright, far ones fainter
-                float near = distance < 8.0 ? 1.0F : 1.0F - 0.6F * (float) ((distance - 8.0) / (RANGE - 8.0));
+                float near = distance < 8.0 ? 1.0F : 1.0F - 0.6F * (float) ((distance - 8.0) / Math.max(1.0, range - 8.0));
                 shapes.alpha = 0.35F * s * near;
                 EntityRenderer<? super Entity> renderer = mc.getEntityRenderDispatcher().getRenderer(entity);
                 Vec3 offset = renderer.getRenderOffset(entity, partialTick);
@@ -192,6 +217,7 @@ public final class BloodVision {
                         shapes, LightTexture.FULL_BRIGHT);
                 poseStack.popPose();
                 creaturesDrawn++;
+                lastDrawn.add(entity.getId());
             }
         } catch (Throwable t) {
             VrCommon.logOnce(t);
