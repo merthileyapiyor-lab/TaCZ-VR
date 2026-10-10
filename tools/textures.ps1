@@ -219,4 +219,27 @@ Draw 'blood_vision_goggles' @(
 '................'
 ) 's=#1f1416;S=#5a2a2e;#=#120c0d;G=#e01818;g=#ffb0b0'
 Draw 'blood_vision_layer_1' $rows 's=#3a1c1f;#=#140c0d;G=#e01818;g=#ffb0b0' 64 32 'models\armor'
+
+# dual vision goggles: night vision lens (green) on the wearer's right, blood vision lens (red) on the left
+Draw 'dual_vision_goggles' @(
+'................',
+'................',
+'................',
+'................',
+'.ssssssssssssss.',
+'sSSSSSSSSSSSSSSs',
+'sS####SSSS####Ss',
+'sS#gG#SSSS#rR#Ss',
+'sS#GG#S##S#RR#Ss',
+'sS####S..S####Ss',
+'.sSSSs....sSSSs.',
+'..sss......sss..',
+'................',
+'................',
+'................',
+'................'
+) 's=#1b1a17;S=#4a4337;#=#111110;G=#4dff63;g=#c8ffd0;R=#e01818;r=#ffb0b0'
+# the face is seen from the front, so the wearer's right eye is the left lens of the texture
+Put 13 11 'r'; Put 14 11 'R'; Put 13 12 'R'; Put 14 12 'R'
+Draw 'dual_vision_layer_1' $rows 's=#2e2a22;#=#141312;G=#4dff63;g=#c8ffd0;R=#e01818;r=#ffb0b0' 64 32 'models\armor'
 'done'
