@@ -10,6 +10,10 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.SlotAccess;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ClickAction;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ArmorMaterial;
 import net.minecraft.world.item.ItemStack;
@@ -111,6 +115,15 @@ public class NightVisionItem extends ArmorItem {
     @Override
     public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
         return "taczvr:textures/models/armor/night_vision_layer_1.png";
+    }
+
+    /**
+     * Blood vision goggles dropped onto these make dual vision goggles.
+     */
+    @Override
+    public boolean overrideOtherStackedOnMe(ItemStack stack, ItemStack other, Slot slot, ClickAction action, Player player,
+                                            SlotAccess access) {
+        return DualVisionItem.combine(stack, other, slot, action, player, access);
     }
 
     @SubscribeEvent

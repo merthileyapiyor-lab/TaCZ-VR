@@ -6,7 +6,10 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ClickAction;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ArmorMaterial;
 import net.minecraft.world.item.ItemStack;
@@ -69,8 +72,20 @@ public class BloodVisionItem extends ArmorItem {
         super(MATERIAL, Type.HELMET, properties);
     }
 
+    /**
+     * Whether the player wears goggles with blood vision, these or the dual vision goggles.
+     */
     public static boolean isWorn(Player player) {
-        return player.getItemBySlot(EquipmentSlot.HEAD).getItem() instanceof BloodVisionItem;
+        return player.getItemBySlot(EquipmentSlot.HEAD).getItem() instanceof BloodVisionItem || DualVisionItem.isWorn(player);
+    }
+
+    /**
+     * Night vision goggles dropped onto these make dual vision goggles.
+     */
+    @Override
+    public boolean overrideOtherStackedOnMe(ItemStack stack, ItemStack other, Slot slot, ClickAction action, Player player,
+                                            SlotAccess access) {
+        return DualVisionItem.combine(stack, other, slot, action, player, access);
     }
 
     @Override

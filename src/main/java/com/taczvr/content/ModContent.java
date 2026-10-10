@@ -36,6 +36,8 @@ public final class ModContent {
             () -> new NightVisionItem(new Item.Properties()));
     public static final RegistryObject<Item> BLOOD_VISION_GOGGLES = ITEMS.register("blood_vision_goggles",
             () -> new BloodVisionItem(new Item.Properties()));
+    public static final RegistryObject<Item> DUAL_VISION_GOGGLES = ITEMS.register("dual_vision_goggles",
+            () -> new DualVisionItem(new Item.Properties()));
     public static final RegistryObject<Item> GRAPPLING_HOOK = ITEMS.register("grappling_hook",
             () -> new GrapplingHookItem(new Item.Properties().durability(128)));
     public static final RegistryObject<Item> RADIO = ITEMS.register("radio", () -> new RadioItem(new Item.Properties().stacksTo(1)));
@@ -61,6 +63,7 @@ public final class ModContent {
                 output.accept(MEDKIT.get());
                 output.accept(NIGHT_VISION_GOGGLES.get());
                 output.accept(BLOOD_VISION_GOGGLES.get());
+                output.accept(DUAL_VISION_GOGGLES.get());
                 output.accept(GRAPPLING_HOOK.get());
                 output.accept(RADIO.get());
             })
