@@ -78,6 +78,10 @@ A **⚔ Game** button appears at the top left of the Esc menu for ops and the wo
   - Points for kills, revives and waves, and a shop between waves (**J**). Everything bought with points is taken back when the round ends.
   - A giant boss zombie every 5 waves.
 
+## With LesRaisins Tactical Equipments
+
+Its knives, grenades and medkits draw nothing in first person outside its own hand animation, so in VR TaCZ VR draws them at the controller. Melee packs built on it work the same, for example the **DeltaForce Melee Pack** (its 0.2.0 knives were tested). LesRaisins isn't changed or bundled.
+
 ## With EnhancedVisuals
 
 EnhancedVisuals paints blood, blast blur and faded colors over the whole screen. In VR that screen is Vivecraft's HUD panel at your hand, which turned solid black with the blood on it. TaCZ VR keeps EnhancedVisuals' picture off while you're in VR; its sounds (heartbeat, ringing after a blast) stay, and flat screen play is unchanged. EnhancedVisuals itself isn't changed or bundled.
@@ -99,6 +103,7 @@ The World War 2 pack's zip (1.0.4) has three files with broken names that TaCZ c
 | `/taczvr grip 0 -0.01 0.03` | Where the grip sits relative to the controller, in metres |
 | `/taczvr pitch 10` | Tilts the barrel up or down, in degrees |
 | `/taczvr aimline` | Draws the bullet path as a red line |
+| `/taczvr hands` | Which hands show while holding a gun: on the gun (default), Vivecraft's own hands, or none (for player bodies or packs with their own arms, no third arm). With Vivecraft's "Show Player Hands" off, no hand is drawn on the gun either |
 | `/taczvr reset` | Back to defaults |
 
 Everything else is in `config/taczvr-client.toml` and `config/taczvr-common.toml`; each feature can be turned off there.

@@ -116,13 +116,13 @@ EnhancedVisuals (kan sıçraması, patlama bulanıklığı, açken soluk renkler
 
 ## LesRaisins Tactical Equipments ile birlikte
 
-LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, sopası, bombaları, sağlık malzemeleri ve kalkanı VR'da elinde **3D** görünür. Kendi modu bunları birinci şahısta sadece kendi el animasyonuyla çiziyor, VR'da o çalışmadığı için eşyalar görünmüyordu. Bu mod onları kontrolcünün yerinde, üçüncü şahısta elde durdukları gibi çizer. LesRaisins'in kendisi değiştirilmez ve bu modun içinde yoktur; ayrı olarak kurulur. Düz ekranda her şey LesRaisins'in kendi çizimidir.
+LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, sopası, bombaları, sağlık malzemeleri ve kalkanı VR'da elinde **3D** görünür. Kendi modu bunları birinci şahısta sadece kendi el animasyonuyla çiziyor, VR'da o çalışmadığı için eşyalar görünmüyordu. Bu mod onları kontrolcünün yerinde, üçüncü şahısta elde durdukları gibi çizer. LesRaisins'in kendisi değiştirilmez ve bu modun içinde yoktur; ayrı olarak kurulur. Düz ekranda her şey LesRaisins'in kendi çizimidir. LesRaisins üstüne kurulan bıçak paketleri de (ör. **DeltaForce Melee Pack**) aynı şekilde VR'da elde görünür; 0.2.0 sürümünün bıçakları denendi.
 
 ## Kurulum
 
 `mods` klasörüne şunlar:
 
-1. `taczvr-1.20.1-1.4.6.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
+1. `taczvr-1.20.1-1.4.7.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
 2. TACZ `tacz-1.20.1-1.1.8-hotfix` (veya daha yeni 1.1.8+)
 3. **Vivecraft 1.20.1 Forge** — `vivecraft-1.20.1-1.3.15-forge.jar`
 4. **Simple Voice Chat** — `voicechat-forge-1.20.1-2.6.17.jar` (telsiz için; olmasa da mod çalışır)
@@ -152,6 +152,7 @@ World War 2 paketinin zip'inde (1.0.4) bozuk isimli üç dosya var, TACZ açamı
 | `/taczvr grip 0 -0.01 0.03` | Kabzanın kontrolcüye göre yeri, metre (X sağ, Y yukarı, Z geri) |
 | `/taczvr pitch 10` | Namluyu yukarı/aşağı eğer, derece |
 | `/taczvr aimline` | Merminin gideceği yolu kırmızı çizgiyle gösterir |
+| `/taczvr hands` | Silah tutarken eller: silahın üstünde (varsayılan) → Vivecraft'ın kendi elleri → hiç el yok (kendi kolları olan vücut modeli ya da paket kullananlar için, "3 kol" olmasın). Vivecraft'ta "Show Player Hands" kapalıysa silahta da el çizilmez |
 | `/taczvr reset` | Varsayılanlara döner |
 
 Tüm ayarlar `config/taczvr-client.toml` dosyasında (oyun açıkken düzenlenebilir). Her özellik oradan ayrı ayrı kapatılabilir.

@@ -113,6 +113,11 @@ dependencies {
     // Only when its jar is in libs/, it's not in the repository
     if (!project.hasProperty('nolr') && file('libs/lrtactical-1.20.1-0.4.3.jar').exists()) {
         runtimeOnly fg.deobf('libs:lrtactical-1.20.1:0.4.3')
+        // DeltaForce Melee Pack (xjqshm), knives that are LesRaisins items, asked for in a CurseForge comment.
+        // Data only, never shipped (all rights reserved). Only when its jar is in libs/
+        if (file('libs/deltaforce-melee-pack-0.2.0.jar').exists()) {
+            runtimeOnly fg.deobf('libs:deltaforce-melee-pack:0.2.0')
+        }
     }
     // Carry On, only to test the grappling hook while carrying something. Never shipped (LGPL), we only look its
     // classes up by name. Only when its jar is in libs/, -Pnocarryon runs without it
