@@ -78,6 +78,10 @@ A **⚔ Game** button appears at the top left of the Esc menu for ops and the wo
   - Points for kills, revives and waves, and a shop between waves (**J**). Everything bought with points is taken back when the round ends.
   - A giant boss zombie every 5 waves.
 
+## With EnhancedVisuals
+
+EnhancedVisuals paints blood, blast blur and faded colors over the whole screen. In VR that screen is Vivecraft's HUD panel at your hand, which turned solid black with the blood on it. TaCZ VR keeps EnhancedVisuals' picture off while you're in VR; its sounds (heartbeat, ringing after a blast) stay, and flat screen play is unchanged. EnhancedVisuals itself isn't changed or bundled.
+
 ## Gun packs
 
 TaCZ gun packs work without any setup: TaCZ VR has no list of guns, it reads each gun's model bones (grip, muzzle, sights, magazine) the way TaCZ's own first person does. Tested in VR with Cold War Guns, Classics Reborn, World War 2 and the Fallout fix (218 guns): every gun sits in the hand, aims down the barrel and fires from its muzzle, and all but two also take hand magazine swaps (those two reload with **A**).

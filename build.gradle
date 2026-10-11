@@ -119,6 +119,12 @@ dependencies {
     if (!project.hasProperty('nocarryon') && file('libs/carryon-forge-1.20.1-2.1.2.7.jar').exists()) {
         runtimeOnly fg.deobf('libs:carryon-forge-1.20.1:2.1.2.7')
     }
+    // -Pev adds EnhancedVisuals (with CreativeCore), to test that its picture stays off in VR. Never shipped (LGPL).
+    // Not by default: its blood and blur would land in the other picture checks
+    if (project.hasProperty('ev') && file('libs/enhancedvisuals-1.20.1-1.8.29.jar').exists()) {
+        runtimeOnly fg.deobf('libs:enhancedvisuals-1.20.1:1.8.29')
+        runtimeOnly fg.deobf('libs:creativecore-1.20.1:2.12.38')
+    }
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
