@@ -46,6 +46,8 @@ public class GrappleEntity extends Projectile {
     // server side: each player's hook out
     private static final Map<UUID, GrappleEntity> BY_OWNER = new HashMap<>();
     public static int anchoredCount = 0;
+    // server side: fired from the inventory while carrying something with Carry On, no hand holds the hook
+    private boolean fromInventory = false;
 
     public GrappleEntity(EntityType<? extends GrappleEntity> type, Level level) {
         super(type, level);
@@ -70,6 +72,22 @@ public class GrappleEntity extends Projectile {
 
     public InteractionHand hand() {
         return this.entityData.get(OFF_HAND) ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
+    }
+
+    void setFromInventory(boolean fromInventory) {
+        this.fromInventory = fromInventory;
+    }
+
+    /**
+     * Whether the owner still holds on: the hook in the hand it was fired from, or, fired while carrying, a hook in the
+     * inventory and that hand still free.
+     */
+    private boolean heldBy(ServerPlayer player) {
+        if (player.getItemInHand(this.hand()).getItem() instanceof GrapplingHookItem) {
+            return true;
+        }
+        return this.fromInventory && player.getItemInHand(this.hand()).isEmpty()
+                && !GrapplingHookItem.findInInventory(player).isEmpty();
     }
 
     /**
@@ -151,7 +169,7 @@ public class GrappleEntity extends Projectile {
                 continue;
             }
             if (player == null || !player.isAlive() || player.isSpectator() || player.level() != hook.level()
-                    || !(player.getItemInHand(hook.hand()).getItem() instanceof GrapplingHookItem)
+                    || !hook.heldBy(player)
                     || hook.distanceToSqr(player) > (MAX_LENGTH + 8.0) * (MAX_LENGTH + 8.0)) {
                 hook.discard();
                 continue;
