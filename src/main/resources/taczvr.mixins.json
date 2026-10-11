@@ -18,6 +18,7 @@
     "client.AnimationControllerAccessor",
     "client.BedrockModelAccessor",
     "client.CameraSetupEventMixin",
+    "client.EnhancedVisualsMixin",
     "client.GameRendererMixin",
     "client.GunItemRendererWrapperMixin",
     "client.ItemInHandLayerMixin",
