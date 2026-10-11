@@ -71,6 +71,7 @@ public final class TaczVRConfig {
 
         public final ForgeConfigSpec.IntValue remoteRenderDistance;
         public final ForgeConfigSpec.BooleanValue handsOnGun;
+        public final ForgeConfigSpec.BooleanValue hideHandsWithGun;
 
         Client(ForgeConfigSpec.Builder b) {
             b.push("general");
@@ -179,6 +180,10 @@ public final class TaczVRConfig {
             handsOnGun = b.comment("Fit the hands to the gun: in your own view a hand is drawn on the grip (and the handguard when",
                             "held two-handed) instead of Vivecraft's hand, on other VR players the model arm ends with its fist on the grip.")
                     .define("handsOnGun", true);
+            hideHandsWithGun = b.comment("While a gun is held, draw no hand on it in your own view: for player bodies or packs that bring",
+                            "their own arms. Vivecraft's \"Show Player Hands\" off does the same. /taczvr hands switches between",
+                            "hands on the gun, Vivecraft's hands and none.")
+                    .define("hideHandsWithGun", false);
             b.pop();
         }
     }
