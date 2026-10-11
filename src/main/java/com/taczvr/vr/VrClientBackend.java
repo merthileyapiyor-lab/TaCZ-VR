@@ -76,6 +76,13 @@ public interface VrClientBackend {
     }
 
     /**
+     * Whether the VR mod's setting to draw your own hands in first person is on.
+     */
+    default boolean showsPlayerHands() {
+        return true;
+    }
+
+    /**
      * The texture with the magnified picture of a scope you look through, -1 if the VR mod has none.
      */
     default int scopeTexture() {
