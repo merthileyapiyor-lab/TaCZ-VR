@@ -32,6 +32,10 @@ import com.taczvr.vr.VrPose;
  */
 public final class LrTacticalVr {
     private static final String NAMESPACE = "lrtactical";
+    // Vivecraft's VR hand is a player arm drawn at this size
+    private static final float HAND_SCALE = 0.4F;
+    // a bit bigger than that hand, as Vivecraft's own third person items in VR
+    private static final float ITEM_SCALE = 0.525F;
     private static boolean loggedError = false;
     static int drawn = 0;
 
@@ -85,12 +89,20 @@ public final class LrTacticalVr {
                              PoseStack poseStack, Vec3 cam) {
         boolean left = (hand == InteractionHand.MAIN_HAND) == (player.getMainArm() == HumanoidArm.LEFT);
         Vec3 at = part.getPos();
+        float worldScale = VrClient.localWorldScale();
         poseStack.pushPose();
         poseStack.translate(at.x - cam.x, at.y - cam.y, at.z - cam.z);
         poseStack.mulPose(new org.joml.Quaternionf(part.getRotation()));
+        poseStack.scale(worldScale, worldScale, worldScale);
+        // Vivecraft's VR hand is a player arm at 0.4 size ending at the controller: the middle of its fist is 2 px
+        // of that arm behind it
+        poseStack.translate(0.0F, 0.0F, 2.0F / 16.0F * HAND_SCALE);
         // controller space (-Z forward, +Y up) to the frame an item has in a third person hand (+Y forward, +Z up)
         poseStack.mulPose(Axis.XP.rotationDegrees(-90.0F));
-        poseStack.translate((left ? -1.0F : 1.0F) / 16.0F, 0.0F, 0.0F);
+        poseStack.scale(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE);
+        // that frame starts at the front of the fist's end, 2 px forward and 2 px down from the fist's middle,
+        // which is where the item's handle sits
+        poseStack.translate(0.0F, 2.0F / 16.0F, -2.0F / 16.0F);
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
         int light = LevelRenderer.getLightColor(mc.level, BlockPos.containing(at));
         mc.getItemRenderer().renderStatic(player, stack, left ? ItemDisplayContext.THIRD_PERSON_LEFT_HAND : ItemDisplayContext.THIRD_PERSON_RIGHT_HAND,

@@ -407,6 +407,11 @@ public final class SelfTest {
             finish();
             return;
         }
+        if ("lrhand".equals(System.getProperty("taczvr.selftest.only"))) {
+            lrHandLook();
+            finish();
+            return;
+        }
         if ("ev".equals(System.getProperty("taczvr.selftest.only"))) {
             enhancedVisuals();
             finish();
@@ -2860,6 +2865,77 @@ public final class SelfTest {
             s.modelArmsMode = VRSettings.ModelArmsMode.COMPLETE;
             s.showPlayerHands = true;
         });
+    }
+
+    /**
+     * LesRaisins items in Vivecraft's own VR hand: the grip should sit in the fist, not on top of it. NullVR's right
+     * controller is moved in front of the eyes pointing left, so the hand is seen from its side, then put back.
+     */
+    private static void lrHandLook() {
+        if (!realVr() || !net.minecraftforge.fml.ModList.get().isLoaded("lrtactical")) {
+            log("LesRaisins hand look: needs Vivecraft really in VR and LesRaisins");
+            return;
+        }
+        boolean delta = net.minecraftforge.fml.ModList.get().isLoaded("delta_wt");
+        String[][] items = {{"melee", "MeleeWeaponId", "dagger"}, {"melee", "MeleeWeaponId", "karambit"},
+                {"melee", "MeleeWeaponId", "baseball_bat"}, {"throwable", "ThrowableId", "m67"},
+                {"consumable", "ConsumableId", "ai2"}, {"melee", "MeleeWeaponId", "delta_wt:silencefd"},
+                {"melee", "MeleeWeaponId", "delta_wt:polaris"}, {"melee", "MeleeWeaponId", "delta_wt:annihil"},
+                {"melee", "MeleeWeaponId", "delta_wt:mercy"}};
+        run(mc -> {
+            // NullVR's own controllers, not our fake pose
+            VrCommon.testForceVr = false;
+            VrClient.testPose = null;
+            mc.options.hideGui = true;
+            mc.player.connection.sendCommand("time set 6000");
+            give(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+        });
+        for (String view : new String[]{"side", "back"}) {
+            run(mc -> nullVrHands("side".equals(view)));
+            for (String[] item : items) {
+                if (item[2].startsWith("delta_wt:") && !delta) {
+                    continue;
+                }
+                String name = "taczvr_lrhand_" + view + "_" + item[2].replace("delta_wt:", "df_") + ".png";
+                run(mc -> {
+                    give(InteractionHand.MAIN_HAND, lrItem(item[0], item[1], item[2]));
+                    // from behind both hands show, the left one mirrored
+                    give(InteractionHand.OFF_HAND, "back".equals(view) ? lrItem(item[0], item[1], item[2]) : ItemStack.EMPTY);
+                });
+                sleep(8);
+                run(mc -> Screenshot.grab(mc.gameDirectory, name, ClientDataHolderVR.getInstance().vrRenderer.framebufferEye[0],
+                        message -> log("%s: %s", name, message.getString())));
+            }
+        }
+        run(mc -> nullVrHands(false));
+    }
+
+    /**
+     * Moves NullVR's right controller in front of the eyes, pointing left (the left one out of sight), or back to
+     * where NullVR starts them.
+     */
+    private static void nullVrHands(boolean side) {
+        try {
+            Object vr = ClientDataHolderVR.getInstance().vr;
+            java.lang.reflect.Field offsets = vr.getClass().getDeclaredField("deviceOffsets");
+            java.lang.reflect.Field rotations = vr.getClass().getDeclaredField("deviceRotations");
+            offsets.setAccessible(true);
+            rotations.setAccessible(true);
+            org.joml.Vector3f[] at = (org.joml.Vector3f[]) offsets.get(vr);
+            org.joml.Quaternionf[] turn = (org.joml.Quaternionf[]) rotations.get(vr);
+            if (side) {
+                at[0].set(0.05F, 1.5F, -0.35F);
+                turn[0].identity().rotateY((float) Math.toRadians(90.0));
+                at[1].set(-0.3F, 0.4F, 0.3F);
+            } else {
+                at[0].set(0.3F, 1.25F, -0.5F);
+                turn[0].identity();
+                at[1].set(-0.3F, 1.25F, -0.5F);
+            }
+            turn[1].identity();
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            log("NullVR controllers can't be moved: %s", e);
+        }
     }
 
     /**
