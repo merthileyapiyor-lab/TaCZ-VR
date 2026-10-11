@@ -116,13 +116,13 @@ EnhancedVisuals (kan sıçraması, patlama bulanıklığı, açken soluk renkler
 
 ## LesRaisins Tactical Equipments ile birlikte
 
-LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, sopası, bombaları, sağlık malzemeleri ve kalkanı VR'da elinde **3D** görünür. Kendi modu bunları birinci şahısta sadece kendi el animasyonuyla çiziyor, VR'da o çalışmadığı için eşyalar görünmüyordu. Bu mod onları kontrolcünün yerinde, üçüncü şahısta elde durdukları gibi çizer. LesRaisins'in kendisi değiştirilmez ve bu modun içinde yoktur; ayrı olarak kurulur. Düz ekranda her şey LesRaisins'in kendi çizimidir. LesRaisins üstüne kurulan bıçak paketleri de (ör. **DeltaForce Melee Pack**) aynı şekilde VR'da elde görünür; 0.2.0 sürümünün bıçakları denendi.
+LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, sopası, bombaları, sağlık malzemeleri ve kalkanı VR'da elinde **3D** görünür. Kendi modu bunları birinci şahısta sadece kendi el animasyonuyla çiziyor, VR'da o çalışmadığı için eşyalar görünmüyordu. Bu mod onları VR elinde, sapı yumruğunun içinde olacak şekilde çizer; bıçak elinin baktığı yöne bakar. LesRaisins'in kendisi değiştirilmez ve bu modun içinde yoktur; ayrı olarak kurulur. Düz ekranda her şey LesRaisins'in kendi çizimidir. LesRaisins üstüne kurulan bıçak paketleri de (ör. **DeltaForce Melee Pack**) aynı şekilde VR'da elde görünür; 0.2.0 sürümünün bıçakları denendi.
 
 ## Kurulum
 
 `mods` klasörüne şunlar:
 
-1. `taczvr-1.20.1-1.4.7.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
+1. `taczvr-1.20.1-1.4.8.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
 2. TACZ `tacz-1.20.1-1.1.8-hotfix` (veya daha yeni 1.1.8+)
 3. **Vivecraft 1.20.1 Forge** — `vivecraft-1.20.1-1.3.15-forge.jar`
 4. **Simple Voice Chat** — `voicechat-forge-1.20.1-2.6.17.jar` (telsiz için; olmasa da mod çalışır)

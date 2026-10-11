@@ -80,7 +80,7 @@ A **⚔ Game** button appears at the top left of the Esc menu for ops and the wo
 
 ## With LesRaisins Tactical Equipments
 
-Its knives, grenades and medkits draw nothing in first person outside its own hand animation, so in VR TaCZ VR draws them at the controller. Melee packs built on it work the same, for example the **DeltaForce Melee Pack** (its 0.2.0 knives were tested). LesRaisins isn't changed or bundled.
+Its knives, grenades and medkits draw nothing in first person outside its own hand animation, so in VR TaCZ VR draws them gripped in your VR fist, pointing where your hand points. Melee packs built on it work the same, for example the **DeltaForce Melee Pack** (its 0.2.0 knives were tested). LesRaisins isn't changed or bundled.
 
 ## With EnhancedVisuals
 
