@@ -24,7 +24,7 @@
   "item.taczvr.dual_vision_goggles": "Dual Vision Goggles",
   "item.taczvr.dual_vision_goggles.tip": "Right side of your head + grip: night vision on/off (B). Hand at the left side: blood vision (K)",
   "item.taczvr.grappling_hook": "Grappling Hook",
-  "item.taczvr.grappling_hook.tip": "Use: fire / let go. Reaches 200 blocks",
+  "item.taczvr.grappling_hook.tip": "Use: fire / let go. Reaches 200 blocks. While carrying something with Carry On it works from the inventory",
   "entity.taczvr.grapple": "Grappling Hook",
   "item.taczvr.radio": "Radio",
   "item.taczvr.radio.tip": "Hold use and talk (VR: hold it to your mouth). Everyone with a radio hears you",
