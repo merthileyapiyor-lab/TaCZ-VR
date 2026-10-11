@@ -165,6 +165,17 @@ public final class VrClient {
     }
 
     /**
+     * Whether the VR mod's "show your own hands" setting is on.
+     */
+    public static boolean showsPlayerHands() {
+        try {
+            return VrBackends.client().showsPlayerHands();
+        } catch (Throwable t) {
+            return true;
+        }
+    }
+
+    /**
      * The texture with the magnified scope picture, -1 if the VR mod has none.
      */
     public static int scopeTexture() {

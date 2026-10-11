@@ -14,7 +14,8 @@ import java.util.Locale;
 
 /**
  * Client commands to tune how the gun sits in the hand without leaving VR:
- * /taczvr scale 0.3, /taczvr grip 0 -0.01 0.03, /taczvr pitch 10, /taczvr aimline, /taczvr info, /taczvr reset
+ * /taczvr scale 0.3, /taczvr grip 0 -0.01 0.03, /taczvr pitch 10, /taczvr aimline, /taczvr hands, /taczvr info,
+ * /taczvr reset
  */
 public final class TaczVRCommands {
     private TaczVRCommands() {
@@ -52,6 +53,21 @@ public final class TaczVRCommands {
                             cfg.showAimLine.save();
                             return info(ctx);
                         }))
+                .then(Commands.literal("hands")
+                        .executes(ctx -> {
+                            // on the gun -> Vivecraft's -> none -> on the gun
+                            if (cfg.hideHandsWithGun.get()) {
+                                cfg.hideHandsWithGun.set(false);
+                                cfg.handsOnGun.set(true);
+                            } else if (cfg.handsOnGun.get()) {
+                                cfg.handsOnGun.set(false);
+                            } else {
+                                cfg.hideHandsWithGun.set(true);
+                            }
+                            cfg.handsOnGun.save();
+                            cfg.hideHandsWithGun.save();
+                            return info(ctx);
+                        }))
                 .then(Commands.literal("reset")
                         .executes(ctx -> {
                             reset(cfg.gunScale);
@@ -75,12 +91,20 @@ public final class TaczVRCommands {
         set(value, value.getDefault());
     }
 
+    /**
+     * Which hands you see while holding a gun: TaCZ VR's on the gun, Vivecraft's own, or none.
+     */
+    static String handsMode() {
+        TaczVRConfig.Client cfg = TaczVRConfig.CLIENT;
+        return cfg.hideHandsWithGun.get() ? "none" : cfg.handsOnGun.get() ? "on gun" : "vivecraft";
+    }
+
     private static int info(CommandContext<CommandSourceStack> ctx) {
         TaczVRConfig.Client cfg = TaczVRConfig.CLIENT;
         String text = String.format(Locale.ROOT,
-                "TACZ VR: scale=%.3f grip=(%.3f, %.3f, %.3f) pitch=%.1f aimline=%s",
+                "TACZ VR: scale=%.3f grip=(%.3f, %.3f, %.3f) pitch=%.1f aimline=%s hands=%s",
                 cfg.gunScale.get(), cfg.gripOffsetX.get(), cfg.gripOffsetY.get(), cfg.gripOffsetZ.get(),
-                cfg.gripPitch.get(), cfg.showAimLine.get() ? "on" : "off");
+                cfg.gripPitch.get(), cfg.showAimLine.get() ? "on" : "off", handsMode());
         ctx.getSource().sendSuccess(() -> Component.literal(text), false);
         return 1;
     }

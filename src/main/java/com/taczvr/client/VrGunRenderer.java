@@ -102,7 +102,7 @@ public final class VrGunRenderer {
      */
     public static boolean hidesFirstPersonHand(InteractionHand hand) {
         Player player = Minecraft.getInstance().player;
-        if (player == null || !handsOnGun(player) || !rendersHeldGun(player, player.getMainHandItem())) {
+        if (player == null || !(handsOnGun(player) || hidesHandsWithGun()) || !rendersHeldGun(player, player.getMainHandItem())) {
             return false;
         }
         boolean hide = hand == InteractionHand.MAIN_HAND || leftHandOnGun(player) || OffhandGun.holds(player);
@@ -126,10 +126,21 @@ public final class VrGunRenderer {
             return false;
         }
         if (player == Minecraft.getInstance().player) {
+            if (hidesHandsWithGun()) {
+                return false;
+            }
             VrPass pass = VrClient.currentPass();
             return pass == null || pass.isFirstPerson();
         }
         return !FITTED_ARMS.contains(player.getUUID());
+    }
+
+    /**
+     * No hands on the gun in your own view: asked for in our config, or Vivecraft's own hands are switched off
+     * (bodies or packs that bring their own arms would get a third one).
+     */
+    static boolean hidesHandsWithGun() {
+        return TaczVRConfig.CLIENT.hideHandsWithGun.get() || !VrClient.showsPlayerHands();
     }
 
     /**

@@ -402,6 +402,11 @@ public final class SelfTest {
             finish();
             return;
         }
+        if ("armslook".equals(System.getProperty("taczvr.selftest.only"))) {
+            armsLook();
+            finish();
+            return;
+        }
         if ("ev".equals(System.getProperty("taczvr.selftest.only"))) {
             enhancedVisuals();
             finish();
@@ -2812,6 +2817,52 @@ public final class SelfTest {
     }
 
     /**
+     * Pictures of the left eye holding an AK, with Vivecraft's body settings in turn, to look at which arms show
+     * (-Ptestonly=armslook -Prundir=run-nullvr). Only takes pictures.
+     */
+    private static void armsLook() {
+        if (!realVr()) {
+            log("arms look: needs Vivecraft really in VR");
+            return;
+        }
+        Object[][] combos = {
+                {false, VRSettings.PlayerModelType.VANILLA, VRSettings.ModelArmsMode.COMPLETE, true},
+                {true, VRSettings.PlayerModelType.VANILLA, VRSettings.ModelArmsMode.COMPLETE, true},
+                {true, VRSettings.PlayerModelType.SPLIT_ARMS, VRSettings.ModelArmsMode.COMPLETE, true},
+                {true, VRSettings.PlayerModelType.SPLIT_ARMS, VRSettings.ModelArmsMode.SHOULDERS, true},
+                {false, VRSettings.PlayerModelType.VANILLA, VRSettings.ModelArmsMode.COMPLETE, false},
+        };
+        run(mc -> {
+            mc.options.hideGui = true;
+            give(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).setAmmoCount(30).build());
+            mc.player.connection.sendCommand("time set 6000");
+        });
+        sleep(10);
+        for (int i = 0; i < combos.length; i++) {
+            Object[] combo = combos[i];
+            int n = i;
+            run(mc -> {
+                VRSettings s = ClientDataHolderVR.getInstance().vrSettings;
+                s.shouldRenderSelf = (Boolean) combo[0];
+                s.playerModelType = (VRSettings.PlayerModelType) combo[1];
+                s.modelArmsMode = (VRSettings.ModelArmsMode) combo[2];
+                s.showPlayerHands = (Boolean) combo[3];
+            });
+            sleep(10);
+            run(mc -> Screenshot.grab(mc.gameDirectory, "taczvr_arms_" + n + ".png",
+                    ClientDataHolderVR.getInstance().vrRenderer.framebufferEye[0], message -> log("arms %d %s: %s", n,
+                            java.util.Arrays.toString(combo), message.getString())));
+        }
+        run(mc -> {
+            VRSettings s = ClientDataHolderVR.getInstance().vrSettings;
+            s.shouldRenderSelf = false;
+            s.playerModelType = VRSettings.PlayerModelType.VANILLA;
+            s.modelArmsMode = VRSettings.ModelArmsMode.COMPLETE;
+            s.showPlayerHands = true;
+        });
+    }
+
+    /**
      * Whether Vivecraft itself renders in VR, not just our fake VR pose.
      */
     private static boolean realVr() {
@@ -3199,6 +3250,29 @@ public final class SelfTest {
             } catch (Throwable t) {
                 fail("Vivecraft renderVRHand_Main cancelled by the mixin", "it ran: " + t);
             }
+            // which hands show: ours on the gun, Vivecraft's own, or none (for bodies and packs with their own arms)
+            TaczVRConfig.Client cfg = TaczVRConfig.CLIENT;
+            cfg.handsOnGun.set(false);
+            check("hands vivecraft: no hand on the gun", !VrGunRenderer.drawsGunHands(mc.player), "");
+            check("hands vivecraft: Vivecraft's hand at the controller again", !VrGunRenderer.hidesFirstPersonHand(InteractionHand.MAIN_HAND), "");
+            cfg.hideHandsWithGun.set(true);
+            check("hands none: no hand on the gun", !VrGunRenderer.drawsGunHands(mc.player), "");
+            check("hands none: not Vivecraft's either", VrGunRenderer.hidesFirstPersonHand(InteractionHand.MAIN_HAND), "");
+            cfg.hideHandsWithGun.set(false);
+            cfg.handsOnGun.set(true);
+            org.vivecraft.client_vr.settings.VRSettings vr = ClientDataHolderVR.getInstance().vrSettings;
+            boolean showHands = vr.showPlayerHands;
+            vr.showPlayerHands = false;
+            check("Vivecraft's hands off: no hand on the gun either", !VrGunRenderer.drawsGunHands(mc.player), "");
+            vr.showPlayerHands = showHands;
+            check("Vivecraft's hands on: hand on the gun again", VrGunRenderer.drawsGunHands(mc.player), "");
+            StringBuilder modes = new StringBuilder(TaczVRCommands.handsMode());
+            for (int i = 0; i < 3; i++) {
+                net.minecraftforge.client.ClientCommandHandler.runCommand("taczvr hands");
+                modes.append(" > ").append(TaczVRCommands.handsMode());
+            }
+            check("/taczvr hands: on gun > vivecraft > none > on gun", "on gun > vivecraft > none > on gun".contentEquals(modes),
+                    modes.toString());
         });
         sleep(5);
         run(mc -> screenshot(mc, "taczvr_fp_onehand.png"));
@@ -4007,7 +4081,8 @@ public final class SelfTest {
     private static ItemStack lrItem(String type, String tag, String id) {
         net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new ResourceLocation("lrtactical", type));
         ItemStack stack = new ItemStack(item);
-        stack.getOrCreateTag().putString(tag, "lrtactical:" + id);
+        // a pack's own items carry their namespace already (delta_wt:mercy)
+        stack.getOrCreateTag().putString(tag, id.contains(":") ? id : "lrtactical:" + id);
         return stack;
     }
 
@@ -4058,6 +4133,25 @@ public final class SelfTest {
             });
             sleep(6);
             run(mc -> screenshot(mc, "taczvr_lr_vr_" + item[2] + ".png"));
+        }
+        // DeltaForce Melee Pack: its knives are LesRaisins melee items from a pack, asked for on CurseForge
+        if (net.minecraftforge.fml.ModList.get().isLoaded("delta_wt")) {
+            for (String knife : new String[]{"cobra_vanguard", "mercy", "annihil", "quenching", "treasure_kn"}) {
+                run(mc -> {
+                    give(InteractionHand.MAIN_HAND, lrItem("melee", "MeleeWeaponId", "delta_wt:" + knife));
+                    Vec3 e = eye();
+                    VrClient.testPose = new FakePose(e.add(-0.1, -0.1, -0.55), EAST, null, e, NORTH);
+                    framesBefore = LrTacticalVr.drawn;
+                });
+                sleep(6);
+                run(mc -> {
+                    check("DeltaForce: " + knife + " is a LesRaisins item", LrTacticalVr.isLrItem(mc.player.getMainHandItem()), "");
+                    check("DeltaForce VR: " + knife + " drawn in the hand", LrTacticalVr.drawn > framesBefore, "");
+                    screenshot(mc, "taczvr_df_" + knife + ".png");
+                });
+            }
+        } else {
+            run(mc -> log("DeltaForce Melee Pack not installed, skipped"));
         }
         // how someone else holds it, for comparison
         run(mc -> {
