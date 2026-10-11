@@ -11,6 +11,7 @@ import com.taczvr.content.ModContent;
 import com.taczvr.content.NightVisionItem;
 import com.taczvr.content.BloodVisionItem;
 import com.taczvr.content.DualVisionItem;
+import com.taczvr.CarryOnCompat;
 import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.InventoryMenu;
@@ -401,6 +402,11 @@ public final class SelfTest {
             finish();
             return;
         }
+        if ("carry".equals(System.getProperty("taczvr.selftest.only"))) {
+            carryHook();
+            finish();
+            return;
+        }
         if ("blood".equals(System.getProperty("taczvr.selftest.only"))) {
             bloodVision();
             dualVision();
@@ -458,6 +464,7 @@ public final class SelfTest {
         bloodVision();
         dualVision();
         grapplingHook();
+        carryHook();
         radio();
         run(mc -> {
             VrCommon.testForceVr = true;
@@ -2533,6 +2540,123 @@ public final class SelfTest {
             mc.player.connection.sendCommand("kill @e[type=minecraft:pig]");
         });
         await("dual vision: night vision gone when taken off", 30, mc -> !server(sp -> sp.hasEffect(MobEffects.NIGHT_VISION)), () -> "");
+    }
+
+    /**
+     * The grappling hook while carrying a creature with Carry On, which empties both hands: use fires the hook from
+     * the inventory, again lets go, use at the ground still puts the creature down. Only when Carry On is there.
+     */
+    private static void carryHook() {
+        if (!net.minecraftforge.fml.ModList.get().isLoaded("carryon")) {
+            log("Carry On not loaded: the grappling hook while carrying isn't tested");
+            return;
+        }
+        VrPose[] poseBefore = new VrPose[1];
+        int[] usesBefore = new int[1];
+        run(mc -> {
+            poseBefore[0] = VrClient.testPose;
+            VrClient.testPose = null;
+            mc.player.connection.sendCommand("kill @e[type=minecraft:pig]");
+            mc.player.connection.sendCommand("fill -3 -60 -30 3 -50 -30 minecraft:stone");
+            mc.player.connection.sendCommand("tp @s 0.5 -60 0.5 180 0");
+            mc.player.connection.sendCommand("summon minecraft:pig 0.5 -60 -1.0 {NoAI:1b}");
+            server(sp -> {
+                sp.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                sp.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+                // in the inventory, not the hotbar
+                sp.getInventory().setItem(20, new ItemStack(ModContent.GRAPPLING_HOOK.get()));
+                sp.inventoryMenu.broadcastChanges();
+                return null;
+            });
+        });
+        sleep(5);
+        // Carry On's carry key (shift) held, its client tells its server
+        KeyMapping[] carryKey = new KeyMapping[1];
+        run(mc -> {
+            try {
+                carryKey[0] = (KeyMapping) Class.forName("tschipp.carryon.client.keybinds.CarryOnKeybinds").getField("carryKey").get(null);
+                carryKey[0].setDown(true);
+            } catch (ReflectiveOperationException e) {
+                log("carry on key: %s", e);
+            }
+            mc.setWindowActive(true);
+            grabMouse(mc);
+        });
+        sleep(3);
+        run(mc -> {
+            String picked = server(sp -> {
+                List<Pig> pigs = sp.serverLevel().getEntitiesOfClass(Pig.class, sp.getBoundingBox().inflate(4.0));
+                if (pigs.isEmpty()) {
+                    return "no pig";
+                }
+                try {
+                    Method pickup = Class.forName("tschipp.carryon.common.carry.PickupHandler")
+                            .getMethod("tryPickupEntity", ServerPlayer.class, Entity.class, Function.class);
+                    Function<Entity, Boolean> allow = e -> true;
+                    Object data = Class.forName("tschipp.carryon.common.carry.CarryOnDataManager")
+                            .getMethod("getCarryData", net.minecraft.world.entity.player.Player.class).invoke(null, sp);
+                    String state = " key " + data.getClass().getMethod("isKeyPressed").invoke(data)
+                            + " tick " + data.getClass().getMethod("getTick").invoke(data) + "/" + sp.tickCount
+                            + " distance " + sp.position().distanceTo(pigs.get(0).position()) + " mode " + sp.gameMode.getGameModeForPlayer();
+                    return pickup.invoke(null, sp, pigs.get(0), allow) + state;
+                } catch (ReflectiveOperationException e) {
+                    return e.toString();
+                }
+            });
+            check("carry hook: Carry On picks up the pig", picked.startsWith("true"), picked);
+            if (carryKey[0] != null) {
+                carryKey[0].setDown(false);
+            }
+        });
+        await("carry hook: carrying it, hands empty", 20,
+                mc -> CarryOnCompat.isCarrying(mc.player) && mc.player.getMainHandItem().isEmpty(), () -> "");
+        run(mc -> {
+            usesBefore[0] = GrappleClient.carryUses;
+            mc.setWindowActive(true);
+            grabMouse(mc);
+            vrPress(mc.options.keyUse);
+        });
+        run(mc -> mc.options.keyUse.setDown(false));
+        await("carry hook: use fires the hook from the inventory", 20, mc -> GrappleClient.anchor() != null,
+                () -> "uses " + (GrappleClient.carryUses - usesBefore[0]));
+        await("carry hook: pulled to the wall, still carrying", 200,
+                mc -> mc.player.getZ() < -26.0 && CarryOnCompat.isCarrying(mc.player), () -> v(Minecraft.getInstance().player.position()));
+        sleep(20);
+        run(mc -> {
+            check("carry hook: the rope holds while carrying", server(sp -> GrappleEntity.of(sp) != null) && GrappleClient.anchor() != null, "");
+            check("carry hook: still carrying the pig", CarryOnCompat.isCarrying(mc.player), "");
+            screenshot(mc, "taczvr_carry_hook.png");
+            mc.setWindowActive(true);
+            grabMouse(mc);
+            vrPress(mc.options.keyUse);
+        });
+        run(mc -> mc.options.keyUse.setDown(false));
+        await("carry hook: use again lets go", 20,
+                mc -> GrappleClient.anchor() == null && server(sp -> GrappleEntity.of(sp) == null), () -> "");
+        // looking at the ground right in front
+        run(mc -> mc.player.connection.sendCommand("tp @s 0.5 -60 -26.5 180 70"));
+        sleep(10);
+        run(mc -> {
+            mc.setWindowActive(true);
+            grabMouse(mc);
+            vrPress(mc.options.keyUse);
+        });
+        run(mc -> mc.options.keyUse.setDown(false));
+        await("carry hook: use at the ground still puts the pig down", 20, mc -> !CarryOnCompat.isCarrying(mc.player),
+                () -> "hit " + Minecraft.getInstance().hitResult);
+        run(mc -> check("carry hook: and fires no hook then",
+                GrappleClient.anchor() == null && server(sp -> GrappleEntity.of(sp) == null), ""));
+        run(mc -> {
+            VrClient.testPose = poseBefore[0];
+            server(sp -> {
+                sp.getInventory().setItem(20, ItemStack.EMPTY);
+                return null;
+            });
+            mc.player.connection.sendCommand("kill @e[type=minecraft:pig]");
+            mc.player.connection.sendCommand("fill -3 -60 -30 3 -50 -30 minecraft:air");
+            mc.player.connection.sendCommand("tp @s 0.5 -60 0.5 180 0");
+        });
+        sleep(5);
     }
 
     /**

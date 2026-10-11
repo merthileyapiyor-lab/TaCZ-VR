@@ -3,7 +3,12 @@ package com.taczvr.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.taczvr.content.GrappleEntity;
+import com.taczvr.content.GrapplingHookItem;
 import com.taczvr.content.ModContent;
+import com.taczvr.network.CarryHookPacket;
+import com.taczvr.network.Net;
+import net.minecraft.world.phys.HitResult;
+import net.minecraftforge.client.event.InputEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -44,6 +49,7 @@ public final class GrappleClient {
     private static InteractionHand anchorHand = InteractionHand.MAIN_HAND;
     static int pulls = 0;
     static int ropesDrawn = 0;
+    static int carryUses = 0;
 
     private GrappleClient() {
     }
@@ -56,6 +62,32 @@ public final class GrappleClient {
     @Nullable
     static Vec3 anchor() {
         return anchor;
+    }
+
+    /**
+     * Use while carrying something with Carry On (both hands taken) and a grappling hook in the inventory: fires it,
+     * aimed with the main hand, or lets go. Use at a block or creature within reach is left to Carry On, that's how
+     * it puts down what you carry.
+     */
+    @SubscribeEvent
+    public static void onUse(InputEvent.InteractionKeyMappingTriggered event) {
+        Minecraft mc = Minecraft.getInstance();
+        LocalPlayer player = mc.player;
+        if (!event.isUseItem() || event.getHand() != InteractionHand.MAIN_HAND || player == null) {
+            return;
+        }
+        // letting go works with the hand still empty, also after putting down what was carried
+        boolean hanging = anchor != null && player.getMainHandItem().isEmpty() && !GrapplingHookItem.findInInventory(player).isEmpty();
+        if (!hanging && !GrapplingHookItem.usableWhileCarrying(player)) {
+            return;
+        }
+        if (!hanging && mc.hitResult != null && mc.hitResult.getType() != HitResult.Type.MISS) {
+            return;
+        }
+        Net.CHANNEL.sendToServer(new CarryHookPacket());
+        carryUses++;
+        event.setSwingHand(false);
+        event.setCanceled(true);
     }
 
     @SubscribeEvent
