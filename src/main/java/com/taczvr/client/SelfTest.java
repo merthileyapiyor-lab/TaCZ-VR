@@ -402,6 +402,11 @@ public final class SelfTest {
             finish();
             return;
         }
+        if ("ev".equals(System.getProperty("taczvr.selftest.only"))) {
+            enhancedVisuals();
+            finish();
+            return;
+        }
         if ("carry".equals(System.getProperty("taczvr.selftest.only"))) {
             carryHook();
             finish();
@@ -465,6 +470,7 @@ public final class SelfTest {
         dualVision();
         grapplingHook();
         carryHook();
+        enhancedVisuals();
         radio();
         run(mc -> {
             VrCommon.testForceVr = true;
@@ -2657,6 +2663,152 @@ public final class SelfTest {
             mc.player.connection.sendCommand("tp @s 0.5 -60 0.5 180 0");
         });
         sleep(5);
+    }
+
+    /**
+     * EnhancedVisuals (-Pev): its picture stays off in VR, where it turned Vivecraft's HUD panel black. In real VR
+     * (-Prundir=run-nullvr) the HUD panel is read back: see-through with the fix, black without it.
+     */
+    private static void enhancedVisuals() {
+        if (!net.minecraftforge.fml.ModList.get().isLoaded("enhancedvisuals")) {
+            log("EnhancedVisuals not loaded: its VR fix isn't tested");
+            return;
+        }
+        VrPose[] poseBefore = new VrPose[1];
+        run(mc -> {
+            patched("team.creative.enhancedvisuals.client.EVClient");
+            poseBefore[0] = VrClient.testPose;
+            VrClient.testPose = null;
+            boolean flat = realVr() || evShouldRender();
+            VrClient.testPose = new FakePose(eye().add(0.13, -0.17, -0.42), NORTH, null, eye(), NORTH);
+            boolean vr = evShouldRender();
+            VrClient.testPose = poseBefore[0];
+            check("EnhancedVisuals: still draws on a flat screen", flat, "");
+            check("EnhancedVisuals: doesn't draw in VR", !vr, "");
+            // hungry: it fades the colors
+            server(sp -> {
+                sp.getFoodData().setFoodLevel(2);
+                return null;
+            });
+        });
+        if (realVr()) {
+            // without the fix first: blast and hits make it blur and bleed, the HUD panel is measured as it's drawn
+            run(mc -> mc.options.hideGui = false);
+            sleep(5);
+            run(mc -> {
+                VrClient.testEnhancedVisualsInVr = true;
+                guiOpaqueMax = 0;
+                guiCaptures = 0;
+                guiCaptureName = "taczvr_ev_hud_unfixed.png";
+                captureGui = true;
+                evHurt(mc);
+            });
+            sleep(40);
+            run(mc -> {
+                captureGui = false;
+                check("EnhancedVisuals: without the fix the VR HUD panel turns opaque (the bug)", guiOpaqueMax > 20,
+                        guiOpaqueMax + "% at most, " + guiCaptures + " frames, " + guiEvents + " HUD events, VR " + realVr()
+                                + ", screen " + mc.screen + ", hideGui " + mc.options.hideGui);
+                VrClient.testEnhancedVisualsInVr = false;
+                server(sp -> {
+                    sp.setHealth(sp.getMaxHealth());
+                    return null;
+                });
+            });
+            sleep(60);
+            run(mc -> {
+                guiOpaqueMax = 0;
+                guiCaptures = 0;
+                guiCaptureName = "taczvr_ev_hud_fixed.png";
+                captureGui = true;
+                evHurt(mc);
+            });
+            sleep(40);
+            run(mc -> {
+                captureGui = false;
+                check("EnhancedVisuals: with the fix the VR HUD panel stays see-through", guiCaptures > 0 && guiOpaqueMax < 5,
+                        guiOpaqueMax + "% at most, " + guiCaptures + " frames");
+            });
+        }
+        run(mc -> server(sp -> {
+            sp.getFoodData().setFoodLevel(20);
+            sp.setHealth(sp.getMaxHealth());
+            return null;
+        }));
+    }
+
+    private static boolean evShouldRender() {
+        try {
+            return (Boolean) Class.forName("team.creative.enhancedvisuals.client.EVClient").getMethod("shouldRender").invoke(null);
+        } catch (ReflectiveOperationException e) {
+            log("EVClient.shouldRender: %s", e);
+            return false;
+        }
+    }
+
+    /**
+     * A blast a few blocks away and some hits: EnhancedVisuals blurs (a shader over the picture) and bleeds.
+     */
+    private static void evHurt(Minecraft mc) {
+        mc.player.connection.sendCommand("summon minecraft:tnt 0.5 -60 -5.5 {Fuse:1}");
+        server(sp -> {
+            sp.hurt(sp.damageSources().generic(), 2.0F);
+            return null;
+        });
+    }
+
+    private static volatile boolean captureGui = false;
+    private static volatile int guiOpaqueMax = 0;
+    private static volatile int guiCaptures = 0;
+    private static volatile String guiCaptureName = "";
+    private static volatile int guiEvents = 0;
+
+    /**
+     * Measures the HUD as it's just been drawn, after everything else drawing on it (EnhancedVisuals too). In VR that's
+     * Vivecraft's HUD panel.
+     */
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void onGuiDrawn(net.minecraftforge.client.event.RenderGuiEvent.Post event) {
+        guiEvents++;
+        if (!captureGui || !realVr()) {
+            return;
+        }
+        int opaque = guiPanelOpaque(Minecraft.getInstance().getMainRenderTarget(), guiCaptures == 10 ? guiCaptureName : null);
+        guiOpaqueMax = Math.max(guiOpaqueMax, opaque);
+        guiCaptures++;
+    }
+
+    /**
+     * How much of the upper half of a HUD picture (empty in this world) is opaque, in percent. Saves it as a picture
+     * when named.
+     */
+    private static int guiPanelOpaque(com.mojang.blaze3d.pipeline.RenderTarget gui, @Nullable String name) {
+        if (gui == null) {
+            return -1;
+        }
+        try (com.mojang.blaze3d.platform.NativeImage image = new com.mojang.blaze3d.platform.NativeImage(gui.width, gui.height, false)) {
+            com.mojang.blaze3d.systems.RenderSystem.bindTexture(gui.getColorTextureId());
+            image.downloadTexture(0, false);
+            image.flipY();
+            int opaque = 0;
+            int total = 0;
+            for (int y = gui.height / 10; y < gui.height / 2; y += 4) {
+                for (int x = gui.width / 4; x < gui.width * 3 / 4; x += 4) {
+                    if ((image.getPixelRGBA(x, y) >>> 24) > 128) {
+                        opaque++;
+                    }
+                    total++;
+                }
+            }
+            if (name != null) {
+                try {
+                    image.writeToFile(Minecraft.getInstance().gameDirectory.toPath().resolve("screenshots").resolve(name));
+                } catch (java.io.IOException e) {
+                    log("save %s: %s", name, e);
+                }
+            }
+            return total == 0 ? -1 : opaque * 100 / total;
+        }
     }
 
     /**

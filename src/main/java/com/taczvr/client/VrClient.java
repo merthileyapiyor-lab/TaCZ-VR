@@ -27,6 +27,10 @@ public final class VrClient {
     @Nullable
     static volatile VrPose testRoomPose = null;
     static volatile int testHaptics = 0;
+    /**
+     * Development self-test only: lets EnhancedVisuals draw in VR again, to see the problem that's kept off.
+     */
+    public static volatile boolean testEnhancedVisualsInVr = false;
 
     private VrClient() {
     }
