@@ -3,6 +3,7 @@ package com.taczvr.content;
 import com.taczvr.mixin.common.ServerGamePacketListenerAccessor;
 import com.taczvr.network.GrapplePacket;
 import com.taczvr.network.Net;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -22,6 +23,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.server.ServerLifecycleHooks;
@@ -33,18 +35,21 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * The hook of a grappling hook. It grabs the block you aim at the moment you fire (up to 200 blocks), its owner is
+ * The hook of a grappling hook. It grabs the block you aim at the moment you fire (as far as you can see), its owner is
  * told the spot and pulled there on their side (GrappleClient), so it works even where the hook itself is too far
  * away to be sent to them. A miss flies off for a moment. Gone when the owner lets go, switches items or gets too far.
  */
 public class GrappleEntity extends Projectile {
-    public static final double MAX_LENGTH = 200.0;
+    // the farthest render distance there is: 32 chunks
+    public static final double MAX_LENGTH = 512.0;
     private static final double MISS_SPEED = 12.0;
     private static final int MISS_TICKS = 8;
     private static final EntityDataAccessor<Boolean> ANCHORED = SynchedEntityData.defineId(GrappleEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> OFF_HAND = SynchedEntityData.defineId(GrappleEntity.class, EntityDataSerializers.BOOLEAN);
     // server side: each player's hook out
     private static final Map<UUID, GrappleEntity> BY_OWNER = new HashMap<>();
+    // server side: each player's render distance in chunks, as their client told it
+    private static final Map<UUID, Integer> VIEW_CHUNKS = new HashMap<>();
     public static int anchoredCount = 0;
     // server side: fired from the inventory while carrying something with Carry On, no hand holds the hook
     private boolean fromInventory = false;
@@ -99,13 +104,36 @@ public class GrappleEntity extends Projectile {
         return hook == null || hook.isRemoved() ? null : hook;
     }
 
+    public static void setViewDistance(ServerPlayer player, int chunks) {
+        VIEW_CHUNKS.put(player.getUUID(), chunks);
+    }
+
+    /**
+     * How far the player's hook reaches: as far as they can see, their render distance, though no further than the
+     * server sends chunks.
+     */
+    public static double reach(ServerPlayer player) {
+        int chunks = player.server.getPlayerList().getViewDistance();
+        Integer client = VIEW_CHUNKS.get(player.getUUID());
+        if (client != null) {
+            chunks = Math.min(chunks, client);
+        }
+        return Math.min(MAX_LENGTH, Math.max(2, chunks) * 16.0);
+    }
+
     /**
      * Fires a hook from {@code from} along {@code dir}: it holds at once on the first block within reach.
      */
     public static GrappleEntity fire(ServerPlayer player, InteractionHand hand, Vec3 from, Vec3 dir) {
         Level level = player.level();
         Vec3 direction = dir.normalize();
-        BlockHitResult hit = level.clip(new ClipContext(from, from.add(direction.scale(MAX_LENGTH)), ClipContext.Block.COLLIDER,
+        // only through loaded chunks: looking up a block in an unloaded one would load or even generate it
+        double length = 0.0;
+        double reach = reach(player);
+        while (length < reach && level.hasChunkAt(BlockPos.containing(from.add(direction.scale(Math.min(reach, length + 8.0)))))) {
+            length = Math.min(reach, length + 8.0);
+        }
+        BlockHitResult hit = level.clip(new ClipContext(from, from.add(direction.scale(length)), ClipContext.Block.COLLIDER,
                 ClipContext.Fluid.NONE, player));
         GrappleEntity hook = new GrappleEntity(level, player, hand);
         if (hit.getType() != HitResult.Type.MISS) {
@@ -156,6 +184,11 @@ public class GrappleEntity extends Projectile {
      * Looks after the hooks from here rather than their own tick: far away they sit in chunks that don't tick.
      */
     @SubscribeEvent
+    public static void onLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        VIEW_CHUNKS.remove(event.getEntity().getUUID());
+    }
+
+    @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || BY_OWNER.isEmpty()) {
             return;
@@ -170,7 +203,7 @@ public class GrappleEntity extends Projectile {
             }
             if (player == null || !player.isAlive() || player.isSpectator() || player.level() != hook.level()
                     || !hook.heldBy(player)
-                    || hook.distanceToSqr(player) > (MAX_LENGTH + 8.0) * (MAX_LENGTH + 8.0)) {
+                    || hook.distanceToSqr(player) > (reach(player) + 8.0) * (reach(player) + 8.0)) {
                 hook.discard();
                 continue;
             }

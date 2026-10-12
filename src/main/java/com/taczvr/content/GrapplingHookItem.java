@@ -23,7 +23,7 @@ import com.taczvr.vr.VrPose;
 import java.util.List;
 
 /**
- * A grappling hook. Use (A in VR) grabs the block the hand points at (or where you look) up to 200 blocks away, at
+ * A grappling hook. Use (A in VR) grabs the block the hand points at (or where you look) as far as the player can see, at
  * once, and pulls you there, where you hang until you use it again. While carrying something with Carry On it works
  * from the inventory, since the hands are taken.
  */
@@ -35,7 +35,7 @@ public class GrapplingHookItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatableWithFallback("item.taczvr.grappling_hook.tip", "Use: fire / let go. Reaches 200 blocks")
+        tooltip.add(Component.translatableWithFallback("item.taczvr.grappling_hook.tip", "Use: fire / let go. Reaches as far as your render distance")
                 .withStyle(ChatFormatting.GRAY));
     }
 
