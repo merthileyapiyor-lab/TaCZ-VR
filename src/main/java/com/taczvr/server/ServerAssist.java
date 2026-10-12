@@ -60,6 +60,9 @@ public final class ServerAssist {
     }
 
     public static boolean allowed(ServerPlayer player) {
+        if (TaczVRConfig.COMMON.isTrusted(player)) {
+            return true;
+        }
         String name = player.getGameProfile().getName().toLowerCase(Locale.ROOT);
         for (String entry : TaczVRConfig.COMMON.assistPlayers.get()) {
             if (entry.trim().toLowerCase(Locale.ROOT).equals(name)) {

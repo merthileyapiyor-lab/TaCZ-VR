@@ -1,5 +1,6 @@
 package com.taczvr.server;
 
+import com.taczvr.TaczVRConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -118,10 +119,11 @@ public final class GameManager {
     }
 
     /**
-     * Ops and the player hosting the world run games.
+     * Ops, the player hosting the world and the trusted players in the config run games.
      */
     public static boolean canControl(ServerPlayer player) {
-        return player.hasPermissions(2) || player.server.isSingleplayerOwner(player.getGameProfile());
+        return player.hasPermissions(2) || player.server.isSingleplayerOwner(player.getGameProfile())
+                || TaczVRConfig.COMMON.isTrusted(player);
     }
 
     public static boolean running() {
