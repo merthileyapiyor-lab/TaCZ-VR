@@ -9,7 +9,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.Optional;
 
 public final class Net {
-    private static final String PROTOCOL = "10";
+    private static final String PROTOCOL = "11";
 
     // acceptMissingOr lets vanilla/unmodded peers join, the aim fix then simply falls back to the Vivecraft pose
     public static final SimpleChannel CHANNEL = NetworkRegistry.ChannelBuilder
@@ -69,5 +69,7 @@ public final class Net {
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(22, CarryHookPacket.class, CarryHookPacket::encode, CarryHookPacket::decode, CarryHookPacket::handle,
                 Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(23, ViewDistancePacket.class, ViewDistancePacket::encode, ViewDistancePacket::decode,
+                ViewDistancePacket::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
     }
 }
