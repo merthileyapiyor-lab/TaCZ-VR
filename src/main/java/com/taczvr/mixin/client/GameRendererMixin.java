@@ -7,11 +7,13 @@ import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.vivecraft.api.client.data.RenderPass;
 
 /**
  * Vivecraft renders its spyglass pass with a fixed 8x zoom. Use the TACZ scope's zoom instead.
+ * With a shader pack, also draws the scope picture once the pack has finished the eye's picture.
  */
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin {
@@ -27,5 +29,11 @@ public abstract class GameRendererMixin {
         float m11 = (float) (1.0 / Math.tan(Math.toRadians(ScopeView.fovDegrees()) / 2.0));
         projection.m11(m11);
         projection.m00(m11 / aspect);
+    }
+
+    // Oculus runs its composite and final passes when LevelRenderer#renderLevel returns, inside this method
+    @Inject(method = "renderLevel", at = @At("TAIL"))
+    private void taczvr$scopeAfterShaders(CallbackInfo ci) {
+        ScopeView.drawAfterShaders();
     }
 }

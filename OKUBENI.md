@@ -161,6 +161,6 @@ Tüm ayarlar `config/taczvr-client.toml` dosyasında (oyun açıkken düzenleneb
 
 ## Bilinen sınırlar
 
-- Oculus/Iris shader'larıyla elde silah ve dürbün görüntüsü sorunlu olabilir. Kan görüşü de shader'la denenmedi.
+- Oculus/Iris shader'ları: Dürbün görüntüsü, shader paketi işini bitirdikten sonra çiziliyor, böylece paket onu karartmıyor. Elde silah bazı paketlerde yine tuhaf görünebilir. Kan görüşü shader'la denenmedi.
 - Silah verme için elin arkadaşının eline yakınken tetik de "ver" olur (ateş etmez).
 - Diğer oyuncular VR oyuncusunun şarjör değiştirmesini ve animasyonlarını görmez (silah onlara hep duruş pozunda görünür).

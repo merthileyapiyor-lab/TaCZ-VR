@@ -112,7 +112,7 @@ Everything else is in `config/taczvr-client.toml` and `config/taczvr-common.toml
 
 ## Known limits
 
-- Shaders (Oculus/Iris) can break the gun in hand and the scope picture.
+- Shaders (Oculus/Iris): the scope picture is drawn after the shader pack has finished, so the pack doesn't darken it. The gun in hand can still look wrong with some packs.
 - Other players don't see a VR player's manual magazine changes.
 
 ## Building
