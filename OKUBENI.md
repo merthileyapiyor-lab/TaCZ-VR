@@ -61,7 +61,7 @@ Hepsi yaratıcı envanterde kendi **TaCZ VR** sekmesinde (VR gözlüklü logo), 
 - **Gece görüş gözlüğü** (demir-kızıltaş-demir, altında iki yeşil cam): Kask yerine takılır. Açıkken karanlıkta görürsün, görüntü yeşildir. Aç/kapa: **B** tuşu (Vivecraft ayarlarında kontrolcüye atanabilir) ya da VR'da **elini gözlüğe götürüp grip**.
 - **Kan görüşü gözlüğü** (demir-mayalanmış örümcek gözü-demir, altında iki kırmızı cam): Kask yerine takılır. VR'da **silah elini kafanın yanına götür** (sağ elini kafanın sağına, solaksan sol elini soluna): dünya koyu kırmızıya döner, **görüş mesafen** (render distance) içindeki bütün canlılar **duvarların arkasından bile** kırmızı parlar (12 chunk = 192 blok). Elini çekince yavaşça kaybolur. Nişan alırken el yüzün önünde olduğu için kendiliğinden açılmaz. VR dışında **K** tuşunu basılı tut. Açılınca bir kalp atışı sesi gelir, kol titrer. Fikir Vampirism'in blood vision'ından, kod bu modun kendi kodudur.
 - **Çift görüş gözlüğü**: Gece görüş ve kan görüşü gözlüğü bir arada. Birini takarken diğerini envanterde **üstüne bırak**, birleşirler (ya da ikisini çalışma masasına koy). VR'da **kafanın sağı** gece görüşü: elini oraya götür ve grip ile aç/kapa (ya da **B**). **Kafanın solu** kan görüşü: elini orada tuttuğun sürece (ya da **K**). İkisi aynı anda açık olabilir; kan görüşü açıkken yeşil renk çekilir, resim kararmasın diye.
-- **Kanca** (üç demir, tuzak kancası, kayış): **A** / sağ tık ile elinin gösterdiği yere fırlatılır (VR dışında baktığın yere), 200 bloğa kadar gider, tıkladığın an takılır. Bir bloğa takılınca seni oraya çeker, orada asılı kalırsın, düşme hasarı birikmez. Tekrar **A** ile bırakırsın. Elinden bırakırsan ip kopar. **Carry On** ile bir şeyi ya da birini taşırken (o zaman iki elin de boş olmak zorunda) kancanın **envanterinde** olması yeter: **A** ile uzağa nişan alırsan kanca fırlar, taşıdığınla birlikte çekilirsin, tekrar **A** bırakır. Yakındaki bir bloğa **A** her zamanki gibi taşıdığını yere koyar.
+- **Kanca** (üç demir, tuzak kancası, kayış): **A** / sağ tık ile elinin gösterdiği yere fırlatılır (VR dışında baktığın yere), görüş mesafen (render distance) kadar uzağa, yani görebildiğin her yere gider, tıkladığın an takılır. Bir bloğa takılınca seni oraya çeker, orada asılı kalırsın, düşme hasarı birikmez. Tekrar **A** ile bırakırsın. Elinden bırakırsan ip kopar. **Carry On** ile bir şeyi ya da birini taşırken (o zaman iki elin de boş olmak zorunda) kancanın **envanterinde** olması yeter: **A** ile uzağa nişan alırsan kanca fırlar, taşıdığınla birlikte çekilirsin, tekrar **A** bırakır. Yakındaki bir bloğa **A** her zamanki gibi taşıdığını yere koyar.
 - **Telsiz** (üstte paratoner, ortada bakır-kızıltaş-bakır, altta bakır-demir-bakır): Elindeyken **kullan tuşunu basılı tut**: telsiz ağzına kalkar, konuştuğun her şeyi envanterinde telsiz olan herkes duyar, ne kadar uzakta olursa olsun. Ses telsiz gibi cızırtılı gelir, basınca ve bırakınca "klik" sesi olur, ekranda kaç kişinin duyduğu yazar. VR'da telsizi **ağzına götürmen** yeterli. Takım maçında sadece takım arkadaşların duyar. 6 bloktan yakındakiler seni zaten normal sesle duyar, telsizden ikinci kez gelmez. Telsiz sesinin seviyesini Simple Voice Chat ayarlarında "Telsiz" kaydırıcısından ayarlayabilirsin.
 
 **Telsiz için Simple Voice Chat gerekir** (`voicechat-forge-1.20.1-2.6.17.jar`, bu klasörde). Herkes kurmalı. İlk açılışta **V**'ye basıp Simple Voice Chat'in kurulumunu bitirin, yoksa ses kapalı sayılır. SVC olmadan mod normal çalışır, sadece telsiz konuşmaz.
@@ -70,9 +70,9 @@ Hepsi yaratıcı envanterde kendi **TaCZ VR** sekmesinde (VR gözlüklü logo), 
 - **Kalkan:** Sol elindeki normal kalkanı merminin önüne tuttuğun an kurşunu durdurur, "kullanmana" gerek yok. İndirirsen mermi geçer.
 - **Görünen lazer:** Silahında lazer takılıysa kırmızı ışını ve noktası herkese (sana da) görünür.
 
-## Oyun menüsü (op / dünyayı açan)
+## Oyun menüsü (op / dünyayı açan / güvenilen oyuncular)
 
-ESC menüsünün sol üstünde **⚔ Oyun** butonu çıkar (op'lara ve dünyayı açan kişiye). Her oyunda 3 saniyelik geri sayım var (bu sürede kimse hasar almaz) ve canı 0'a inen **ölmez, eşyası gitmez**. Oyundan çıkan izleyiciye geçer, oyun bitince herkes eski oyun moduna döner ve iyileşir. **Oyunu durdur** ile istediğin an bitirebilirsin.
+ESC menüsünün sol üstünde **⚔ Oyun** butonu çıkar (op'lara, dünyayı açan kişiye ve `config/taczvr-common.toml` içindeki `[trusted] players` listesindeki UUID'lere; varsayılan olarak listede modun yapımcısı avcibora var, silinirse yetkisi gider). Her oyunda 3 saniyelik geri sayım var (bu sürede kimse hasar almaz) ve canı 0'a inen **ölmez, eşyası gitmez**. Oyundan çıkan izleyiciye geçer, oyun bitince herkes eski oyun moduna döner ve iyileşir. **Oyunu durdur** ile istediğin an bitirebilirsin.
 
 - **İlk düşen kaybeder:** Herkes savaşır, biri düşünce oyun biter, kazanan ekranda yazar.
 - **Son kalan kazanır:** Düşen oyundan çıkar, en son ayakta kalan kazanır.
@@ -102,7 +102,7 @@ Kapatmak için `leftHandedGuns = false`.
 
 ## Özel menü (izinli oyuncular)
 
-Dünyanın/sunucunun `config/taczvr-common.toml` dosyasında `[assist] players` listesindeki oyuncular için ESC menüsünün sol üstünde bir buton çıkar:
+Dünyanın/sunucunun `config/taczvr-common.toml` dosyasında `[assist] players` listesindeki oyuncular ve `[trusted] players` listesindeki UUID'ler için (op gerekmez; varsayılan olarak avcibora) ESC menüsünün sol üstünde bir buton çıkar:
 
 - **Aim assist (kilitlenme):** Silahı kabaca yönelttiğin taraftaki (75° içinde) görünen **en yakın oyuncuya** kilitlenir; oyuncu yoksa silahın baktığı yere yakın yaratığa. Saçma olmaz, mermi uçarken hedefi takip eder, kaçan hedefi de vurur.
 - **Sınırsız mermi (reload yok):** Silah hep dolu kalır.
@@ -118,11 +118,13 @@ EnhancedVisuals (kan sıçraması, patlama bulanıklığı, açken soluk renkler
 
 LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, sopası, bombaları, sağlık malzemeleri ve kalkanı VR'da elinde **3D** görünür. Kendi modu bunları birinci şahısta sadece kendi el animasyonuyla çiziyor, VR'da o çalışmadığı için eşyalar görünmüyordu. Bu mod onları VR elinde, sapı yumruğunun içinde olacak şekilde çizer; bıçak elinin baktığı yöne bakar. LesRaisins'in kendisi değiştirilmez ve bu modun içinde yoktur; ayrı olarak kurulur. Düz ekranda her şey LesRaisins'in kendi çizimidir. LesRaisins üstüne kurulan bıçak paketleri de (ör. **DeltaForce Melee Pack**) aynı şekilde VR'da elde görünür; 0.2.0 sürümünün bıçakları denendi.
 
+**VR'da yakın dövüş:** bu silahlardan biri elindeyken kolunu salla, LesRaisins'in kendi saldırısı çalışır. Paketin hasar çarpanı, kombosu, bekleme süresi ve sesi gelir, saldırı da elinin baktığı yöne gider. Bıçağın doğrultusunda hızlıca ileri saplamak paketin **özel saldırısıdır** (DeltaForce'ta 1,5 kat hasar). Tetik de normal saldırı yapar. Vurunca kolun titrer. Vivecraft'ın sıradan yumruk vuruşu bu silahlarla kapalıdır, iki kere vurmaz. Paketin saldırıda seni ileri iten hareketi VR'da kapalıdır (mide bulandırmasın). Snap turn ve ışınlanma sallama sayılmaz. `lrMeleeSwing = false` ile eski haline döner.
+
 ## Kurulum
 
 `mods` klasörüne şunlar:
 
-1. `taczvr-1.20.1-1.4.8.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
+1. `taczvr-1.20.1-1.4.9.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
 2. TACZ `tacz-1.20.1-1.1.8-hotfix` (veya daha yeni 1.1.8+)
 3. **Vivecraft 1.20.1 Forge** — `vivecraft-1.20.1-1.3.15-forge.jar`
 4. **Simple Voice Chat** — `voicechat-forge-1.20.1-2.6.17.jar` (telsiz için; olmasa da mod çalışır)

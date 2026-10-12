@@ -62,12 +62,12 @@ All in their own **TaCZ VR** creative tab, all craftable, and all except the gog
 - **Blood vision goggles:** worn as a helmet. In VR, hold your gun hand at the side of your head (flat screen: hold **K**). The world turns dark red, and every living thing within your render distance glows red, even through walls. Pull the hand away and it fades. The idea comes from Vampirism's blood vision; the code is this mod's own.
 - **Grappling hook while carrying (Carry On):** carrying something empties both hands, so then the hook works from the inventory. Use (A) aimed far fires it and pulls you along with what you carry, use again lets go; use at a nearby block still puts down what you carry.
 - **Dual vision goggles:** both goggles in one. Wear one pair and drop the other onto it in the inventory, or craft the two together. In VR, the right side of your head (+ grip) switches night vision (**B**), and a hand held at the left side shows blood vision (**K**). Both can be on at once.
-- **Grappling hook:** grabs where your hand points, up to 200 blocks away, the moment you click. It pulls you there and you hang with no fall damage. Click again to let go.
+- **Grappling hook:** grabs where your hand points, as far as your render distance reaches (anywhere you can see), the moment you click. It pulls you there and you hang with no fall damage. Click again to let go.
 - **Radio:** hold use (in VR, hold it to your mouth) and everyone with a radio hears you, however far away, with a crackly radio sound. In team matches only your team hears you. Needs Simple Voice Chat on everyone.
 
 ## Game menu
 
-A **⚔ Game** button appears at the top left of the Esc menu for ops and the world host. Nobody really dies: at 0 health you fall and lose nothing, and everyone gets their game mode back at the end.
+A **⚔ Game** button appears at the top left of the Esc menu for ops, the world host, and the player UUIDs under `[trusted] players` in `config/taczvr-common.toml`. By default that list holds the TaCZ VR author's account (avcibora), which also gets the assist menu; remove it to take that away. Nobody really dies: at 0 health you fall and lose nothing, and everyone gets their game mode back at the end.
 
 - **First to fall loses**
 - **Last one standing**
@@ -81,6 +81,8 @@ A **⚔ Game** button appears at the top left of the Esc menu for ops and the wo
 ## With LesRaisins Tactical Equipments
 
 Its knives, grenades and medkits draw nothing in first person outside its own hand animation, so in VR TaCZ VR draws them gripped in your VR fist, pointing where your hand points. Melee packs built on it work the same, for example the **DeltaForce Melee Pack** (its 0.2.0 knives were tested). LesRaisins isn't changed or bundled.
+
+**VR melee:** with one of its weapons in hand, swing your arm and LesRaisins' own attack runs: the pack's damage factor, combos, cooldown and sounds, aimed where your hand points. A quick thrust along the blade is the pack's **special attack** (x1.5 damage on DeltaForce knives), and the trigger does a normal attack. Your arm buzzes on a hit. Vivecraft's plain punch-style hit is off with these weapons, so nothing hits twice. The pack's lunge forward is off in VR to avoid motion sickness, and snap turns or teleports don't count as swings. `lrMeleeSwing = false` turns it off.
 
 ## With EnhancedVisuals
 
