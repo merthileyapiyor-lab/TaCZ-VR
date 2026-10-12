@@ -24,7 +24,7 @@
   "item.taczvr.dual_vision_goggles": "Çift Görüş Gözlüğü",
   "item.taczvr.dual_vision_goggles.tip": "Kafanın sağı + grip: gece görüşü aç/kapa (B). Elin kafanın solunda: kan görüşü (K)",
   "item.taczvr.grappling_hook": "Kanca",
-  "item.taczvr.grappling_hook.tip": "Kullan: fırlat / bırak. 200 blok gider. Carry On ile bir şey taşırken envanterden de çalışır",
+  "item.taczvr.grappling_hook.tip": "Kullan: fırlat / bırak. Görüş mesafen kadar gider. Carry On ile bir şey taşırken envanterden de çalışır",
   "entity.taczvr.grapple": "Kanca",
   "item.taczvr.radio": "Telsiz",
   "item.taczvr.radio.tip": "Kullan'a basılı tut ve konuş (VR: ağzına götür). Telsizi olan herkes duyar",
