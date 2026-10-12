@@ -41,6 +41,7 @@ public final class ClientSetup {
         MinecraftForge.EVENT_BUS.register(ShopScreen.class);
         MinecraftForge.EVENT_BUS.register(BulletWhiz.class);
         MinecraftForge.EVENT_BUS.register(LrTacticalVr.class);
+        MinecraftForge.EVENT_BUS.register(LrMeleeVr.class);
         MinecraftForge.EVENT_BUS.register(AttachmentHint.class);
         MinecraftForge.EVENT_BUS.register(UpdateChecker.class);
         MinecraftForge.EVENT_BUS.addListener(TaczVRCommands::register);

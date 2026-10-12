@@ -1,5 +1,6 @@
 package com.taczvr.client;
 
+import com.taczvr.TaczVRConfig;
 import com.taczvr.network.GameCommandPacket;
 import com.taczvr.network.Net;
 import com.taczvr.server.GameManager;
@@ -30,7 +31,8 @@ public final class GameMenu {
             return false;
         }
         IntegratedServer server = mc.getSingleplayerServer();
-        return player.hasPermissions(2) || server != null && server.isSingleplayerOwner(player.getGameProfile());
+        return player.hasPermissions(2) || server != null && server.isSingleplayerOwner(player.getGameProfile())
+                || TaczVRConfig.COMMON.isTrusted(player);
     }
 
     private static boolean serverHasMod() {

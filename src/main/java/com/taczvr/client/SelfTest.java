@@ -199,6 +199,8 @@ public final class SelfTest {
     private static int framesBefore;
     private static int puffsBefore;
     private static int stabsBefore;
+    private static int lrAttacksBefore;
+    private static int lrSpecialsBefore;
     private static int injectionsBefore;
     private static float knifeFront;
     private static int pressesBefore;
@@ -409,6 +411,7 @@ public final class SelfTest {
         }
         if ("lrhand".equals(System.getProperty("taczvr.selftest.only"))) {
             lrHandLook();
+            lrSwingNullVr();
             finish();
             return;
         }
@@ -434,6 +437,7 @@ public final class SelfTest {
             return;
         }
         if ("lr".equals(System.getProperty("taczvr.selftest.only"))) {
+            lrMelee();
             lesRaisins();
             finish();
             return;
@@ -493,6 +497,7 @@ public final class SelfTest {
         });
         bulletWhiz();
         attachmentHint();
+        lrMelee();
         lesRaisins();
         models3d();
         aimWithoutServerVrMod();
@@ -1814,6 +1819,28 @@ public final class SelfTest {
             restPose();
         });
         await("assist: menu gone once taken off the list", 20, mc -> !ClientAssist.allowed(), () -> "");
+        // trusted players (by UUID, avcibora by default) get the Game and assist menus without being op or listed by name
+        List<? extends String>[] trusted = new List[1];
+        run(mc -> {
+            trusted[0] = TaczVRConfig.COMMON.trustedPlayers.get();
+            check("trusted: avcibora is trusted by default", trusted[0].contains("54d17537-a4de-411c-b6cc-5a3bdb838ea3"), String.valueOf(trusted[0]));
+            check("trusted: others aren't", !TaczVRConfig.COMMON.isTrusted(mc.player), "");
+            TaczVRConfig.COMMON.trustedPlayers.set(List.of(mc.player.getUUID().toString()));
+            server(sp -> {
+                ServerAssist.sendAllowed(sp);
+                return null;
+            });
+        });
+        await("trusted: the assist menu without being listed by name", 20, mc -> ClientAssist.allowed(), () -> "");
+        run(mc -> {
+            check("trusted: may run games", server(sp -> GameManager.canControl(sp)) && TaczVRConfig.COMMON.isTrusted(mc.player), "");
+            TaczVRConfig.COMMON.trustedPlayers.set(trusted[0]);
+            server(sp -> {
+                ServerAssist.sendAllowed(sp);
+                return null;
+            });
+        });
+        await("trusted: menu gone once taken off the trusted list", 20, mc -> !ClientAssist.allowed(), () -> "");
         run(mc -> VrCommon.testNoSpread = true);
     }
 
@@ -2911,6 +2938,70 @@ public final class SelfTest {
     }
 
     /**
+     * The LesRaisins swing through Vivecraft itself: NullVR's right controller swept across in the room, Vivecraft's
+     * own swing off, the pig ahead hit by LesRaisins' attack.
+     */
+    private static void lrSwingNullVr() {
+        if (!realVr() || !net.minecraftforge.fml.ModList.get().isLoaded("lrtactical")) {
+            log("LesRaisins swing in NullVR: needs Vivecraft really in VR and LesRaisins");
+            return;
+        }
+        String knife = net.minecraftforge.fml.ModList.get().isLoaded("delta_wt") ? "delta_wt:mercy" : "dagger";
+        org.joml.Vector3f[][] at = new org.joml.Vector3f[1][];
+        run(mc -> {
+            VrCommon.testForceVr = false;
+            VrClient.testPose = null;
+            give(InteractionHand.MAIN_HAND, lrItem("melee", "MeleeWeaponId", knife));
+            give(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+            try {
+                Object vr = ClientDataHolderVR.getInstance().vr;
+                java.lang.reflect.Field offsets = vr.getClass().getDeclaredField("deviceOffsets");
+                java.lang.reflect.Field rotations = vr.getClass().getDeclaredField("deviceRotations");
+                offsets.setAccessible(true);
+                rotations.setAccessible(true);
+                at[0] = (org.joml.Vector3f[]) offsets.get(vr);
+                ((org.joml.Quaternionf[]) rotations.get(vr))[0].identity().rotateX((float) Math.toRadians(-35.0));
+                at[0][0].set(0.25F, 1.3F, -0.35F);
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                log("NullVR controllers can't be moved: %s", e);
+            }
+        });
+        // its draw time
+        sleep(30);
+        run(mc -> {
+            check("NullVR: Vivecraft's own swing is off with a LesRaisins weapon", !ClientDataHolderVR.getInstance().swingTracker.isActive(mc.player), "");
+            VrPart head = VrClient.localTickPose().getHead();
+            Vec3 ahead = head.getDir().multiply(1.0, 0.0, 1.0).normalize().scale(1.4);
+            Vec3 pigAt = head.getPos().add(ahead);
+            server(sp -> {
+                target = testPig(sp, new Vec3(pigAt.x, sp.getY(), pigAt.z), 0.0F);
+                return null;
+            });
+            lrAttacksBefore = LrMeleeVr.attacks;
+        });
+        sleep(2);
+        for (int i = 0; i < 2; i++) {
+            // 3 m/s across, in the room
+            run(mc -> {
+                if (at[0] != null) {
+                    at[0][0].add(-0.15F, 0.0F, 0.0F);
+                }
+            });
+        }
+        sleep(8);
+        run(mc -> {
+            float l = 100.0F - server(sp -> target.getHealth());
+            check("NullVR: a swing hits with LesRaisins' attack", LrMeleeVr.attacks > lrAttacksBefore && l > 0.0F,
+                    "attacks " + (LrMeleeVr.attacks - lrAttacksBefore) + ", targets " + LrMeleeVr.lastTargets + ", lost " + l);
+            server(sp -> {
+                target.discard();
+                return null;
+            });
+        });
+        run(mc -> nullVrHands(false));
+    }
+
+    /**
      * Moves NullVR's right controller in front of the eyes, pointing left (the left one out of sight), or back to
      * where NullVR starts them.
      */
@@ -3053,6 +3144,42 @@ public final class SelfTest {
             mc.player.connection.sendCommand("fill -3 -60 -150 3 -25 -150 minecraft:air");
         });
         await("hook: let go far away too", 20, mc -> server(sp -> GrappleEntity.of(sp) == null) && GrappleClient.anchor() == null, () -> "");
+        // it reaches as far as you can see: not past a short render distance, and well past the old 200 blocks with a long one
+        int[] renderDistance = new int[1];
+        run(mc -> {
+            renderDistance[0] = mc.options.renderDistance().get();
+            mc.options.renderDistance().set(6);
+            mc.player.connection.sendCommand("fill -3 -60 -150 3 -25 -150 minecraft:stone");
+        });
+        await("hook: the server knows your render distance", 40, mc -> server(sp -> GrappleEntity.reach(sp)) == 96.0,
+                () -> "reach " + server(sp -> GrappleEntity.reach(sp)));
+        run(mc -> vrPress(mc.options.keyUse));
+        sleep(2);
+        run(mc -> mc.options.keyUse.setDown(false));
+        sleep(4);
+        run(mc -> {
+            check("hook: a wall 150 blocks away is past 6 chunks of render distance", GrappleClient.anchor() == null
+                    && server(sp -> GrappleEntity.of(sp) == null || !GrappleEntity.of(sp).isAnchored()), "");
+            mc.player.connection.sendCommand("fill -3 -60 -150 3 -25 -150 minecraft:air");
+            mc.options.renderDistance().set(18);
+        });
+        await("hook: 18 chunks of render distance load", 400, mc -> server(sp -> GrappleEntity.reach(sp) == 288.0
+                && sp.level().hasChunkAt(new BlockPos(0, -60, -250))), () -> "reach " + server(sp -> GrappleEntity.reach(sp)));
+        run(mc -> mc.player.connection.sendCommand("fill -3 -60 -250 3 -25 -250 minecraft:stone"));
+        sleep(10);
+        run(mc -> vrPress(mc.options.keyUse));
+        sleep(2);
+        run(mc -> mc.options.keyUse.setDown(false));
+        await("hook: grabs a wall 250 blocks away with 18 chunks of render distance", 3, mc -> GrappleClient.anchor() != null
+                && GrappleClient.anchor().z < -245.0, () -> String.valueOf(GrappleClient.anchor()));
+        run(mc -> vrPress(mc.options.keyUse));
+        sleep(2);
+        run(mc -> {
+            mc.options.keyUse.setDown(false);
+            mc.player.connection.sendCommand("fill -3 -60 -250 3 -25 -250 minecraft:air");
+            mc.options.renderDistance().set(renderDistance[0]);
+        });
+        await("hook: let go of the far wall", 20, mc -> server(sp -> GrappleEntity.of(sp) == null) && GrappleClient.anchor() == null, () -> "");
         // in VR it flies where the hand points
         run(mc -> {
             VrCommon.testForceVr = true;
@@ -4160,6 +4287,116 @@ public final class SelfTest {
         // a pack's own items carry their namespace already (delta_wt:mercy)
         stack.getOrCreateTag().putString(tag, id.contains(":") ? id : "lrtactical:" + id);
         return stack;
+    }
+
+    /**
+     * LesRaisins melee in VR: a swing runs its own attack aimed with the hand, a thrust along the blade its special
+     * one (DeltaForce's Mercy hits x1.5 with it), a slow move does nothing, and the trigger attacks too.
+     */
+    private static void lrMelee() {
+        if (!net.minecraftforge.fml.ModList.get().isLoaded("lrtactical")) {
+            run(mc -> log("LesRaisins not installed, VR melee skipped"));
+            return;
+        }
+        boolean delta = net.minecraftforge.fml.ModList.get().isLoaded("delta_wt");
+        String knife = delta ? "delta_wt:mercy" : "dagger";
+        // the hand a bit low and to the right, the blade tilted down at a pig 1.4 m ahead
+        Quaternionf down = new Quaternionf().rotationX((float) Math.toRadians(-35.0));
+        float[] lost = new float[2];
+        VrPose[] savedRoom = new VrPose[1];
+        run(mc -> {
+            VrCommon.testForceVr = true;
+            savedRoom[0] = VrClient.testRoomPose;
+            // no room pose: the hand's speed comes from the game pose
+            VrClient.testRoomPose = null;
+            restPose();
+            give(InteractionHand.MAIN_HAND, lrItem("melee", "MeleeWeaponId", knife));
+            give(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+        });
+        // its draw time
+        sleep(30);
+        run(mc -> check("LesRaisins VR melee: " + knife + " takes over Vivecraft's swing", LrMeleeVr.takesOverSwing(mc.player), ""));
+        for (int kind = 0; kind < 2; kind++) {
+            boolean thrust = kind == 1;
+            int k = kind;
+            lrMeleeStart(down, true);
+            for (int i = 0; i < 2; i++) {
+                // 3 m/s across, or 2.4 m/s forward
+                run(mc -> rig(rigMain.add(thrust ? 0.0 : -0.15, 0.0, thrust ? -0.12 : 0.0), down, idleOff()));
+            }
+            sleep(8);
+            run(mc -> {
+                float l = 100.0F - server(sp -> target.getHealth());
+                lost[k] = l;
+                String what = thrust ? "a thrust is its special attack" : "a swing is its normal attack";
+                check("LesRaisins VR melee: " + what, LrMeleeVr.attacks == lrAttacksBefore + 1
+                                && LrMeleeVr.specials == lrSpecialsBefore + (thrust ? 1 : 0) && l > 0.0F,
+                        "attacks " + (LrMeleeVr.attacks - lrAttacksBefore) + ", special " + (LrMeleeVr.specials - lrSpecialsBefore)
+                                + ", targets " + LrMeleeVr.lastTargets + ", lost " + l);
+                lrMeleeEnd();
+            });
+        }
+        if (delta) {
+            run(mc -> check("LesRaisins VR melee: the special attack does Mercy's x1.5", lost[1] > lost[0] * 1.3F && lost[1] < lost[0] * 1.7F,
+                    lost[0] + " vs " + lost[1]));
+        }
+        // a slow move isn't an attack
+        lrMeleeStart(down, false);
+        for (int i = 0; i < 16; i++) {
+            run(mc -> rig(rigMain.add(-0.02, 0.0, 0.0), down, idleOff()));
+        }
+        run(mc -> check("LesRaisins VR melee: a slow move isn't an attack", LrMeleeVr.attacks == lrAttacksBefore, ""));
+        // a snap turn swings the hand around in the game while it stays put in the room
+        run(mc -> VrClient.testRoomPose = new FakePose(new Vec3(0.2, 1.3, -0.35), down, null, new Vec3(0.0, 1.6, 0.0), NORTH));
+        lrMeleeStart(down, false);
+        for (int i = 0; i < 2; i++) {
+            run(mc -> rig(rigMain.add(-0.3, 0.0, 0.1), down, idleOff()));
+        }
+        run(mc -> {
+            check("LesRaisins VR melee: a snap turn isn't a swing", LrMeleeVr.attacks == lrAttacksBefore, "");
+            VrClient.testRoomPose = null;
+        });
+        // the trigger, aimed with the hand
+        lrMeleeStart(down, true);
+        run(mc -> vrPress(mc.options.keyAttack));
+        sleep(2);
+        run(mc -> mc.options.keyAttack.setDown(false));
+        sleep(8);
+        run(mc -> {
+            float l = 100.0F - server(sp -> target.getHealth());
+            check("LesRaisins VR melee: the trigger attacks with the hand", LrMeleeVr.attacks == lrAttacksBefore + 1 && l > 0.0F,
+                    "attacks " + (LrMeleeVr.attacks - lrAttacksBefore) + ", lost " + l);
+            lrMeleeEnd();
+            VrClient.testRoomPose = savedRoom[0];
+        });
+    }
+
+    /**
+     * The hand still at its start, past the last attack's cooldown, optionally with a fresh pig ahead to hit.
+     */
+    private static void lrMeleeStart(Quaternionf rot, boolean pig) {
+        run(mc -> rig(eye().add(0.2, -0.3, -0.35), rot, idleOff()));
+        // getting there was a jump, which can count as a swing: let its cooldown pass before the pig comes
+        sleep(30);
+        run(mc -> {
+            if (pig) {
+                Vec3 e = eye();
+                server(sp -> {
+                    target = testPig(sp, new Vec3(e.x, sp.getY(), e.z - 1.4), 0.0F);
+                    return null;
+                });
+            }
+            lrAttacksBefore = LrMeleeVr.attacks;
+            lrSpecialsBefore = LrMeleeVr.specials;
+        });
+    }
+
+    private static void lrMeleeEnd() {
+        server(sp -> {
+            target.discard();
+            return null;
+        });
+        restPose();
     }
 
     /**

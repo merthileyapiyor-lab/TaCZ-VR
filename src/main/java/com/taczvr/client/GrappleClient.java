@@ -7,6 +7,7 @@ import com.taczvr.content.GrapplingHookItem;
 import com.taczvr.content.ModContent;
 import com.taczvr.network.CarryHookPacket;
 import com.taczvr.network.Net;
+import com.taczvr.network.ViewDistancePacket;
 import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraft.client.Minecraft;
@@ -47,6 +48,8 @@ public final class GrappleClient {
     @Nullable
     private static Vec3 anchor = null;
     private static InteractionHand anchorHand = InteractionHand.MAIN_HAND;
+    // the render distance last told to the server, which sets how far the hook reaches
+    private static int sentViewChunks = -1;
     static int pulls = 0;
     static int ropesDrawn = 0;
     static int carryUses = 0;
@@ -99,7 +102,13 @@ public final class GrappleClient {
         }
         if (player == null || mc.level == null) {
             anchor = null;
+            sentViewChunks = -1;
             return;
+        }
+        int chunks = mc.options.getEffectiveRenderDistance();
+        if (chunks != sentViewChunks && mc.getConnection() != null && Net.CHANNEL.isRemotePresent(mc.getConnection().getConnection())) {
+            Net.CHANNEL.sendToServer(new ViewDistancePacket(chunks));
+            sentViewChunks = chunks;
         }
         if (anchor == null) {
             return;
