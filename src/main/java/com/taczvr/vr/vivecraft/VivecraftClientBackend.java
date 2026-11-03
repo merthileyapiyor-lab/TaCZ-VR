@@ -1,6 +1,7 @@
 package com.taczvr.vr.vivecraft;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.taczvr.client.ClientSetup;
 import com.taczvr.vr.GripModule;
 import com.taczvr.vr.VrClientBackend;
@@ -15,6 +16,8 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL30;
 import org.vivecraft.api.client.HeldInteractModule;
 import org.vivecraft.api.client.InteractModule;
 import org.vivecraft.api.client.VRClientAPI;
@@ -119,7 +122,28 @@ public final class VivecraftClientBackend implements VrClientBackend {
     @Override
     public int scopeTexture() {
         RenderTarget target = ClientDataHolderVR.getInstance().vrRenderer.telescopeFramebufferR;
-        return target == null ? -1 : target.getColorTextureId();
+        if (target == null) {
+            return -1;
+        }
+        opaque(target);
+        return target.getColorTextureId();
+    }
+
+    /**
+     * The sky in the scope's picture has alpha 0, and the eyepiece's shader throws such pixels away: the sky came out
+     * black. Sets the alpha to 1 and leaves the colours; this runs inside the eye's render, so what's bound stays.
+     */
+    private static void opaque(RenderTarget target) {
+        int bound = GlStateManager._getInteger(GL30.GL_DRAW_FRAMEBUFFER_BINDING);
+        float[] clear = new float[4];
+        GL11.glGetFloatv(GL11.GL_COLOR_CLEAR_VALUE, clear);
+        GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, target.frameBufferId);
+        GlStateManager._colorMask(false, false, false, true);
+        GlStateManager._clearColor(0.0F, 0.0F, 0.0F, 1.0F);
+        GlStateManager._clear(GL11.GL_COLOR_BUFFER_BIT, Minecraft.ON_OSX);
+        GlStateManager._colorMask(true, true, true, true);
+        GlStateManager._clearColor(clear[0], clear[1], clear[2], clear[3]);
+        GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, bound);
     }
 
     @Override

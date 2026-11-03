@@ -46,6 +46,7 @@ On a server the mod goes **on the server too**, because bullet direction, magazi
 - **Hit feedback:** your arm buzzes on a hit, stronger on headshots, long on kills (`hitFeedback`).
 - **VR comfort:** no camera-turning recoil and no walking sway. The gun kicks up and buzzes instead. No HUD crosshair.
 - **Which part fits which gun:** in VR, a small label above your hand shows whether the part you're holding fits the gun in your hand, and which guns in your inventory it fits (`attachmentHints`).
+- **Gun on your back:** with no gun in your gun hand, reach over your shoulder with it and press grip: the gun you held last comes into your hand with a buzz, selected in the hotbar or swapped in from the rest of the inventory. The gun hand is your main hand (the left one when left-handed). Vivecraft's backpack switch for that hand waits meanwhile; `backDraw = false` turns it off.
 - **Dual pistols:** a gun in each hand; the left one fires with the left trigger and **A** reloads both (`dualWield`).
 - **Left-handed players:** with Main Hand: Left, the flat-screen first-person gun is mirrored, others see the gun in your left hand, and in VR the arms swap (`leftHandedGuns`).
 - **Riot shields** stop bullets while you hold them in front of you, and **lasers** are visible to everyone.
@@ -120,7 +121,7 @@ Everything else is in `config/taczvr-client.toml` and `config/taczvr-common.toml
 
 ## Known limits
 
-- Shaders (Oculus/Iris) can break the gun in hand and the scope picture.
+- Shaders (Oculus): the scope picture is drawn after the pack is done, as on 1.20.1 where it was tested with Complementary Reimagined; on 1.19.2 that is untested.
 - Other players don't see a VR player's manual magazine changes.
 
 ## Building
@@ -133,7 +134,7 @@ Needs JDK 17. Gradle downloads TaCZ, Vivecraft and Simple Voice Chat from Modrin
 
 The jar is `build/libs/taczvr-1.20.1-<version>.jar`.
 
-`./gradlew runClient` starts a dev client. `./gradlew runClient -Pselftest` runs the built-in self-test: it fakes VR poses and checks shooting, reloading, attachments, the items and the game modes, then closes the client. `-Ptestonly=hook` (also `models`, `deagle`, `zombie`, `hint`, `lr`) runs only one part. `-Ptestonly=gunpacks -Prundir=run-gunpacks` holds, aims and fires every gun of the gun packs in `run-gunpacks/tacz` (`-Ppacks=ccrp,ww2` for only some), in a game folder of its own so the packs don't change the other checks. `-Pnovoice` starts without Simple Voice Chat.
+`./gradlew runClient` starts a dev client. `./gradlew runClient -Pselftest` runs the built-in self-test: it fakes VR poses and checks shooting, reloading, attachments, the items and the game modes, then closes the client. `-Ptestonly=hook` (also `models`, `deagle`, `zombie`, `hint`, `lr`, `backdraw`) runs only one part. `-Ptestonly=gunpacks -Prundir=run-gunpacks` holds, aims and fires every gun of the gun packs in `run-gunpacks/tacz` (`-Ppacks=ccrp,ww2` for only some), in a game folder of its own so the packs don't change the other checks. `-Pnovoice` starts without Simple Voice Chat.
 
 ## Licence
 

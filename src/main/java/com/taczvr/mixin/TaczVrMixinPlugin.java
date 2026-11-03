@@ -14,6 +14,7 @@ import java.util.Set;
  */
 public class TaczVrMixinPlugin implements IMixinConfigPlugin {
     private static final Set<String> NEED_VIVECRAFT = Set.of(
+            "com.taczvr.mixin.client.BackpackTrackerMixin",
             "com.taczvr.mixin.client.GameRendererMixin",
             "com.taczvr.mixin.client.SwingTrackerMixin",
             "com.taczvr.mixin.client.TeleportTrackerMixin",
