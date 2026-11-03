@@ -92,13 +92,5 @@
   "taczvr.game.wave.next": "Sıradaki 5 saniye sonra",
   "taczvr.game.fell.watch": "sona kadar izliyor",
   "taczvr.game.over": "Oyun bitti!",
-  "taczvr.game.over.wave": "Ulaştığınız dalga: %s",
-  "taczvr.update.title": "Update TaCZ VR",
-  "taczvr.update.new": "TaCZ VR %s çıktı, sendeki %s.",
-  "taczvr.update.how": "Quit Game yeni sürümü kurar ve Minecraft'ı kapatır. Yeni sürümle oynamak için oyunu tekrar aç.",
-  "taczvr.update.later": "Later",
-  "taczvr.update.quit": "Quit Game",
-  "taczvr.update.downloading": "İndiriliyor... %%%s",
-  "taczvr.update.failed": "Kurulamadı: %s",
-  "taczvr.update.no_jar": "Mods klasöründe TaCZ VR jar'ı bulunamadı, GitHub'dan indir"
+  "taczvr.game.over.wave": "Ulaştığınız dalga: %s"
 }

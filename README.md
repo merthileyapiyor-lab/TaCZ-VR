@@ -13,7 +13,7 @@ Put these in your `mods` folder:
 3. [Vivecraft](https://modrinth.com/mod/vivecraft) 1.20.1 Forge (built with 1.3.15)
 4. Optional: [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) 1.20.1, for the radio
 
-**Updates:** when the game starts, the mod looks for a newer release on [TaCZ-VR-releases](https://github.com/merthileyapiyor-lab/TaCZ-VR-releases/releases). If there is one, the title screen shows **Update TaCZ VR**: **Later** skips it, **Quit Game** downloads the new jar into your mods folder, removes the old one and closes the game. Start it again to play with the new version. Turn it off with `updateCheck = false`.
+**Updates:** new versions come out on CurseForge and on [TaCZ-VR-releases](https://github.com/merthileyapiyor-lab/TaCZ-VR-releases/releases). The mod doesn't update itself.
 
 On a server the mod goes **on the server too**, because bullet direction, magazines, attachments and handing guns over are done there. The server and every player need the **same version**. Flat-screen players can join and play with VR players; they see VR players holding their guns in 3D. Shots always leave the barrel, even on a server without Vivecraft.
 
@@ -125,7 +125,7 @@ Needs JDK 17. Gradle downloads TaCZ, Vivecraft and Simple Voice Chat from Modrin
 
 The jar is `build/libs/taczvr-1.20.1-<version>.jar`.
 
-`./gradlew runClient` starts a dev client. `./gradlew runClient -Pselftest` runs the built-in self-test: it fakes VR poses and checks shooting, reloading, attachments, the items and the game modes, then closes the client. `-Ptestonly=hook` (also `models`, `deagle`, `zombie`, `hint`, `lr`, `update`) runs only one part. `-Ptestonly=gunpacks -Prundir=run-gunpacks` holds, aims and fires every gun of the gun packs in `run-gunpacks/tacz` (`-Ppacks=ccrp,ww2` for only some), in a game folder of its own so the packs don't change the other checks. `-Pnovoice` starts without Simple Voice Chat.
+`./gradlew runClient` starts a dev client. `./gradlew runClient -Pselftest` runs the built-in self-test: it fakes VR poses and checks shooting, reloading, attachments, the items and the game modes, then closes the client. `-Ptestonly=hook` (also `models`, `deagle`, `zombie`, `hint`, `lr`) runs only one part. `-Ptestonly=gunpacks -Prundir=run-gunpacks` holds, aims and fires every gun of the gun packs in `run-gunpacks/tacz` (`-Ppacks=ccrp,ww2` for only some), in a game folder of its own so the packs don't change the other checks. `-Pnovoice` starts without Simple Voice Chat.
 
 ## Licence
 

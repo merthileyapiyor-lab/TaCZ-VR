@@ -124,14 +124,14 @@ LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, s
 
 `mods` klasörüne şunlar:
 
-1. `taczvr-1.20.1-1.4.9.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
+1. `taczvr-1.20.1-1.4.10.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
 2. TACZ `tacz-1.20.1-1.1.8-hotfix` (veya daha yeni 1.1.8+)
 3. **Vivecraft 1.20.1 Forge** — `vivecraft-1.20.1-1.3.15-forge.jar`
 4. **Simple Voice Chat** — `voicechat-forge-1.20.1-2.6.17.jar` (telsiz için; olmasa da mod çalışır)
 
 Minecraft **1.19.2** için ayrı jar var: `taczvr-1.19.2-<sürüm>.jar` (TACZ 1.1.4-hotfix ve Vivecraft 1.19.2 ile), aynı GitHub sürümlerinde.
 
-**Güncelleme:** Oyun açılınca mod GitHub'da (https://github.com/merthileyapiyor-lab/TaCZ-VR-releases) yeni sürüm var mı diye bakar. Varsa ana menüde **Update TaCZ VR** ekranı çıkar: **Later** ile geçersin, **Quit Game** yeni sürümü indirip mods klasörüne kurar, eskisini siler ve oyunu kapatır. Oyunu tekrar açınca yeni sürümle oynarsın. Kapatmak için `updateCheck = false`.
+**Güncelleme:** Yeni sürümler CurseForge'da ve GitHub'da (https://github.com/merthileyapiyor-lab/TaCZ-VR-releases) çıkar. Mod kendini güncellemez.
 
 Çok oyunculu sunucuda mod **sunucuya da** kurulmalı. Mermi yönü, şarjör, aksesuar ve silah verme sunucuda işleniyor. Sunucu ve tüm oyuncular **aynı sürümü** kullanmalı. Tek oyunculuda ekstra bir şey gerekmez.
 

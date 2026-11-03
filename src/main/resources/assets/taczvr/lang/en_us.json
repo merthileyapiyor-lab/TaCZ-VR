@@ -92,13 +92,5 @@
   "taczvr.game.wave.next": "Next one in 5 seconds",
   "taczvr.game.fell.watch": "watching until the end",
   "taczvr.game.over": "Game over!",
-  "taczvr.game.over.wave": "You reached wave %s",
-  "taczvr.update.title": "Update TaCZ VR",
-  "taczvr.update.new": "TaCZ VR %s is out, you have %s.",
-  "taczvr.update.how": "Quit Game installs it and closes Minecraft. Start the game again to play with the new version.",
-  "taczvr.update.later": "Later",
-  "taczvr.update.quit": "Quit Game",
-  "taczvr.update.downloading": "Downloading... %s%%",
-  "taczvr.update.failed": "Couldn't install it: %s",
-  "taczvr.update.no_jar": "Couldn't find the TaCZ VR jar in your mods folder, get it from GitHub"
+  "taczvr.game.over.wave": "You reached wave %s"
 }
