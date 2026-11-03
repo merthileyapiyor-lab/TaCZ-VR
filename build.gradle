@@ -130,6 +130,12 @@ dependencies {
         runtimeOnly fg.deobf('libs:enhancedvisuals-1.20.1:1.8.29')
         runtimeOnly fg.deobf('libs:creativecore-1.20.1:2.12.38')
     }
+    // -Pshaders adds Oculus (with Embeddium), to test shader packs in VR (-Prundir=run-shaders has one switched on).
+    // Never shipped (LGPL). Not by default: a pack changes every picture
+    if (project.hasProperty('shaders') && file('libs/oculus-mc1.20.1-1.8.0.jar').exists()) {
+        runtimeOnly fg.deobf('libs:oculus-mc1.20.1:1.8.0')
+        runtimeOnly fg.deobf('libs:embeddium:0.3.31+mc1.20.1')
+    }
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }

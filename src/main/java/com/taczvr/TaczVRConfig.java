@@ -73,6 +73,7 @@ public final class TaczVRConfig {
         public final ForgeConfigSpec.BooleanValue handsOnGun;
         public final ForgeConfigSpec.BooleanValue hideHandsWithGun;
         public final ForgeConfigSpec.BooleanValue lrMeleeSwing;
+        public final ForgeConfigSpec.BooleanValue backDraw;
 
         Client(ForgeConfigSpec.Builder b) {
             b.push("general");
@@ -186,6 +187,9 @@ public final class TaczVRConfig {
             lrMeleeSwing = b.comment("LesRaisins Tactical melee weapons in VR: swing to attack with the weapon's own attack (damage, combos,",
                             "sounds), thrust along the blade for its special attack, aimed with the hand. Off: Vivecraft's plain swing hit.")
                     .define("lrMeleeSwing", true);
+            backDraw = b.comment("In VR, with no gun in the gun hand: reach over your shoulder with it and press grip to draw a gun from",
+                            "your inventory (the one you held last). Vivecraft's backpack switch for that hand waits meanwhile.")
+                    .define("backDraw", true);
             b.pop();
         }
     }

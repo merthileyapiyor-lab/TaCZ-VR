@@ -7,6 +7,7 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.VertexSorting;
 import com.taczvr.TaczVRConfig;
 import com.taczvr.vr.VrPart;
 import com.taczvr.vr.VrPose;
@@ -17,6 +18,7 @@ import com.tacz.guns.api.item.attachment.AttachmentType;
 import com.tacz.guns.api.item.nbt.AttachmentItemDataAccessor;
 import com.tacz.guns.client.model.BedrockAttachmentModel;
 import com.tacz.guns.client.resource.index.ClientAttachmentIndex;
+import com.tacz.guns.compat.oculus.OculusCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
@@ -42,6 +44,12 @@ public final class ScopeView {
     private static boolean viewing = false;
     private static float fovDegrees = 10.0F;
     private static float lensDistance = FALLBACK_LENS_DISTANCE;
+    // the eyepiece of this eye's render, while a shader pack is on
+    @Nullable
+    private static Deferred afterShaders = null;
+
+    private record Deferred(Matrix4f pose, Matrix4f projection, Matrix4f modelView, float radius, int texture) {
+    }
 
     private ScopeView() {
     }
@@ -187,8 +195,45 @@ public final class ScopeView {
         poseStack.pushPose();
         poseStack.translate(center.x - cam.x, center.y - cam.y, center.z - cam.z);
         poseStack.mulPose(gun.rotation);
-        Matrix4f matrix = poseStack.last().pose();
+        Matrix4f matrix = new Matrix4f(poseStack.last().pose());
+        poseStack.popPose();
 
+        if (OculusCompat.isUsingRenderPack()) {
+            // a shader pack swaps our shader for its own and lights the level again afterwards. The scope picture
+            // is already a finished, lit picture: lit again it goes dark. Draw it once the pack is done instead
+            afterShaders = new Deferred(matrix, new Matrix4f(RenderSystem.getProjectionMatrix()),
+                    new Matrix4f(RenderSystem.getModelViewMatrix()), radius, textureId);
+            return;
+        }
+        drawLens(matrix, radius, textureId);
+    }
+
+    /**
+     * Draws the eyepiece held back while a shader pack drew the level, with the same camera. Called at the end of
+     * every level render, after the pack's last pass; nothing to do without a shader pack.
+     */
+    public static void drawAfterShaders() {
+        Deferred lens = afterShaders;
+        afterShaders = null;
+        if (lens == null) {
+            return;
+        }
+        Minecraft.getInstance().getMainRenderTarget().bindWrite(true);
+        RenderSystem.backupProjectionMatrix();
+        RenderSystem.setProjectionMatrix(lens.projection(), VertexSorting.DISTANCE_TO_ORIGIN);
+        PoseStack modelView = RenderSystem.getModelViewStack();
+        modelView.pushPose();
+        modelView.setIdentity();
+        modelView.mulPoseMatrix(lens.modelView());
+        RenderSystem.applyModelViewMatrix();
+        // the pack draws into the level's own depth buffer, so the scope still hides what's behind it
+        drawLens(lens.pose(), lens.radius(), lens.texture());
+        modelView.popPose();
+        RenderSystem.applyModelViewMatrix();
+        RenderSystem.restoreProjectionMatrix();
+    }
+
+    private static void drawLens(Matrix4f matrix, float radius, int textureId) {
         RenderSystem.enableDepthTest();
         RenderSystem.disableCull();
         RenderSystem.disableBlend();
@@ -219,7 +264,6 @@ public final class ScopeView {
         quad(buffer, matrix, -w, -w, w, w, z);
         BufferUploader.drawWithShader(buffer.end());
         RenderSystem.enableCull();
-        poseStack.popPose();
     }
 
     private static void quad(BufferBuilder buffer, Matrix4f m, float x0, float y0, float x1, float y1, float z) {

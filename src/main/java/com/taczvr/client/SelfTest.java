@@ -15,6 +15,7 @@ import com.taczvr.CarryOnCompat;
 import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.InventoryMenu;
+import com.taczvr.client.interact.BackDrawModule;
 import com.taczvr.client.interact.NightVisionModule;
 import com.taczvr.server.RadioState;
 import com.taczvr.server.ZombieShop;
@@ -269,6 +270,7 @@ public final class SelfTest {
         patched("com.tacz.guns.client.input.AimKey");
         patched("com.tacz.guns.client.event.RenderCrosshairEvent");
         patched("org.vivecraft.client_vr.gameplay.trackers.SwingTracker");
+        patched("org.vivecraft.client_vr.gameplay.trackers.BackpackTracker");
         patched("net.minecraft.client.renderer.ItemInHandRenderer");
         patched("com.tacz.guns.client.event.TickAnimationEvent");
         patched("com.tacz.guns.item.ModernKineticGunItem");
@@ -409,6 +411,11 @@ public final class SelfTest {
             finish();
             return;
         }
+        if ("shaders".equals(System.getProperty("taczvr.selftest.only"))) {
+            shaderLook();
+            finish();
+            return;
+        }
         if ("lrhand".equals(System.getProperty("taczvr.selftest.only"))) {
             lrHandLook();
             lrSwingNullVr();
@@ -428,6 +435,11 @@ public final class SelfTest {
         if ("blood".equals(System.getProperty("taczvr.selftest.only"))) {
             bloodVision();
             dualVision();
+            finish();
+            return;
+        }
+        if ("backdraw".equals(System.getProperty("taczvr.selftest.only"))) {
+            backDraw();
             finish();
             return;
         }
@@ -475,6 +487,7 @@ public final class SelfTest {
         knife();
         medkit();
         nightVision();
+        backDraw();
         bloodVision();
         dualVision();
         grapplingHook();
@@ -2185,6 +2198,83 @@ public final class SelfTest {
     }
 
     /**
+     * The gun on your back: with no gun in the gun hand, that hand over the shoulder and grip bring the gun into it with
+     * a buzz, from the hotbar or swapped in from further in the inventory.
+     */
+    private static void backDraw() {
+        Vec3[] shoulder = new Vec3[1];
+        run(mc -> {
+            restPose();
+            server(sp -> {
+                Inventory inventory = sp.getInventory();
+                inventory.clearContent();
+                inventory.selected = 0;
+                sp.connection.send(new ClientboundSetCarriedItemPacket(0));
+                inventory.setItem(0, new ItemStack(Items.STICK));
+                inventory.setItem(4, GunItemBuilder.create().setId(GLOCK).setAmmoCount(17).build());
+                inventory.setItem(20, GunItemBuilder.create().setId(AK).setAmmoCount(30).build());
+                sp.inventoryMenu.broadcastChanges();
+                return null;
+            });
+        });
+        sleep(5);
+        run(mc -> {
+            BackDrawModule module = new BackDrawModule();
+            // looking north (-Z): behind is +Z, the gun hand's shoulder to the right
+            shoulder[0] = eye().add(0.15, -0.1, 0.2);
+            boolean back = module.isActive(mc.player, InteractionHand.MAIN_HAND, shoulder[0]);
+            boolean front = module.isActive(mc.player, InteractionHand.MAIN_HAND, eye().add(0.2, -0.3, -0.4));
+            boolean side = module.isActive(mc.player, InteractionHand.MAIN_HAND, eye().add(0.35, -0.1, 0.0));
+            boolean offHand = module.isActive(mc.player, InteractionHand.OFF_HAND, shoulder[0]);
+            check("back draw: grip only with the gun hand over the shoulder", back && !front && !side && !offHand,
+                    back + " " + front + " " + side + " " + offHand);
+            hapticsBefore = VrClient.testHaptics;
+            if (back) {
+                module.onPress(mc.player, InteractionHand.MAIN_HAND);
+            }
+        });
+        await("back draw: the hotbar gun comes into the hand", 20,
+                mc -> mc.player.getInventory().selected == 4 && IGun.mainHandHoldGun(mc.player),
+                () -> "slot " + Minecraft.getInstance().player.getInventory().selected + " " + Minecraft.getInstance().player.getMainHandItem());
+        run(mc -> {
+            check("back draw: it buzzes", VrClient.testHaptics > hapticsBefore, "");
+            check("back draw: not with a gun already in the hand",
+                    !new BackDrawModule().isActive(mc.player, InteractionHand.MAIN_HAND, shoulder[0]), "");
+            check("back draw: Vivecraft's backpack switch waits only while there's a gun to draw",
+                    !BackDrawModule.canDraw(mc.player), "");
+            // the hotbar gun gone: the one deeper in the inventory swaps into the hand
+            server(sp -> {
+                sp.getInventory().setItem(4, ItemStack.EMPTY);
+                sp.getInventory().selected = 0;
+                sp.connection.send(new ClientboundSetCarriedItemPacket(0));
+                sp.inventoryMenu.broadcastChanges();
+                return null;
+            });
+        });
+        sleep(5);
+        run(mc -> {
+            BackDrawModule module = new BackDrawModule();
+            boolean back = module.isActive(mc.player, InteractionHand.MAIN_HAND, shoulder[0]);
+            check("back draw: also for a gun outside the hotbar", back, "");
+            if (back) {
+                module.onPress(mc.player, InteractionHand.MAIN_HAND);
+            }
+        });
+        await("back draw: it swaps into the hand", 20, mc -> server(sp -> IGun.mainHandHoldGun(sp)
+                        && sp.getInventory().selected == 0 && sp.getInventory().getItem(20).is(Items.STICK)),
+                () -> server(sp -> sp.getMainHandItem() + " / slot 20 " + sp.getInventory().getItem(20)));
+        run(mc -> {
+            server(sp -> {
+                sp.getInventory().clearContent();
+                sp.inventoryMenu.broadcastChanges();
+                return null;
+            });
+            restPose();
+        });
+        sleep(5);
+    }
+
+    /**
      * Blood vision goggles: a pig hidden behind a wall shows up red while the key is held (flat) or the gun hand is at
      * the side of the head (VR), and is gone again when let go.
      */
@@ -2702,6 +2792,80 @@ public final class SelfTest {
             s.modelArmsMode = VRSettings.ModelArmsMode.COMPLETE;
             s.showPlayerHands = true;
         });
+    }
+
+    /**
+     * A shader pack in VR (-Pshaders -Prundir=run-shaders; in run-nullvr the same pictures without a pack, to compare):
+     * the left eye's picture of a gun in NullVR's hand, and of its scope with the eyepiece held just in front of the eye.
+     */
+    private static void shaderLook() {
+        if (!realVr()) {
+            log("shader look: needs Vivecraft really in VR");
+            return;
+        }
+        run(mc -> {
+            VrCommon.testForceVr = false;
+            VrClient.testPose = null;
+            mc.options.hideGui = true;
+            mc.player.connection.sendCommand("time set 6000");
+            give(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+            give(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).setAmmoCount(30).setAmmoInBarrel(true).build());
+            nullVrHands(false);
+            log("shader look: shader pack %s", com.tacz.guns.compat.oculus.OculusCompat.isUsingRenderPack() ? "on" : "off");
+        });
+        // the pack compiles its programs on the first frames
+        sleep(60);
+        run(mc -> eyeShot(mc, "ak"));
+        run(mc -> give(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).setAmmoCount(30).setAmmoInBarrel(true)
+                .putAttachment(AttachmentType.SCOPE, ACOG).build()));
+        sleep(30);
+        for (int i = 0; i < 6; i++) {
+            run(PortScopeEye::moveEyepiece);
+            sleep(3);
+        }
+        await("shader look: looking through the scope", 40, mc -> ScopeView.isViewing(), () -> "eyepiece "
+                + (VrGunController.lastPose() == null ? "-" : v(VrGunController.lastPose().origin)));
+        sleep(5);
+        run(mc -> {
+            eyeShot(mc, "scope");
+            // and the scope's own picture, which the eyepiece shows
+            eyeShot(mc, "scope_picture", ClientDataHolderVR.getInstance().vrRenderer.telescopeFramebufferR);
+        });
+        run(mc -> {
+            nullVrHands(false);
+            mc.options.hideGui = false;
+        });
+    }
+
+    private static void eyeShot(Minecraft mc, String what) {
+        eyeShot(mc, what, ClientDataHolderVR.getInstance().vrRenderer.framebufferEye[0]);
+    }
+
+    private static void eyeShot(Minecraft mc, String what, com.mojang.blaze3d.pipeline.RenderTarget target) {
+        String name = "taczvr_shaders_" + (com.tacz.guns.compat.oculus.OculusCompat.isUsingRenderPack() ? "pack" : "nopack")
+                + "_" + what + ".png";
+        Screenshot.grab(mc.gameDirectory, name, target, message -> log("%s: %s", name, message.getString()));
+    }
+
+    /**
+     * Moves NullVR's right controller so the gun's eyepiece comes 12 cm in front of the left eye. Room and world
+     * axes are the same here, so a few steps of the world difference get it there.
+     */
+    private static final class PortScopeEye {
+        static void moveEyepiece(Minecraft mc) throws ReflectiveOperationException {
+            GunPoseSolver.Pose pose = VrGunController.lastPose();
+            if (pose == null) {
+                return;
+            }
+            Object vr = ClientDataHolderVR.getInstance().vr;
+            java.lang.reflect.Field offsets = vr.getClass().getDeclaredField("deviceOffsets");
+            offsets.setAccessible(true);
+            org.joml.Vector3f[] at = (org.joml.Vector3f[]) offsets.get(vr);
+            float ipd = ClientDataHolderVR.getInstance().vrSettings.nullvrIPD;
+            Vec3 eye = VrClient.localTickPose().getHead().getPos().add(-ipd * 0.5, 0.0, 0.0);
+            Vec3 d = eye.add(0.0, 0.0, -0.12).subtract(pose.origin.x, pose.origin.y, pose.origin.z);
+            at[0].add((float) d.x, (float) d.y, (float) d.z);
+        }
     }
 
     /**
@@ -3745,7 +3909,8 @@ public final class SelfTest {
             Vec3 delta = target.subtract(pose.origin.x, pose.origin.y, pose.origin.z);
             rig(rigMain.add(delta), NORTH, idleOff());
         });
-        await("ADS: TACZ aims when the sights reach the eye", 20,
+        // TACZ only aims once the gun is drawn, which takes longer after some items than others
+        await("ADS: TACZ aims when the sights reach the eye", 40,
                 mc -> IClientPlayerGunOperator.fromLocalPlayer(mc.player).isAim(), () -> "");
         await("scope: magnified view switched on", 5, mc -> ScopeView.isViewing(), () -> "");
         run(mc -> {

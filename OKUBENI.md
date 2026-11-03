@@ -34,6 +34,7 @@ Sol elinde dürbün, mermi ya da elle tuttuğun bir şarjör varken silah "iki e
 - **Kol omuza bağlı:** Başkalarının gözünde VR oyuncusunun kolu omuzdan uzanır, yumruğu kabzayı tutar (dirsekli ve dirseksiz Vivecraft modellerinde). Silah havada süzülmez, kol da silahı yutmaz. Bu görüntü izleyenin bilgisayarında çizildiği için arkadaşlarında da aynı sürüm olmalı.
 - **Diğer oyuncular:** VR oyuncularının silahı elinde 3D, nişan aldığı yöne dönük görünür. Ateş edince ağız alevi ve sürgü animasyonu, reload'da TACZ reload animasyonu oynar; elle şarjör değiştirirken şarjörün çıktığını ve elindeki yeni şarjörü görürler.
 - **Vuruş hissi:** Mermin bir şeye isabet edince kolun titrer ve vuruş sesi gelir; kafaya isabette daha güçlü, öldürünce uzun bir titreşim. Kapatmak için `hitFeedback = false`.
+- **Sırttan silah çekme:** Silah elinde silah yokken o eli omzunun arkasına götür ve grip'e bas: en son tuttuğun silah titreşimle eline gelir. Hotbar'daysa o seçilir, envanterin içindeyse elindekiyle yer değiştirir. Silah eli ana elindir, solaksan sol el. Bu sırada Vivecraft'ın o eldeki sırt çantası geçişi devreye girmez. Kapatmak için `backDraw = false`.
 - **VR konforu:** TACZ'ın kamerayı döndüren geri tepmesi ve yürürken silahı sallaması kapalı; silah yukarı teper ve titreşim verir. HUD nişangahı gizli, silahla savurunca blok kırma kapalı.
 
 ## Hangi parça hangi silaha uyar
@@ -124,7 +125,7 @@ LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, s
 
 `mods` klasörüne şunlar:
 
-1. `taczvr-1.20.1-1.4.10.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
+1. `taczvr-1.20.1-1.4.11.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
 2. TACZ `tacz-1.20.1-1.1.8-hotfix` (veya daha yeni 1.1.8+)
 3. **Vivecraft 1.20.1 Forge** — `vivecraft-1.20.1-1.3.15-forge.jar`
 4. **Simple Voice Chat** — `voicechat-forge-1.20.1-2.6.17.jar` (telsiz için; olmasa da mod çalışır)
@@ -161,6 +162,6 @@ Tüm ayarlar `config/taczvr-client.toml` dosyasında (oyun açıkken düzenleneb
 
 ## Bilinen sınırlar
 
-- Oculus/Iris shader'larıyla elde silah ve dürbün görüntüsü sorunlu olabilir. Kan görüşü de shader'la denenmedi.
+- Oculus/Iris shader'larıyla dürbün görüntüsü artık paketin işi bittikten sonra çiziliyor; Complementary Reimagined ile elde silah ve dürbün denendi. Başka paketlerde sorun olabilir. Kan görüşü shader'la denenmedi.
 - Silah verme için elin arkadaşının eline yakınken tetik de "ver" olur (ateş etmez).
 - Diğer oyuncular VR oyuncusunun şarjör değiştirmesini ve animasyonlarını görmez (silah onlara hep duruş pozunda görünür).

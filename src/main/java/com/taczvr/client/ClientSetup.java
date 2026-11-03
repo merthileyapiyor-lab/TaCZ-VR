@@ -2,6 +2,7 @@ package com.taczvr.client;
 
 import com.taczvr.TaczVR;
 import com.taczvr.client.interact.AttachmentModule;
+import com.taczvr.client.interact.BackDrawModule;
 import com.taczvr.client.interact.HandoffModule;
 import com.taczvr.client.interact.MagazineModule;
 import com.taczvr.client.interact.NightVisionModule;
@@ -54,7 +55,7 @@ public final class ClientSetup {
             SelfTest.register();
         }
         try {
-            VrBackends.client().registerGripModules(List.of(new HandoffModule(), new MagazineModule(), new AttachmentModule(), new NightVisionModule()));
+            VrBackends.client().registerGripModules(List.of(new HandoffModule(), new MagazineModule(), new AttachmentModule(), new NightVisionModule(), new BackDrawModule()));
         } catch (Throwable t) {
             TaczVR.LOGGER.error("Could not register VR interactions, hand-off and mounting attachments by hand won't work", t);
         }

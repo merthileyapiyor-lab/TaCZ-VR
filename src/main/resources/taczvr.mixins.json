@@ -16,6 +16,7 @@
   "client": [
     "client.AimKeyMixin",
     "client.AnimationControllerAccessor",
+    "client.BackpackTrackerMixin",
     "client.BedrockModelAccessor",
     "client.CameraSetupEventMixin",
     "client.EnhancedVisualsMixin",
