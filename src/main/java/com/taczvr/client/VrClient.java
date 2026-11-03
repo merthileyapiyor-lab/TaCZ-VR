@@ -27,6 +27,10 @@ public final class VrClient {
     @Nullable
     static volatile VrPose testRoomPose = null;
     static volatile int testHaptics = 0;
+    /**
+     * Development self-test only: lets EnhancedVisuals draw in VR again, to see the problem that's kept off.
+     */
+    public static volatile boolean testEnhancedVisualsInVr = false;
 
     private VrClient() {
     }
@@ -157,6 +161,17 @@ public final class VrClient {
             return VrBackends.client().isVrPlayerModel(model);
         } catch (Throwable t) {
             return false;
+        }
+    }
+
+    /**
+     * Whether the VR mod's "show your own hands" setting is on.
+     */
+    public static boolean showsPlayerHands() {
+        try {
+            return VrBackends.client().showsPlayerHands();
+        } catch (Throwable t) {
+            return true;
         }
     }
 

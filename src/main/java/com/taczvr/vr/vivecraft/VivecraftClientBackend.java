@@ -112,6 +112,11 @@ public final class VivecraftClientBackend implements VrClientBackend {
      * Vivecraft's spyglass picture, which {@link VivecraftScope} points down the scope.
      */
     @Override
+    public boolean showsPlayerHands() {
+        return ClientDataHolderVR.getInstance().vrSettings.showPlayerHands;
+    }
+
+    @Override
     public int scopeTexture() {
         RenderTarget target = ClientDataHolderVR.getInstance().vrRenderer.telescopeFramebufferR;
         return target == null ? -1 : target.getColorTextureId();

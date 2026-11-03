@@ -34,14 +34,15 @@ public final class ClientSetup {
         MinecraftForge.EVENT_BUS.register(HighFive.class);
         MinecraftForge.EVENT_BUS.register(OffhandGun.class);
         MinecraftForge.EVENT_BUS.register(ScreenEffects.class);
+        MinecraftForge.EVENT_BUS.register(BloodVision.class);
         MinecraftForge.EVENT_BUS.register(HandTools.class);
         MinecraftForge.EVENT_BUS.register(GrappleClient.class);
         MinecraftForge.EVENT_BUS.register(ClientKeys.class);
         MinecraftForge.EVENT_BUS.register(ShopScreen.class);
         MinecraftForge.EVENT_BUS.register(BulletWhiz.class);
         MinecraftForge.EVENT_BUS.register(LrTacticalVr.class);
+        MinecraftForge.EVENT_BUS.register(LrMeleeVr.class);
         MinecraftForge.EVENT_BUS.register(AttachmentHint.class);
-        MinecraftForge.EVENT_BUS.register(UpdateChecker.class);
         MinecraftForge.EVENT_BUS.addListener(TaczVRCommands::register);
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         modBus.addListener(ClientSetup::onRegisterRenderers);

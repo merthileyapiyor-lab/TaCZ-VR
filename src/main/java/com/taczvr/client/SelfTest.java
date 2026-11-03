@@ -11,6 +11,12 @@ import com.taczvr.content.GrappleEntity;
 import com.taczvr.content.GrenadeEntity;
 import com.taczvr.content.ModContent;
 import com.taczvr.content.NightVisionItem;
+import com.taczvr.content.BloodVisionItem;
+import com.taczvr.content.DualVisionItem;
+import com.taczvr.CarryOnCompat;
+import net.minecraft.world.entity.animal.Pig;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.InventoryMenu;
 import com.taczvr.client.interact.NightVisionModule;
 import com.taczvr.server.RadioState;
 import com.taczvr.server.ZombieShop;
@@ -118,7 +124,6 @@ import com.taczvr.vr.VrPose;
 import org.vivecraft.client.ClientVRPlayers;
 import org.vivecraft.client.VivecraftVRMod;
 import org.vivecraft.client_vr.ClientDataHolderVR;
-import org.vivecraft.client_vr.provider.openvr_lwjgl.VRInputAction;
 import org.vivecraft.client_vr.settings.VRSettings;
 import org.vivecraft.common.network.VrPlayerState;
 import org.vivecraft.client_vr.render.helpers.VRArmHelper;
@@ -196,6 +201,8 @@ public final class SelfTest {
     private static int framesBefore;
     private static int puffsBefore;
     private static int stabsBefore;
+    private static int lrAttacksBefore;
+    private static int lrSpecialsBefore;
     private static int injectionsBefore;
     private static float knifeFront;
     private static int pressesBefore;
@@ -401,23 +408,46 @@ public final class SelfTest {
             finish();
             return;
         }
+        if ("armslook".equals(System.getProperty("taczvr.selftest.only"))) {
+            armsLook();
+            finish();
+            return;
+        }
+        if ("lrhand".equals(System.getProperty("taczvr.selftest.only"))) {
+            lrHandLook();
+            lrSwingNullVr();
+            finish();
+            return;
+        }
+        if ("ev".equals(System.getProperty("taczvr.selftest.only"))) {
+            enhancedVisuals();
+            finish();
+            return;
+        }
+        if ("carry".equals(System.getProperty("taczvr.selftest.only"))) {
+            carryHook();
+            finish();
+            return;
+        }
+        if ("blood".equals(System.getProperty("taczvr.selftest.only"))) {
+            bloodVision();
+            dualVision();
+            finish();
+            return;
+        }
         if ("hint".equals(System.getProperty("taczvr.selftest.only"))) {
             attachmentHint();
             finish();
             return;
         }
         if ("lr".equals(System.getProperty("taczvr.selftest.only"))) {
+            lrMelee();
             lesRaisins();
             finish();
             return;
         }
         if ("deagle".equals(System.getProperty("taczvr.selftest.only"))) {
             pistolScope();
-            finish();
-            return;
-        }
-        if ("update".equals(System.getProperty("taczvr.selftest.only"))) {
-            updateCheck();
             finish();
             return;
         }
@@ -449,7 +479,11 @@ public final class SelfTest {
         knife();
         medkit();
         nightVision();
+        bloodVision();
+        dualVision();
         grapplingHook();
+        carryHook();
+        enhancedVisuals();
         radio();
         run(mc -> {
             VrCommon.testForceVr = true;
@@ -462,10 +496,10 @@ public final class SelfTest {
         });
         bulletWhiz();
         attachmentHint();
+        lrMelee();
         lesRaisins();
         models3d();
         aimWithoutServerVrMod();
-        updateCheck();
         previews();
     }
 
@@ -498,7 +532,7 @@ public final class SelfTest {
             captureBullet = true;
             mc.setWindowActive(true);
             grabMouse(mc);
-            VRInputAction.setKeyBindState(mc.options.keyAttack, true);
+            vrPress(mc.options.keyAttack);
         });
         sleep(2);
         run(mc -> mc.options.keyAttack.setDown(false));
@@ -515,206 +549,6 @@ public final class SelfTest {
             VrClient.testPose = null;
         });
         sleep(10);
-    }
-
-    /**
-     * The update check against a small local server: it finds the newer release, shows Update TaCZ VR with Later
-     * and Quit Game, and Quit Game downloads the jar and swaps it in (in a test folder, without really quitting).
-     * A locked jar is swapped by a helper once the game has closed, run/taczvr-update-test/locked shows it afterwards.
-     */
-    private static void updateCheck() {
-        com.sun.net.httpserver.HttpServer[] http = {null};
-        String[] base = {null};
-        UpdateChecker.Release[] release = {null};
-        byte[][] served = {null};
-        boolean[] stopped = {false};
-        java.nio.file.Path[] dir = {null};
-        java.io.RandomAccessFile[] lock = {null};
-        Process[] sleeper = {null};
-        run(mc -> {
-            check("update: 1.3.10 is newer than 1.3.9", UpdateChecker.compareVersions("1.3.10", "1.3.9") > 0, "");
-            check("update: v1.4.0 is newer than 1.3.8", UpdateChecker.compareVersions("v1.4.0", "1.3.8") > 0, "");
-            check("update: 1.3.8 is not newer than itself", UpdateChecker.compareVersions("1.3.8", "v1.3.8") == 0, "");
-            served[0] = fakeJar("modId = \"taczvr\"");
-            byte[] bad = fakeJar("modId = \"something_else\"");
-            http[0] = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
-            base[0] = "http://127.0.0.1:" + http[0].getAddress().getPort();
-            String jarName = "taczvr-1.19.2-9.9.9.jar";
-            String latest = "{\"tag_name\":\"v9.9.9\",\"body\":\"## What's new\\r\\n- **Longer** grappling hook\\r\\n- The `update` menu\","
-                    + "\"assets\":[{\"name\":\"taczvr-1.19.2-9.9.9-sources.zip\",\"size\":3,\"browser_download_url\":\"" + base[0] + "/nope\"},"
-                    // the 1.20.1 jar comes first in a release, a 1.19.2 game must skip it
-                    + "{\"name\":\"taczvr-1.20.1-9.9.9.jar\",\"size\":5,\"browser_download_url\":\"" + base[0] + "/nope\"},"
-                    + "{\"name\":\"" + jarName + "\",\"size\":" + served[0].length + ",\"browser_download_url\":\"" + base[0] + "/" + jarName + "\"}]}";
-            String otherMc = "{\"tag_name\":\"v9.9.9\",\"body\":\"\",\"assets\":[{\"name\":\"taczvr-1.20.1-9.9.9.jar\",\"size\":5,\"browser_download_url\":\"x\"}]}";
-            String same = "{\"tag_name\":\"1.3.8\",\"body\":\"\",\"assets\":[{\"name\":\"taczvr-1.19.2-1.3.8.jar\",\"size\":1,\"browser_download_url\":\"x\"}]}";
-            // the list GitHub answers: the latest release is 1.20.1 only, our jar comes in a release of its own
-            String list = "[{\"tag_name\":\"v9.9.9\",\"body\":\"\",\"assets\":[{\"name\":\"taczvr-1.20.1-9.9.9.jar\",\"size\":5,\"browser_download_url\":\"x\"}]},"
-                    + "{\"tag_name\":\"v9.9.8-beta\",\"prerelease\":true,\"body\":\"\",\"assets\":[{\"name\":\"taczvr-1.19.2-9.9.8.jar\",\"size\":5,\"browser_download_url\":\"x\"}]},"
-                    + "{\"tag_name\":\"v9.9.7-mc1.19.2\",\"body\":\"for 1.19.2\",\"assets\":[{\"name\":\"taczvr-1.19.2-9.9.7.jar\",\"size\":5,\"browser_download_url\":\"y\"}]}]";
-            serve(http[0], "/latest", latest.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            serve(http[0], "/same", same.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            serve(http[0], "/other_mc", otherMc.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            serve(http[0], "/list", list.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            serve(http[0], "/" + jarName, served[0]);
-            serve(http[0], "/bad.jar", bad);
-            http[0].start();
-            release[0] = UpdateChecker.check(base[0] + "/latest", "1.3.8");
-            check("update: finds 9.9.9 and its 1.19.2 jar, not the sources or the 1.20.1 jar", release[0] != null && "9.9.9".equals(release[0].version())
-                    && jarName.equals(release[0].jarName()), String.valueOf(release[0]));
-            check("update: nothing to do when it's our version", UpdateChecker.check(base[0] + "/same", "1.3.8") == null, "");
-            check("update: a release with only another Minecraft version's jar isn't for us",
-                    UpdateChecker.check(base[0] + "/other_mc", "1.3.8") == null, "");
-            UpdateChecker.Release fromList = UpdateChecker.check(base[0] + "/list", "1.3.8");
-            check("update: from the release list, the newest 1.19.2 jar (no prerelease) and its own notes", fromList != null
-                    && "9.9.7".equals(fromList.version()) && "taczvr-1.19.2-9.9.7.jar".equals(fromList.jarName()) && "for 1.19.2".equals(fromList.notes()),
-                    String.valueOf(fromList));
-            check("update: nothing from the list when we have that version", UpdateChecker.check(base[0] + "/list", "9.9.7") == null, "");
-            try {
-                UpdateChecker.check(base[0] + "/missing", "1.3.8");
-                fail("update: a missing release is an error", "no exception");
-            } catch (java.io.IOException e) {
-                pass("update: a missing release is an error (" + e.getMessage() + ")");
-            }
-            if (Boolean.getBoolean("taczvr.update.live")) {
-                UpdateChecker.Release live = UpdateChecker.check(UpdateChecker.RELEASES_API, "1.0.0");
-                check("update: GitHub has this version with its jar", live != null && live.version().equals(UpdateChecker.currentVersion())
-                        && live.jarName().equals("taczvr-1.19.2-" + UpdateChecker.currentVersion() + ".jar") && live.jarSize() > 100000,
-                        String.valueOf(live));
-                check("update: and nothing newer than this version", UpdateChecker.check(UpdateChecker.RELEASES_API, UpdateChecker.currentVersion()) == null, "");
-            }
-            mc.setScreen(new TitleScreen());
-            UpdateChecker.newer = release[0];
-        });
-        await("update: Update TaCZ VR comes up on the title screen", 40, mc -> mc.screen instanceof UpdateScreen,
-                () -> String.valueOf(Minecraft.getInstance().screen));
-        sleep(5);
-        run(mc -> {
-            UpdateScreen screen = (UpdateScreen) mc.screen;
-            check("update: its title", "Update TaCZ VR".equals(screen.getTitle().getString()), screen.getTitle().getString());
-            check("update: Later and Quit Game", "Later".equals(screen.laterButton().getMessage().getString())
-                    && "Quit Game".equals(screen.quitButton().getMessage().getString()),
-                    screen.laterButton().getMessage().getString() + " / " + screen.quitButton().getMessage().getString());
-            check("update: release notes without markdown", screen.noteLines().size() == 3, "lines=" + screen.noteLines().size());
-            screenshot(mc, "taczvr_update_screen.png");
-        });
-        sleep(3);
-        run(mc -> ((UpdateScreen) mc.screen).laterButton().onPress());
-        await("update: Later goes back to the title screen", 10, mc -> mc.screen instanceof TitleScreen, () -> String.valueOf(Minecraft.getInstance().screen));
-        sleep(10);
-        run(mc -> {
-            check("update: offered once per game, it doesn't come back", mc.screen instanceof TitleScreen, String.valueOf(mc.screen));
-            dir[0] = mc.gameDirectory.toPath().resolve("taczvr-update-test");
-            deleteTree(dir[0]);
-            java.nio.file.Files.createDirectories(dir[0].resolve("locked"));
-            java.nio.file.Path old = dir[0].resolve("taczvr-1.19.2-1.3.8.jar");
-            java.nio.file.Files.write(old, fakeJar("modId = \"taczvr\" old"));
-            UpdateScreen.testJar = old;
-            UpdateScreen.stopGame = () -> stopped[0] = true;
-            mc.setScreen(new UpdateScreen(mc.screen, release[0], "1.3.8"));
-        });
-        sleep(3);
-        run(mc -> ((UpdateScreen) mc.screen).quitButton().onPress());
-        await("update: Quit Game downloads, swaps the jar and quits", 200, mc -> stopped[0],
-                () -> "error=" + (Minecraft.getInstance().screen instanceof UpdateScreen s && s.error() != null ? s.error().getString() : "none"));
-        run(mc -> {
-            java.nio.file.Path now = dir[0].resolve("taczvr-1.19.2-9.9.9.jar");
-            check("update: the old jar is gone", !java.nio.file.Files.exists(dir[0].resolve("taczvr-1.19.2-1.3.8.jar")), "");
-            check("update: the new jar is in place, byte for byte", java.nio.file.Files.exists(now)
-                    && java.util.Arrays.equals(java.nio.file.Files.readAllBytes(now), served[0]), "");
-            check("update: no half download left", !java.nio.file.Files.exists(dir[0].resolve("taczvr-1.19.2-9.9.9.jar.part")), "");
-
-            // a download that isn't TaCZ VR is refused and the old jar stays
-            java.nio.file.Path keep = dir[0].resolve("taczvr-1.19.2-1.3.8.jar");
-            java.nio.file.Files.write(keep, fakeJar("modId = \"taczvr\" old"));
-            java.nio.file.Files.delete(now);
-            try {
-                UpdateChecker.install(new UpdateChecker.Release("9.9.9", "", "taczvr-1.19.2-9.9.9.jar", base[0] + "/bad.jar", -1), keep, p -> {
-                });
-                fail("update: a jar that isn't TaCZ VR is refused", "installed it");
-            } catch (java.io.IOException e) {
-                check("update: a jar that isn't TaCZ VR is refused (" + e.getMessage() + ")", java.nio.file.Files.exists(keep)
-                        && !java.nio.file.Files.exists(now) && !java.nio.file.Files.exists(dir[0].resolve("taczvr-1.19.2-9.9.9.jar.part")), "");
-            }
-
-            // Windows keeps a running jar locked: then a helper swaps it once the game has closed
-            java.nio.file.Path locked = dir[0].resolve("locked").resolve("taczvr-1.19.2-1.3.8.jar");
-            java.nio.file.Files.write(locked, fakeJar("modId = \"taczvr\" old"));
-            lock[0] = new java.io.RandomAccessFile(locked.toFile(), "r");
-            boolean swapped = UpdateChecker.install(release[0], locked, p -> {
-            });
-            check("update: a locked jar waits for the game to close", !swapped && java.nio.file.Files.exists(locked)
-                    && java.nio.file.Files.exists(dir[0].resolve("locked").resolve("taczvr-1.19.2-9.9.9.jar.part")), "swapped=" + swapped);
-
-            // the helper itself, waiting for a short process instead of the game
-            java.nio.file.Path helperDir = dir[0].resolve("helper");
-            java.nio.file.Files.createDirectories(helperDir);
-            java.nio.file.Path helperOld = helperDir.resolve("taczvr-1.19.2-1.3.8.jar");
-            java.nio.file.Path helperPart = helperDir.resolve("taczvr-1.19.2-9.9.9.jar.part");
-            java.nio.file.Files.write(helperOld, fakeJar("old"));
-            java.nio.file.Files.write(helperPart, served[0]);
-            sleeper[0] = System.getProperty("os.name", "").toLowerCase().contains("win")
-                    ? new ProcessBuilder("ping", "-n", "4", "127.0.0.1").redirectOutput(ProcessBuilder.Redirect.DISCARD).start()
-                    : new ProcessBuilder("sleep", "3").start();
-            UpdateChecker.swapAfterExit(sleeper[0].pid(), helperOld, helperPart, helperDir.resolve("taczvr-1.19.2-9.9.9.jar"));
-        });
-        sleep(20);
-        run(mc -> check("update: the helper waits while the game still runs",
-                java.nio.file.Files.exists(dir[0].resolve("helper").resolve("taczvr-1.19.2-1.3.8.jar")), ""));
-        await("update: once it's closed, the helper swaps the jars", 400, mc -> {
-            java.nio.file.Path helperDir = dir[0].resolve("helper");
-            return !java.nio.file.Files.exists(helperDir.resolve("taczvr-1.19.2-1.3.8.jar"))
-                    && java.nio.file.Files.exists(helperDir.resolve("taczvr-1.19.2-9.9.9.jar"))
-                    && !java.nio.file.Files.exists(helperDir.resolve("taczvr-1.19.2-9.9.9.jar.part"));
-        }, () -> "sleeper alive=" + sleeper[0].isAlive());
-        run(mc -> {
-            // the locked one stays locked until this client exits, then its helper swaps it
-            http[0].stop(0);
-            UpdateScreen.testJar = null;
-            UpdateScreen.stopGame = () -> Minecraft.getInstance().stop();
-            UpdateChecker.newer = null;
-            mc.setScreen(null);
-            grabMouse(mc);
-            log("update: after exit, %s should hold only the 9.9.9 jar", dir[0].resolve("locked"));
-        });
-        sleep(5);
-    }
-
-    private static byte[] fakeJar(String modsToml) throws java.io.IOException {
-        java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
-        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(bytes)) {
-            zip.putNextEntry(new java.util.zip.ZipEntry("META-INF/mods.toml"));
-            zip.write(modsToml.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            zip.closeEntry();
-            zip.putNextEntry(new java.util.zip.ZipEntry("padding.bin"));
-            zip.write(new byte[50000]);
-            zip.closeEntry();
-        }
-        return bytes.toByteArray();
-    }
-
-    private static void serve(com.sun.net.httpserver.HttpServer http, String path, byte[] body) {
-        http.createContext(path, exchange -> {
-            if (!exchange.getRequestURI().getPath().equals(path)) {
-                exchange.sendResponseHeaders(404, -1);
-                exchange.close();
-                return;
-            }
-            exchange.sendResponseHeaders(200, body.length);
-            try (java.io.OutputStream out = exchange.getResponseBody()) {
-                out.write(body);
-            }
-        });
-    }
-
-    private static void deleteTree(java.nio.file.Path root) throws java.io.IOException {
-        if (!java.nio.file.Files.exists(root)) {
-            return;
-        }
-        try (java.util.stream.Stream<java.nio.file.Path> paths = java.nio.file.Files.walk(root)) {
-            for (java.nio.file.Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
-                java.nio.file.Files.delete(path);
-            }
-        }
     }
 
     /**
@@ -1343,7 +1177,7 @@ public final class SelfTest {
             bulletVel = null;
             captureBullet = true;
             mc.setWindowActive(true);
-            VRInputAction.setKeyBindState(VivecraftVRMod.INSTANCE.keyTeleport, true);
+            vrPress(VivecraftVRMod.INSTANCE.keyTeleport);
         });
         sleep(10);
         run(mc -> VivecraftVRMod.INSTANCE.keyTeleport.setDown(false));
@@ -1371,7 +1205,7 @@ public final class SelfTest {
         sleep(5);
         run(mc -> {
             shotsBefore = OffhandGun.shotsSent;
-            VRInputAction.setKeyBindState(VivecraftVRMod.INSTANCE.keyTeleport, true);
+            vrPress(VivecraftVRMod.INSTANCE.keyTeleport);
         });
         sleep(3);
         run(mc -> {
@@ -1383,7 +1217,7 @@ public final class SelfTest {
             sp.getInventory().add(AmmoItemBuilder.create().setId(new ResourceLocation("tacz:9mm")).setCount(40).build());
             return null;
         }));
-        run(mc -> VRInputAction.setKeyBindState(mc.options.keyUse, true));
+        run(mc -> vrPress(mc.options.keyUse));
         run(mc -> mc.options.keyUse.setDown(false));
         await("dual: A reloads the left pistol too", 60, mc -> {
             int[] s = server(SelfTest::offhandState);
@@ -1500,7 +1334,7 @@ public final class SelfTest {
             });
         });
         await("grenade: in the hand", 20, mc -> mc.player.getMainHandItem().is(ModContent.GRENADE.get()), () -> "");
-        run(mc -> VRInputAction.setKeyBindState(mc.options.keyUse, true));
+        run(mc -> vrPress(mc.options.keyUse));
         sleep(10);
         run(mc -> mc.options.keyUse.setDown(false));
         await("grenade: thrown when A is let go", 10, mc -> server(sp -> lastGrenade(sp) != null), () -> "none");
@@ -1532,7 +1366,7 @@ public final class SelfTest {
                 pigHealth = spawned.getHealth();
                 return null;
             });
-            VRInputAction.setKeyBindState(mc.options.keyUse, true);
+            vrPress(mc.options.keyUse);
         });
         await("grenade: cooked too long, it goes off in the hand", 110, mc -> server(sp -> !target.isAlive() || target.getHealth() < pigHealth),
                 () -> "pig health " + server(sp -> target.getHealth()));
@@ -1556,7 +1390,7 @@ public final class SelfTest {
         // flat screen: thrown the way you look
         run(mc -> VrCommon.testForceVr = false);
         sleep(3);
-        run(mc -> VRInputAction.setKeyBindState(mc.options.keyUse, true));
+        run(mc -> vrPress(mc.options.keyUse));
         sleep(5);
         run(mc -> mc.options.keyUse.setDown(false));
         await("grenade: flat throw", 10, mc -> server(sp -> lastGrenade(sp) != null), () -> "none");
@@ -1596,10 +1430,33 @@ public final class SelfTest {
             // Vivecraft reports the window active while in VR, TACZ only shoots in an active window
             mc.setWindowActive(true);
             grabMouse(mc);
-            VRInputAction.setKeyBindState(mc.options.keyAttack, true);
+            vrPress(mc.options.keyAttack);
         });
         sleep(ticks);
         run(mc -> mc.options.keyAttack.setDown(false));
+    }
+
+    private static Method setKeyBindState;
+
+    /**
+     * Presses a key exactly the way Vivecraft does for a controller button. The class doing it moved in the
+     * OpenXR build of Vivecraft, so it's looked up by name and the test runs against both.
+     */
+    private static void vrPress(KeyMapping key) {
+        try {
+            if (setKeyBindState == null) {
+                Class<?> input;
+                try {
+                    input = Class.forName("org.vivecraft.client_vr.provider.openvr_lwjgl.VRInputAction");
+                } catch (ClassNotFoundException e) {
+                    input = Class.forName("org.vivecraft.client_vr.provider.control.InputAction");
+                }
+                setKeyBindState = input.getMethod("setKeyBindState", KeyMapping.class, boolean.class);
+            }
+            setKeyBindState.invoke(null, key, true);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -1776,6 +1633,28 @@ public final class SelfTest {
             restPose();
         });
         await("assist: menu gone once taken off the list", 20, mc -> !ClientAssist.allowed(), () -> "");
+        // trusted players (by UUID, avcibora by default) get the Game and assist menus without being op or listed by name
+        List<? extends String>[] trusted = new List[1];
+        run(mc -> {
+            trusted[0] = TaczVRConfig.COMMON.trustedPlayers.get();
+            check("trusted: avcibora is trusted by default", trusted[0].contains("54d17537-a4de-411c-b6cc-5a3bdb838ea3"), String.valueOf(trusted[0]));
+            check("trusted: others aren't", !TaczVRConfig.COMMON.isTrusted(mc.player), "");
+            TaczVRConfig.COMMON.trustedPlayers.set(List.of(mc.player.getUUID().toString()));
+            server(sp -> {
+                ServerAssist.sendAllowed(sp);
+                return null;
+            });
+        });
+        await("trusted: the assist menu without being listed by name", 20, mc -> ClientAssist.allowed(), () -> "");
+        run(mc -> {
+            check("trusted: may run games", server(sp -> GameManager.canControl(sp)) && TaczVRConfig.COMMON.isTrusted(mc.player), "");
+            TaczVRConfig.COMMON.trustedPlayers.set(trusted[0]);
+            server(sp -> {
+                ServerAssist.sendAllowed(sp);
+                return null;
+            });
+        });
+        await("trusted: menu gone once taken off the trusted list", 20, mc -> !ClientAssist.allowed(), () -> "");
         run(mc -> VrCommon.testNoSpread = true);
     }
 
@@ -1994,12 +1873,14 @@ public final class SelfTest {
             NonNullList<ItemStack> shown = NonNullList.create();
             tab.fillItemList(shown);
             List<Item> items = shown.stream().map(ItemStack::getItem).toList();
-            check("tab: holds all 7 items", items.containsAll(List.of(ModContent.GRENADE.get(), ModContent.FLASHBANG.get(),
+            check("tab: holds all 9 items", items.containsAll(List.of(ModContent.GRENADE.get(), ModContent.FLASHBANG.get(),
                     ModContent.SMOKE_GRENADE.get(), ModContent.COMBAT_KNIFE.get(), ModContent.MEDKIT.get(),
-                    ModContent.NIGHT_VISION_GOGGLES.get(), ModContent.GRAPPLING_HOOK.get())) && !items.contains(ModContent.LOGO.get()),
-                    items.toString());
+                    ModContent.NIGHT_VISION_GOGGLES.get(), ModContent.BLOOD_VISION_GOGGLES.get(),
+                    ModContent.DUAL_VISION_GOGGLES.get(), ModContent.GRAPPLING_HOOK.get()))
+                    && !items.contains(ModContent.LOGO.get()), items.toString());
             boolean recipes = server(sp -> {
-                for (String id : new String[]{"flashbang", "smoke_grenade", "combat_knife", "medkit", "night_vision_goggles", "grappling_hook"}) {
+                for (String id : new String[]{"flashbang", "smoke_grenade", "combat_knife", "medkit", "night_vision_goggles",
+                        "blood_vision_goggles", "dual_vision_goggles", "grappling_hook"}) {
                     if (sp.server.getRecipeManager().byKey(new ResourceLocation("taczvr", id)).isEmpty()) {
                         return false;
                     }
@@ -2248,7 +2129,7 @@ public final class SelfTest {
         });
         await("night vision: goggles in the hand", 20, mc -> mc.player.getMainHandItem().is(ModContent.NIGHT_VISION_GOGGLES.get()), () -> "");
         // put on the way a player does: use with them in the hand
-        run(mc -> VRInputAction.setKeyBindState(mc.options.keyUse, true));
+        run(mc -> vrPress(mc.options.keyUse));
         sleep(2);
         run(mc -> {
             mc.options.keyUse.setDown(false);
@@ -2300,6 +2181,702 @@ public final class SelfTest {
     }
 
     /**
+     * Blood vision goggles: a pig hidden behind a wall shows up red while the key is held (flat) or the gun hand is at
+     * the side of the head (VR), and is gone again when let go.
+     */
+    private static void bloodVision() {
+        VrPose[] poseBefore = new VrPose[1];
+        int[] activationsBefore = new int[1];
+        run(mc -> {
+            poseBefore[0] = VrClient.testPose;
+            VrClient.testPose = null;
+            Cmd.send(mc.player, "kill @e[type=minecraft:pig]");
+            Cmd.send(mc.player, "fill -2 -60 -4 2 -57 -4 minecraft:stone");
+            Cmd.send(mc.player, "summon minecraft:pig 0.5 -60 -6.5 {NoAI:1b,Rotation:[90f,0f]}");
+            // looking straight at where the pig stands behind the wall
+            Cmd.send(mc.player, "tp @s 0.5 -60 0.5 180 9.5");
+            mc.options.hideGui = true;
+            give(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).setAmmoCount(30).build());
+            BloodVision.KEY.setDown(true);
+        });
+        sleep(10);
+        run(mc -> {
+            check("blood vision: nothing without the goggles", !BloodVision.active() && BloodVision.strength() == 0.0F, "");
+            BloodVision.KEY.setDown(false);
+            if (!realVr()) {
+                int[] center = centerAndSide(mc);
+                check("blood vision: the pig is hidden behind the wall", Math.abs(center[0] - center[3]) < 25,
+                        "center " + rgb(center, 0) + " side " + rgb(center, 3));
+            }
+            server(sp -> {
+                sp.setItemSlot(EquipmentSlot.HEAD, new ItemStack(ModContent.BLOOD_VISION_GOGGLES.get()));
+                return null;
+            });
+        });
+        await("blood vision: goggles on the head", 20, mc -> BloodVisionItem.isWorn(mc.player), () -> "");
+        sleep(10);
+        run(mc -> {
+            check("blood vision: goggles alone don't switch it on", !BloodVision.active() && BloodVision.strength() == 0.0F, "");
+            activationsBefore[0] = BloodVision.activations;
+            framesBefore = BloodVision.creaturesDrawn;
+            BloodVision.KEY.setDown(true);
+        });
+        await("blood vision: on while the key is held", 20, mc -> BloodVision.active() && BloodVision.strength() >= 1.0F, () -> "");
+        sleep(3);
+        run(mc -> {
+            check("blood vision: the pig is drawn", BloodVision.creaturesDrawn > framesBefore, "");
+            check("blood vision: heartbeat once when it starts", BloodVision.activations == activationsBefore[0] + 1,
+                    (BloodVision.activations - activationsBefore[0]) + "");
+            if (realVr()) {
+                // Vivecraft really renders in VR (-Prundir=run-nullvr): where the eye looks is up to it, look at the picture
+                Screenshot.grab(mc.gameDirectory, "taczvr_blood_vision_eye.png",
+                        ClientDataHolderVR.getInstance().vrRenderer.framebufferEye[0], message -> log("screenshot: %s", message.getString()));
+            } else {
+                int[] pixels = centerAndSide(mc);
+                check("blood vision: the pig glows red through the wall", pixels[0] - pixels[3] > 40 && pixels[0] > 2 * pixels[1],
+                        "pig " + rgb(pixels, 0) + " wall " + rgb(pixels, 3));
+                check("blood vision: the rest goes dark red", pixels[3] > pixels[4] + 15 && pixels[4] < 90,
+                        "wall " + rgb(pixels, 3));
+            }
+            screenshot(mc, "taczvr_blood_vision.png");
+            BloodVision.KEY.setDown(false);
+        });
+        await("blood vision: gone when the key is let go", 10, mc -> !BloodVision.active() && BloodVision.strength() == 0.0F, () -> "");
+        sleep(3);
+        run(mc -> {
+            if (!realVr()) {
+                int[] pixels = centerAndSide(mc);
+                check("blood vision: picture back to normal", Math.abs(pixels[0] - pixels[3]) < 25 && Math.abs(pixels[3] - pixels[4]) < 25,
+                        "center " + rgb(pixels, 0) + " side " + rgb(pixels, 3));
+            }
+            // VR: the gun hand at the right side of the head, looking north (right is east, +x)
+            VrClient.testPose = new FakePose(eye().add(0.12, 0.0, 0.02), NORTH, eye().add(-0.22, -0.4, -0.2), eye(), NORTH);
+        });
+        await("blood vision: VR hand at the side of the head switches it on", 10, mc -> BloodVision.active(), () -> "");
+        run(mc -> VrClient.testPose = new FakePose(eye().add(0.13, -0.17, -0.42), NORTH, eye().add(-0.22, -0.4, -0.2), eye(), NORTH));
+        await("blood vision: VR hand away switches it off", 10, mc -> !BloodVision.active(), () -> "");
+        run(mc -> {
+            // aiming down a scope: the trigger hand is close, but out in front
+            VrClient.testPose = new FakePose(eye().add(0.06, -0.13, -0.18), NORTH, eye().add(0.0, -0.1, -0.5), eye(), NORTH);
+        });
+        sleep(4);
+        run(mc -> {
+            check("blood vision: not while aiming down a scope", !BloodVision.active(), "");
+            // the off hand at that spot does nothing
+            VrClient.testPose = new FakePose(eye().add(0.13, -0.17, -0.42), NORTH, eye().add(0.12, 0.0, 0.02), eye(), NORTH);
+        });
+        sleep(4);
+        run(mc -> {
+            check("blood vision: not with the other hand", !BloodVision.active(), "");
+            // left-handed: the gun hand at the left side
+            testLeftHanded = true;
+            VrClient.testPose = new FakePose(eye().add(-0.12, 0.0, 0.02), NORTH, eye().add(0.22, -0.4, -0.2), eye(), NORTH);
+        });
+        await("blood vision: left-handed it's the left side", 10, mc -> BloodVision.active(), () -> "");
+        run(mc -> {
+            testLeftHanded = false;
+            VrClient.testPose = new FakePose(eye().add(0.12, 0.0, 0.02), NORTH, eye().add(-0.22, -0.4, -0.2), eye(), NORTH);
+            server(sp -> {
+                sp.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+                return null;
+            });
+        });
+        await("blood vision: off when the goggles come off", 20, mc -> !BloodVision.active() && BloodVision.strength() == 0.0F, () -> "");
+        run(mc -> {
+            VrClient.testPose = poseBefore[0];
+            mc.options.hideGui = false;
+            Cmd.send(mc.player, "kill @e[type=minecraft:pig]");
+            Cmd.send(mc.player, "fill -2 -60 -4 2 -57 -4 minecraft:air");
+        });
+        sleep(3);
+    }
+
+    /**
+     * Dual vision goggles: night and blood vision goggles put together in the inventory. Night vision switches at the
+     * right side of the head, blood vision shows with a hand at the left side, both work at once, and blood vision
+     * reaches as far as the render distance.
+     */
+    private static void dualVision() {
+        VrPose[] poseBefore = new VrPose[1];
+        int[] farPig = {-1};
+        run(mc -> {
+            poseBefore[0] = VrClient.testPose;
+            VrClient.testPose = null;
+            Cmd.send(mc.player, "kill @e[type=minecraft:pig]");
+            Cmd.send(mc.player, "tp @s 0.5 -60 0.5 180 0");
+            give(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).setAmmoCount(30).build());
+            Object[] r = server(sp -> {
+                // night vision goggles worn, blood vision goggles dropped onto them
+                sp.setItemSlot(EquipmentSlot.HEAD, new ItemStack(ModContent.NIGHT_VISION_GOGGLES.get()));
+                sp.inventoryMenu.setCarried(new ItemStack(ModContent.BLOOD_VISION_GOGGLES.get()));
+                sp.inventoryMenu.clicked(InventoryMenu.ARMOR_SLOT_START, 0, ClickType.PICKUP, sp);
+                Object first = sp.getItemBySlot(EquipmentSlot.HEAD).getItem();
+                boolean firstUsed = sp.inventoryMenu.getCarried().isEmpty();
+                // the other way round, with the night vision switched off
+                sp.setItemSlot(EquipmentSlot.HEAD, new ItemStack(ModContent.BLOOD_VISION_GOGGLES.get()));
+                ItemStack off = new ItemStack(ModContent.NIGHT_VISION_GOGGLES.get());
+                off.getOrCreateTag().putBoolean("Off", true);
+                sp.inventoryMenu.setCarried(off);
+                sp.inventoryMenu.clicked(InventoryMenu.ARMOR_SLOT_START, 0, ClickType.PICKUP, sp);
+                ItemStack head = sp.getItemBySlot(EquipmentSlot.HEAD);
+                Object[] out = {first, firstUsed, head.getItem(), sp.inventoryMenu.getCarried().isEmpty(), NightVisionItem.isOn(head)};
+                // on again for the rest
+                head.getOrCreateTag().putBoolean("Off", false);
+                sp.inventoryMenu.broadcastChanges();
+                return out;
+            });
+            check("dual vision: blood vision goggles dropped onto worn night vision goggles join",
+                    r[0] == ModContent.DUAL_VISION_GOGGLES.get() && (Boolean) r[1], r[0] + " " + r[1]);
+            check("dual vision: night vision goggles dropped onto blood vision goggles join",
+                    r[2] == ModContent.DUAL_VISION_GOGGLES.get() && (Boolean) r[3], r[2] + " " + r[3]);
+            check("dual vision: the night vision switch carries over", !(Boolean) r[4], "");
+            Cmd.send(mc.player, "summon minecraft:pig 0.5 -60 -59.5 {NoAI:1b}");
+        });
+        await("dual vision: on the head", 20, mc -> DualVisionItem.isWorn(mc.player) && BloodVisionItem.isWorn(mc.player), () -> "");
+        await("dual vision: the pig 60 blocks away is there", 40, mc -> {
+            List<Pig> pigs = mc.level.getEntitiesOfClass(Pig.class, mc.player.getBoundingBox().inflate(80.0));
+            farPig[0] = pigs.isEmpty() ? -1 : pigs.get(0).getId();
+            return farPig[0] != -1;
+        }, () -> "");
+        run(mc -> {
+            check("dual vision: blood vision reaches the render distance",
+                    BloodVision.range(mc) == mc.options.getEffectiveRenderDistance() * 16.0, BloodVision.range(mc) + "");
+            BloodVision.KEY.setDown(true);
+        });
+        await("dual vision: K shows blood vision", 20, mc -> BloodVision.active() && BloodVision.strength() >= 1.0F, () -> "");
+        await("dual vision: night vision on together with it", 40,
+                mc -> server(sp -> sp.hasEffect(MobEffects.NIGHT_VISION)) && ScreenEffects.nightVisionOn() && BloodVision.active(), () -> "");
+        sleep(3);
+        run(mc -> {
+            check("dual vision: the pig 60 blocks away glows (render distance " + mc.options.getEffectiveRenderDistance() + ")",
+                    BloodVision.range(mc) < 60.0 || BloodVision.lastDrawn.contains(farPig[0]),
+                    "range " + BloodVision.range(mc) + " drawn " + BloodVision.lastDrawn);
+            screenshot(mc, "taczvr_dual_vision.png");
+            BloodVision.KEY.setDown(false);
+            // VR: a hand at the left side of the head
+            VrClient.testPose = new FakePose(eye().add(0.13, -0.17, -0.42), NORTH, eye().add(-0.12, 0.0, 0.02), eye(), NORTH);
+        });
+        await("dual vision: VR hand at the left side of the head shows blood vision", 10, mc -> BloodVision.active(), () -> "");
+        run(mc -> VrClient.testPose = new FakePose(eye().add(0.12, 0.0, 0.02), NORTH, eye().add(-0.22, -0.4, -0.2), eye(), NORTH));
+        sleep(4);
+        run(mc -> {
+            check("dual vision: the right side is not blood vision", !BloodVision.active(), "");
+            NightVisionModule module = new NightVisionModule();
+            boolean right = module.isActive(mc.player, InteractionHand.MAIN_HAND, eye().add(0.12, 0.0, 0.02));
+            boolean forehead = module.isActive(mc.player, InteractionHand.MAIN_HAND, eye().add(0.0, 0.05, -0.08));
+            boolean left = module.isActive(mc.player, InteractionHand.OFF_HAND, eye().add(-0.12, 0.0, 0.02));
+            check("dual vision: night vision switch only at the right side of the head", right && !forehead && !left,
+                    right + " " + forehead + " " + left);
+            nightVisionWasOn = server(sp -> NightVisionItem.isOn(sp.getItemBySlot(EquipmentSlot.HEAD)));
+            if (right) {
+                module.onPress(mc.player, InteractionHand.MAIN_HAND);
+            }
+        });
+        await("dual vision: grip there switches night vision", 20,
+                mc -> server(sp -> NightVisionItem.isOn(sp.getItemBySlot(EquipmentSlot.HEAD))) != nightVisionWasOn, () -> "");
+        run(mc -> {
+            VrClient.testPose = null;
+            KeyMapping.click(ClientKeys.NIGHT_VISION.getKey());
+        });
+        await("dual vision: B switches night vision too", 20,
+                mc -> server(sp -> NightVisionItem.isOn(sp.getItemBySlot(EquipmentSlot.HEAD))) == nightVisionWasOn, () -> "");
+        run(mc -> {
+            VrClient.testPose = poseBefore[0];
+            server(sp -> {
+                sp.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+                return null;
+            });
+            Cmd.send(mc.player, "kill @e[type=minecraft:pig]");
+        });
+        await("dual vision: night vision gone when taken off", 30, mc -> !server(sp -> sp.hasEffect(MobEffects.NIGHT_VISION)), () -> "");
+    }
+
+    /**
+     * The grappling hook while carrying a creature with Carry On, which empties both hands: use fires the hook from
+     * the inventory, again lets go, use at the ground still puts the creature down. Only when Carry On is there.
+     */
+    private static void carryHook() {
+        if (!net.minecraftforge.fml.ModList.get().isLoaded("carryon")) {
+            log("Carry On not loaded: the grappling hook while carrying isn't tested");
+            return;
+        }
+        VrPose[] poseBefore = new VrPose[1];
+        int[] usesBefore = new int[1];
+        run(mc -> {
+            poseBefore[0] = VrClient.testPose;
+            VrClient.testPose = null;
+            Cmd.send(mc.player, "kill @e[type=minecraft:pig]");
+            Cmd.send(mc.player, "fill -3 -60 -30 3 -50 -30 minecraft:stone");
+            Cmd.send(mc.player, "tp @s 0.5 -60 0.5 180 0");
+            Cmd.send(mc.player, "summon minecraft:pig 0.5 -60 -1.0 {NoAI:1b}");
+            server(sp -> {
+                sp.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                sp.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+                // in the inventory, not the hotbar
+                sp.getInventory().setItem(20, new ItemStack(ModContent.GRAPPLING_HOOK.get()));
+                sp.inventoryMenu.broadcastChanges();
+                return null;
+            });
+        });
+        sleep(5);
+        // Carry On's carry key (shift) held, its client tells its server
+        KeyMapping[] carryKey = new KeyMapping[1];
+        run(mc -> {
+            try {
+                carryKey[0] = (KeyMapping) Class.forName("tschipp.carryon.client.keybinds.CarryOnKeybinds").getField("carryKey").get(null);
+                carryKey[0].setDown(true);
+            } catch (ReflectiveOperationException e) {
+                log("carry on key: %s", e);
+            }
+            mc.setWindowActive(true);
+            grabMouse(mc);
+        });
+        sleep(3);
+        run(mc -> {
+            String picked = server(sp -> {
+                List<Pig> pigs = sp.getLevel().getEntitiesOfClass(Pig.class, sp.getBoundingBox().inflate(4.0));
+                if (pigs.isEmpty()) {
+                    return "no pig";
+                }
+                try {
+                    Method pickup = Class.forName("tschipp.carryon.common.carry.PickupHandler")
+                            .getMethod("tryPickupEntity", ServerPlayer.class, Entity.class, Function.class);
+                    Function<Entity, Boolean> allow = e -> true;
+                    Object data = Class.forName("tschipp.carryon.common.carry.CarryOnDataManager")
+                            .getMethod("getCarryData", net.minecraft.world.entity.player.Player.class).invoke(null, sp);
+                    String state = " key " + data.getClass().getMethod("isKeyPressed").invoke(data)
+                            + " tick " + data.getClass().getMethod("getTick").invoke(data) + "/" + sp.tickCount
+                            + " distance " + sp.position().distanceTo(pigs.get(0).position()) + " mode " + sp.gameMode.getGameModeForPlayer();
+                    return pickup.invoke(null, sp, pigs.get(0), allow) + state;
+                } catch (ReflectiveOperationException e) {
+                    return e.toString();
+                }
+            });
+            check("carry hook: Carry On picks up the pig", picked.startsWith("true"), picked);
+            if (carryKey[0] != null) {
+                carryKey[0].setDown(false);
+            }
+        });
+        await("carry hook: carrying it, hands empty", 20,
+                mc -> CarryOnCompat.isCarrying(mc.player) && mc.player.getMainHandItem().isEmpty(), () -> "");
+        run(mc -> {
+            usesBefore[0] = GrappleClient.carryUses;
+            mc.setWindowActive(true);
+            grabMouse(mc);
+            vrPress(mc.options.keyUse);
+        });
+        run(mc -> mc.options.keyUse.setDown(false));
+        await("carry hook: use fires the hook from the inventory", 20, mc -> GrappleClient.anchor() != null,
+                () -> "uses " + (GrappleClient.carryUses - usesBefore[0]));
+        await("carry hook: pulled to the wall, still carrying", 200,
+                mc -> mc.player.getZ() < -26.0 && CarryOnCompat.isCarrying(mc.player), () -> v(Minecraft.getInstance().player.position()));
+        sleep(20);
+        run(mc -> {
+            check("carry hook: the rope holds while carrying", server(sp -> GrappleEntity.of(sp) != null) && GrappleClient.anchor() != null, "");
+            check("carry hook: still carrying the pig", CarryOnCompat.isCarrying(mc.player), "");
+            screenshot(mc, "taczvr_carry_hook.png");
+            mc.setWindowActive(true);
+            grabMouse(mc);
+            vrPress(mc.options.keyUse);
+        });
+        run(mc -> mc.options.keyUse.setDown(false));
+        await("carry hook: use again lets go", 20,
+                mc -> GrappleClient.anchor() == null && server(sp -> GrappleEntity.of(sp) == null), () -> "");
+        // looking at the ground right in front
+        run(mc -> Cmd.send(mc.player, "tp @s 0.5 -60 -26.5 180 70"));
+        sleep(10);
+        run(mc -> {
+            mc.setWindowActive(true);
+            grabMouse(mc);
+            vrPress(mc.options.keyUse);
+        });
+        run(mc -> mc.options.keyUse.setDown(false));
+        await("carry hook: use at the ground still puts the pig down", 20, mc -> !CarryOnCompat.isCarrying(mc.player),
+                () -> "hit " + Minecraft.getInstance().hitResult);
+        run(mc -> check("carry hook: and fires no hook then",
+                GrappleClient.anchor() == null && server(sp -> GrappleEntity.of(sp) == null), ""));
+        run(mc -> {
+            VrClient.testPose = poseBefore[0];
+            server(sp -> {
+                sp.getInventory().setItem(20, ItemStack.EMPTY);
+                return null;
+            });
+            Cmd.send(mc.player, "kill @e[type=minecraft:pig]");
+            Cmd.send(mc.player, "fill -3 -60 -30 3 -50 -30 minecraft:air");
+            Cmd.send(mc.player, "tp @s 0.5 -60 0.5 180 0");
+        });
+        sleep(5);
+    }
+
+    /**
+     * EnhancedVisuals (-Pev): its picture stays off in VR, where it turned Vivecraft's HUD panel black. In real VR
+     * (-Prundir=run-nullvr) the HUD panel is read back: see-through with the fix, black without it.
+     */
+    private static void enhancedVisuals() {
+        if (!net.minecraftforge.fml.ModList.get().isLoaded("enhancedvisuals")) {
+            log("EnhancedVisuals not loaded: its VR fix isn't tested");
+            return;
+        }
+        VrPose[] poseBefore = new VrPose[1];
+        run(mc -> {
+            patched("team.creative.enhancedvisuals.client.EVClient");
+            poseBefore[0] = VrClient.testPose;
+            VrClient.testPose = null;
+            boolean flat = realVr() || evShouldRender();
+            VrClient.testPose = new FakePose(eye().add(0.13, -0.17, -0.42), NORTH, null, eye(), NORTH);
+            boolean vr = evShouldRender();
+            VrClient.testPose = poseBefore[0];
+            check("EnhancedVisuals: still draws on a flat screen", flat, "");
+            check("EnhancedVisuals: doesn't draw in VR", !vr, "");
+            // hungry: it fades the colors
+            server(sp -> {
+                sp.getFoodData().setFoodLevel(2);
+                return null;
+            });
+        });
+        if (realVr()) {
+            // without the fix first: blast and hits make it blur and bleed, the HUD panel is measured as it's drawn
+            run(mc -> mc.options.hideGui = false);
+            sleep(5);
+            run(mc -> {
+                VrClient.testEnhancedVisualsInVr = true;
+                guiOpaqueMax = 0;
+                guiCaptures = 0;
+                guiCaptureName = "taczvr_ev_hud_unfixed.png";
+                captureGui = true;
+                evHurt(mc);
+            });
+            sleep(40);
+            run(mc -> {
+                captureGui = false;
+                check("EnhancedVisuals: without the fix the VR HUD panel turns opaque (the bug)", guiOpaqueMax > 20,
+                        guiOpaqueMax + "% at most, " + guiCaptures + " frames, " + guiEvents + " HUD events, VR " + realVr()
+                                + ", screen " + mc.screen + ", hideGui " + mc.options.hideGui);
+                VrClient.testEnhancedVisualsInVr = false;
+                server(sp -> {
+                    sp.setHealth(sp.getMaxHealth());
+                    return null;
+                });
+            });
+            sleep(60);
+            run(mc -> {
+                guiOpaqueMax = 0;
+                guiCaptures = 0;
+                guiCaptureName = "taczvr_ev_hud_fixed.png";
+                captureGui = true;
+                evHurt(mc);
+            });
+            sleep(40);
+            run(mc -> {
+                captureGui = false;
+                check("EnhancedVisuals: with the fix the VR HUD panel stays see-through", guiCaptures > 0 && guiOpaqueMax < 5,
+                        guiOpaqueMax + "% at most, " + guiCaptures + " frames");
+            });
+        }
+        run(mc -> server(sp -> {
+            sp.getFoodData().setFoodLevel(20);
+            sp.setHealth(sp.getMaxHealth());
+            return null;
+        }));
+    }
+
+    private static boolean evShouldRender() {
+        try {
+            return (Boolean) Class.forName("team.creative.enhancedvisuals.client.EVClient").getMethod("shouldRender").invoke(null);
+        } catch (ReflectiveOperationException e) {
+            log("EVClient.shouldRender: %s", e);
+            return false;
+        }
+    }
+
+    /**
+     * A blast a few blocks away and some hits: EnhancedVisuals blurs (a shader over the picture) and bleeds.
+     */
+    private static void evHurt(Minecraft mc) {
+        Cmd.send(mc.player, "summon minecraft:tnt 0.5 -60 -5.5 {Fuse:1}");
+        server(sp -> {
+            sp.hurt(DamageSource.GENERIC, 2.0F);
+            return null;
+        });
+    }
+
+    private static volatile boolean captureGui = false;
+    private static volatile int guiOpaqueMax = 0;
+    private static volatile int guiCaptures = 0;
+    private static volatile String guiCaptureName = "";
+    private static volatile int guiEvents = 0;
+
+    /**
+     * Measures the HUD as it's just been drawn, after everything else drawing on it (EnhancedVisuals too). In VR that's
+     * Vivecraft's HUD panel.
+     */
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void onGuiDrawn(net.minecraftforge.client.event.RenderGuiEvent.Post event) {
+        guiEvents++;
+        if (!captureGui || !realVr()) {
+            return;
+        }
+        int opaque = guiPanelOpaque(Minecraft.getInstance().getMainRenderTarget(), guiCaptures == 10 ? guiCaptureName : null);
+        guiOpaqueMax = Math.max(guiOpaqueMax, opaque);
+        guiCaptures++;
+    }
+
+    /**
+     * How much of the upper half of a HUD picture (empty in this world) is opaque, in percent. Saves it as a picture
+     * when named.
+     */
+    private static int guiPanelOpaque(com.mojang.blaze3d.pipeline.RenderTarget gui, @Nullable String name) {
+        if (gui == null) {
+            return -1;
+        }
+        try (com.mojang.blaze3d.platform.NativeImage image = new com.mojang.blaze3d.platform.NativeImage(gui.width, gui.height, false)) {
+            com.mojang.blaze3d.systems.RenderSystem.bindTexture(gui.getColorTextureId());
+            image.downloadTexture(0, false);
+            image.flipY();
+            int opaque = 0;
+            int total = 0;
+            for (int y = gui.height / 10; y < gui.height / 2; y += 4) {
+                for (int x = gui.width / 4; x < gui.width * 3 / 4; x += 4) {
+                    if ((image.getPixelRGBA(x, y) >>> 24) > 128) {
+                        opaque++;
+                    }
+                    total++;
+                }
+            }
+            if (name != null) {
+                try {
+                    image.writeToFile(Minecraft.getInstance().gameDirectory.toPath().resolve("screenshots").resolve(name));
+                } catch (java.io.IOException e) {
+                    log("save %s: %s", name, e);
+                }
+            }
+            return total == 0 ? -1 : opaque * 100 / total;
+        }
+    }
+
+    /**
+     * Pictures of the left eye holding an AK, with Vivecraft's body settings in turn, to look at which arms show
+     * (-Ptestonly=armslook -Prundir=run-nullvr). Only takes pictures.
+     */
+    private static void armsLook() {
+        if (!realVr()) {
+            log("arms look: needs Vivecraft really in VR");
+            return;
+        }
+        Object[][] combos = {
+                {false, VRSettings.PlayerModelType.VANILLA, VRSettings.ModelArmsMode.COMPLETE, true},
+                {true, VRSettings.PlayerModelType.VANILLA, VRSettings.ModelArmsMode.COMPLETE, true},
+                {true, VRSettings.PlayerModelType.SPLIT_ARMS, VRSettings.ModelArmsMode.COMPLETE, true},
+                {true, VRSettings.PlayerModelType.SPLIT_ARMS, VRSettings.ModelArmsMode.SHOULDERS, true},
+                {false, VRSettings.PlayerModelType.VANILLA, VRSettings.ModelArmsMode.COMPLETE, false},
+        };
+        run(mc -> {
+            mc.options.hideGui = true;
+            give(InteractionHand.MAIN_HAND, GunItemBuilder.create().setId(AK).setAmmoCount(30).build());
+            Cmd.send(mc.player, "time set 6000");
+        });
+        sleep(10);
+        for (int i = 0; i < combos.length; i++) {
+            Object[] combo = combos[i];
+            int n = i;
+            run(mc -> {
+                VRSettings s = ClientDataHolderVR.getInstance().vrSettings;
+                s.shouldRenderSelf = (Boolean) combo[0];
+                s.playerModelType = (VRSettings.PlayerModelType) combo[1];
+                s.modelArmsMode = (VRSettings.ModelArmsMode) combo[2];
+                s.showPlayerHands = (Boolean) combo[3];
+            });
+            sleep(10);
+            run(mc -> Screenshot.grab(mc.gameDirectory, "taczvr_arms_" + n + ".png",
+                    ClientDataHolderVR.getInstance().vrRenderer.framebufferEye[0], message -> log("arms %d %s: %s", n,
+                            java.util.Arrays.toString(combo), message.getString())));
+        }
+        run(mc -> {
+            VRSettings s = ClientDataHolderVR.getInstance().vrSettings;
+            s.shouldRenderSelf = false;
+            s.playerModelType = VRSettings.PlayerModelType.VANILLA;
+            s.modelArmsMode = VRSettings.ModelArmsMode.COMPLETE;
+            s.showPlayerHands = true;
+        });
+    }
+
+    /**
+     * LesRaisins items in Vivecraft's own VR hand: the grip should sit in the fist, not on top of it. NullVR's right
+     * controller is moved in front of the eyes pointing left, so the hand is seen from its side, then put back.
+     */
+    private static void lrHandLook() {
+        if (!realVr() || !net.minecraftforge.fml.ModList.get().isLoaded("lrtactical")) {
+            log("LesRaisins hand look: needs Vivecraft really in VR and LesRaisins");
+            return;
+        }
+        boolean delta = net.minecraftforge.fml.ModList.get().isLoaded("delta_wt");
+        String[][] items = {{"melee", "MeleeWeaponId", "dagger"}, {"melee", "MeleeWeaponId", "karambit"},
+                {"melee", "MeleeWeaponId", "baseball_bat"}, {"throwable", "ThrowableId", "m67"},
+                {"consumable", "ConsumableId", "ai2"}, {"melee", "MeleeWeaponId", "delta_wt:silencefd"},
+                {"melee", "MeleeWeaponId", "delta_wt:polaris"}, {"melee", "MeleeWeaponId", "delta_wt:annihil"},
+                {"melee", "MeleeWeaponId", "delta_wt:mercy"}};
+        run(mc -> {
+            // NullVR's own controllers, not our fake pose
+            VrCommon.testForceVr = false;
+            VrClient.testPose = null;
+            mc.options.hideGui = true;
+            Cmd.send(mc.player, "time set 6000");
+            give(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+        });
+        for (String view : new String[]{"side", "back"}) {
+            run(mc -> nullVrHands("side".equals(view)));
+            for (String[] item : items) {
+                if (item[2].startsWith("delta_wt:") && !delta) {
+                    continue;
+                }
+                String name = "taczvr_lrhand_" + view + "_" + item[2].replace("delta_wt:", "df_") + ".png";
+                run(mc -> {
+                    give(InteractionHand.MAIN_HAND, lrItem(item[0], item[1], item[2]));
+                    // from behind both hands show, the left one mirrored
+                    give(InteractionHand.OFF_HAND, "back".equals(view) ? lrItem(item[0], item[1], item[2]) : ItemStack.EMPTY);
+                });
+                sleep(8);
+                run(mc -> Screenshot.grab(mc.gameDirectory, name, ClientDataHolderVR.getInstance().vrRenderer.framebufferEye[0],
+                        message -> log("%s: %s", name, message.getString())));
+            }
+        }
+        run(mc -> nullVrHands(false));
+    }
+
+    /**
+     * The LesRaisins swing through Vivecraft itself: NullVR's right controller swept across in the room, Vivecraft's
+     * own swing off, the pig ahead hit by LesRaisins' attack.
+     */
+    private static void lrSwingNullVr() {
+        if (!realVr() || !net.minecraftforge.fml.ModList.get().isLoaded("lrtactical")) {
+            log("LesRaisins swing in NullVR: needs Vivecraft really in VR and LesRaisins");
+            return;
+        }
+        String knife = net.minecraftforge.fml.ModList.get().isLoaded("delta_wt") ? "delta_wt:mercy" : "dagger";
+        org.joml.Vector3f[][] at = new org.joml.Vector3f[1][];
+        run(mc -> {
+            VrCommon.testForceVr = false;
+            VrClient.testPose = null;
+            give(InteractionHand.MAIN_HAND, lrItem("melee", "MeleeWeaponId", knife));
+            give(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+            try {
+                Object vr = ClientDataHolderVR.getInstance().vr;
+                java.lang.reflect.Field offsets = vr.getClass().getDeclaredField("deviceOffsets");
+                java.lang.reflect.Field rotations = vr.getClass().getDeclaredField("deviceRotations");
+                offsets.setAccessible(true);
+                rotations.setAccessible(true);
+                at[0] = (org.joml.Vector3f[]) offsets.get(vr);
+                ((org.joml.Quaternionf[]) rotations.get(vr))[0].identity().rotateX((float) Math.toRadians(-35.0));
+                at[0][0].set(0.25F, 1.3F, -0.35F);
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                log("NullVR controllers can't be moved: %s", e);
+            }
+        });
+        // its draw time
+        sleep(30);
+        run(mc -> {
+            check("NullVR: Vivecraft's own swing is off with a LesRaisins weapon", !ClientDataHolderVR.getInstance().swingTracker.isActive(mc.player), "");
+            VrPart head = VrClient.localTickPose().getHead();
+            Vec3 ahead = head.getDir().multiply(1.0, 0.0, 1.0).normalize().scale(1.4);
+            Vec3 pigAt = head.getPos().add(ahead);
+            server(sp -> {
+                target = testPig(sp, new Vec3(pigAt.x, sp.getY(), pigAt.z), 0.0F);
+                return null;
+            });
+            lrAttacksBefore = LrMeleeVr.attacks;
+        });
+        sleep(2);
+        for (int i = 0; i < 2; i++) {
+            // 3 m/s across, in the room
+            run(mc -> {
+                if (at[0] != null) {
+                    at[0][0].add(-0.15F, 0.0F, 0.0F);
+                }
+            });
+        }
+        sleep(8);
+        run(mc -> {
+            float l = 100.0F - server(sp -> target.getHealth());
+            check("NullVR: a swing hits with LesRaisins' attack", LrMeleeVr.attacks > lrAttacksBefore && l > 0.0F,
+                    "attacks " + (LrMeleeVr.attacks - lrAttacksBefore) + ", targets " + LrMeleeVr.lastTargets + ", lost " + l);
+            server(sp -> {
+                target.discard();
+                return null;
+            });
+        });
+        run(mc -> nullVrHands(false));
+    }
+
+    /**
+     * Moves NullVR's right controller in front of the eyes, pointing left (the left one out of sight), or back to
+     * where NullVR starts them.
+     */
+    private static void nullVrHands(boolean side) {
+        try {
+            Object vr = ClientDataHolderVR.getInstance().vr;
+            java.lang.reflect.Field offsets = vr.getClass().getDeclaredField("deviceOffsets");
+            java.lang.reflect.Field rotations = vr.getClass().getDeclaredField("deviceRotations");
+            offsets.setAccessible(true);
+            rotations.setAccessible(true);
+            org.joml.Vector3f[] at = (org.joml.Vector3f[]) offsets.get(vr);
+            org.joml.Quaternionf[] turn = (org.joml.Quaternionf[]) rotations.get(vr);
+            if (side) {
+                at[0].set(0.05F, 1.5F, -0.35F);
+                turn[0].identity().rotateY((float) Math.toRadians(90.0));
+                at[1].set(-0.3F, 0.4F, 0.3F);
+            } else {
+                at[0].set(0.3F, 1.25F, -0.5F);
+                turn[0].identity();
+                at[1].set(-0.3F, 1.25F, -0.5F);
+            }
+            turn[1].identity();
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            log("NullVR controllers can't be moved: %s", e);
+        }
+    }
+
+    /**
+     * Whether Vivecraft itself renders in VR, not just our fake VR pose.
+     */
+    private static boolean realVr() {
+        return org.vivecraft.api.client.VRClientAPI.instance().isVRActive();
+    }
+
+    /**
+     * Red, green and blue in the middle of the picture, then a bit to the side: {r, g, b, sideR, sideG, sideB}.
+     */
+    private static int[] centerAndSide(Minecraft mc) {
+        try (com.mojang.blaze3d.platform.NativeImage image = Screenshot.takeScreenshot(mc.getMainRenderTarget())) {
+            int w = image.getWidth();
+            int h = image.getHeight();
+            int[] a = average(image, w / 2, h / 2);
+            int[] b = average(image, w / 2 + w / 9, h / 2);
+            return new int[]{a[0], a[1], a[2], b[0], b[1], b[2]};
+        }
+    }
+
+    private static int[] average(com.mojang.blaze3d.platform.NativeImage image, int cx, int cy) {
+        long r = 0;
+        long g = 0;
+        long b = 0;
+        int n = 0;
+        for (int y = cy - 3; y <= cy + 3; y++) {
+            for (int x = cx - 3; x <= cx + 3; x++) {
+                int abgr = image.getPixelRGBA(x, y);
+                r += abgr & 0xFF;
+                g += (abgr >> 8) & 0xFF;
+                b += (abgr >> 16) & 0xFF;
+                n++;
+            }
+        }
+        return new int[]{(int) (r / n), (int) (g / n), (int) (b / n)};
+    }
+
+    private static String rgb(int[] pixels, int at) {
+        return pixels[at] + "," + pixels[at + 1] + "," + pixels[at + 2];
+    }
+
+    /**
      * The grappling hook: fire it at a wall, get pulled up to it and hang, let go with use.
      */
     private static void grapplingHook() {
@@ -2314,7 +2891,7 @@ public final class SelfTest {
         run(mc -> {
             mc.options.hideGui = false;
             mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
-            VRInputAction.setKeyBindState(mc.options.keyUse, true);
+            vrPress(mc.options.keyUse);
         });
         sleep(2);
         run(mc -> mc.options.keyUse.setDown(false));
@@ -2342,7 +2919,7 @@ public final class SelfTest {
         run(mc -> {
             screenshot(mc, "taczvr_grappling_hook.png");
             mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
-            VRInputAction.setKeyBindState(mc.options.keyUse, true);
+            vrPress(mc.options.keyUse);
         });
         sleep(2);
         run(mc -> mc.options.keyUse.setDown(false));
@@ -2356,7 +2933,7 @@ public final class SelfTest {
             Cmd.send(mc.player, "tp @s 0 -60 0 180 -5");
         });
         sleep(20);
-        run(mc -> VRInputAction.setKeyBindState(mc.options.keyUse, true));
+        run(mc -> vrPress(mc.options.keyUse));
         sleep(2);
         run(mc -> mc.options.keyUse.setDown(false));
         await("hook: grabs a wall 150 blocks away at once", 3, mc -> GrappleClient.anchor() != null, () -> "");
@@ -2364,7 +2941,7 @@ public final class SelfTest {
         run(mc -> {
             check("hook: no fall damage building up on the way", mc.player.fallDistance < 0.5F && server(sp -> sp.fallDistance) < 0.5F,
                     mc.player.fallDistance + " / " + server(sp -> sp.fallDistance));
-            VRInputAction.setKeyBindState(mc.options.keyUse, true);
+            vrPress(mc.options.keyUse);
         });
         sleep(2);
         run(mc -> {
@@ -2373,6 +2950,42 @@ public final class SelfTest {
             Cmd.send(mc.player, "fill -3 -60 -150 3 -25 -150 minecraft:air");
         });
         await("hook: let go far away too", 20, mc -> server(sp -> GrappleEntity.of(sp) == null) && GrappleClient.anchor() == null, () -> "");
+        // it reaches as far as you can see: not past a short render distance, and well past the old 200 blocks with a long one
+        int[] renderDistance = new int[1];
+        run(mc -> {
+            renderDistance[0] = mc.options.renderDistance().get();
+            mc.options.renderDistance().set(6);
+            Cmd.send(mc.player, "fill -3 -60 -150 3 -25 -150 minecraft:stone");
+        });
+        await("hook: the server knows your render distance", 40, mc -> server(sp -> GrappleEntity.reach(sp)) == 96.0,
+                () -> "reach " + server(sp -> GrappleEntity.reach(sp)));
+        run(mc -> vrPress(mc.options.keyUse));
+        sleep(2);
+        run(mc -> mc.options.keyUse.setDown(false));
+        sleep(4);
+        run(mc -> {
+            check("hook: a wall 150 blocks away is past 6 chunks of render distance", GrappleClient.anchor() == null
+                    && server(sp -> GrappleEntity.of(sp) == null || !GrappleEntity.of(sp).isAnchored()), "");
+            Cmd.send(mc.player, "fill -3 -60 -150 3 -25 -150 minecraft:air");
+            mc.options.renderDistance().set(18);
+        });
+        await("hook: 18 chunks of render distance load", 400, mc -> server(sp -> GrappleEntity.reach(sp) == 288.0
+                && sp.getLevel().hasChunkAt(new BlockPos(0, -60, -250))), () -> "reach " + server(sp -> GrappleEntity.reach(sp)));
+        run(mc -> Cmd.send(mc.player, "fill -3 -60 -250 3 -25 -250 minecraft:stone"));
+        sleep(10);
+        run(mc -> vrPress(mc.options.keyUse));
+        sleep(2);
+        run(mc -> mc.options.keyUse.setDown(false));
+        await("hook: grabs a wall 250 blocks away with 18 chunks of render distance", 3, mc -> GrappleClient.anchor() != null
+                && GrappleClient.anchor().z < -245.0, () -> String.valueOf(GrappleClient.anchor()));
+        run(mc -> vrPress(mc.options.keyUse));
+        sleep(2);
+        run(mc -> {
+            mc.options.keyUse.setDown(false);
+            Cmd.send(mc.player, "fill -3 -60 -250 3 -25 -250 minecraft:air");
+            mc.options.renderDistance().set(renderDistance[0]);
+        });
+        await("hook: let go of the far wall", 20, mc -> server(sp -> GrappleEntity.of(sp) == null) && GrappleClient.anchor() == null, () -> "");
         // in VR it flies where the hand points
         run(mc -> {
             VrCommon.testForceVr = true;
@@ -2646,6 +3259,29 @@ public final class SelfTest {
             } catch (Throwable t) {
                 fail("Vivecraft renderVRHand_Main cancelled by the mixin", "it ran: " + t);
             }
+            // which hands show: ours on the gun, Vivecraft's own, or none (for bodies and packs with their own arms)
+            TaczVRConfig.Client cfg = TaczVRConfig.CLIENT;
+            cfg.handsOnGun.set(false);
+            check("hands vivecraft: no hand on the gun", !VrGunRenderer.drawsGunHands(mc.player), "");
+            check("hands vivecraft: Vivecraft's hand at the controller again", !VrGunRenderer.hidesFirstPersonHand(InteractionHand.MAIN_HAND), "");
+            cfg.hideHandsWithGun.set(true);
+            check("hands none: no hand on the gun", !VrGunRenderer.drawsGunHands(mc.player), "");
+            check("hands none: not Vivecraft's either", VrGunRenderer.hidesFirstPersonHand(InteractionHand.MAIN_HAND), "");
+            cfg.hideHandsWithGun.set(false);
+            cfg.handsOnGun.set(true);
+            org.vivecraft.client_vr.settings.VRSettings vr = ClientDataHolderVR.getInstance().vrSettings;
+            boolean showHands = vr.showPlayerHands;
+            vr.showPlayerHands = false;
+            check("Vivecraft's hands off: no hand on the gun either", !VrGunRenderer.drawsGunHands(mc.player), "");
+            vr.showPlayerHands = showHands;
+            check("Vivecraft's hands on: hand on the gun again", VrGunRenderer.drawsGunHands(mc.player), "");
+            StringBuilder modes = new StringBuilder(TaczVRCommands.handsMode());
+            for (int i = 0; i < 3; i++) {
+                net.minecraftforge.client.ClientCommandHandler.runCommand("taczvr hands");
+                modes.append(" > ").append(TaczVRCommands.handsMode());
+            }
+            check("/taczvr hands: on gun > vivecraft > none > on gun", "on gun > vivecraft > none > on gun".contentEquals(modes),
+                    modes.toString());
         });
         sleep(5);
         run(mc -> screenshot(mc, "taczvr_fp_onehand.png"));
@@ -2757,7 +3393,7 @@ public final class SelfTest {
         run(mc -> {
             inventoryBefore = serverGun().inventoryAmmo;
             // exactly what Vivecraft does when A is pressed
-            VRInputAction.setKeyBindState(mc.options.keyUse, true);
+            vrPress(mc.options.keyUse);
         });
         run(mc -> mc.options.keyUse.setDown(false));
         run(mc -> check("A: click used up by us, not by vanilla", !mc.options.keyUse.consumeClick(), ""));
@@ -2793,7 +3429,7 @@ public final class SelfTest {
             // Vivecraft reports the window active while in VR, TACZ only shoots in an active window
             mc.setWindowActive(true);
             grabMouse(mc);
-            VRInputAction.setKeyBindState(mc.options.keyAttack, true);
+            vrPress(mc.options.keyAttack);
         });
         sleep(2);
         run(mc -> mc.options.keyAttack.setDown(false));
@@ -2843,7 +3479,7 @@ public final class SelfTest {
             captureBullet = true;
             mc.setWindowActive(true);
             grabMouse(mc);
-            VRInputAction.setKeyBindState(mc.options.keyAttack, true);
+            vrPress(mc.options.keyAttack);
         });
         sleep(2);
         run(mc -> mc.options.keyAttack.setDown(false));
@@ -3455,8 +4091,119 @@ public final class SelfTest {
     private static ItemStack lrItem(String type, String tag, String id) {
         net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new ResourceLocation("lrtactical", type));
         ItemStack stack = new ItemStack(item);
-        stack.getOrCreateTag().putString(tag, "lrtactical:" + id);
+        // a pack's own items carry their namespace already (delta_wt:mercy)
+        stack.getOrCreateTag().putString(tag, id.contains(":") ? id : "lrtactical:" + id);
         return stack;
+    }
+
+    /**
+     * LesRaisins melee in VR: a swing runs its own attack aimed with the hand, a thrust along the blade its special
+     * one (DeltaForce's Mercy hits x1.5 with it), a slow move does nothing, and the trigger attacks too.
+     */
+    private static void lrMelee() {
+        if (!net.minecraftforge.fml.ModList.get().isLoaded("lrtactical")) {
+            run(mc -> log("LesRaisins not installed, VR melee skipped"));
+            return;
+        }
+        boolean delta = net.minecraftforge.fml.ModList.get().isLoaded("delta_wt");
+        String knife = delta ? "delta_wt:mercy" : "dagger";
+        // the hand a bit low and to the right, the blade tilted down at a pig 1.4 m ahead
+        Quaternionf down = new Quaternionf().rotationX((float) Math.toRadians(-35.0));
+        float[] lost = new float[2];
+        VrPose[] savedRoom = new VrPose[1];
+        run(mc -> {
+            VrCommon.testForceVr = true;
+            savedRoom[0] = VrClient.testRoomPose;
+            // no room pose: the hand's speed comes from the game pose
+            VrClient.testRoomPose = null;
+            restPose();
+            give(InteractionHand.MAIN_HAND, lrItem("melee", "MeleeWeaponId", knife));
+            give(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+        });
+        // its draw time
+        sleep(30);
+        run(mc -> check("LesRaisins VR melee: " + knife + " takes over Vivecraft's swing", LrMeleeVr.takesOverSwing(mc.player), ""));
+        for (int kind = 0; kind < 2; kind++) {
+            boolean thrust = kind == 1;
+            int k = kind;
+            lrMeleeStart(down, true);
+            for (int i = 0; i < 2; i++) {
+                // 3 m/s across, or 2.4 m/s forward
+                run(mc -> rig(rigMain.add(thrust ? 0.0 : -0.15, 0.0, thrust ? -0.12 : 0.0), down, idleOff()));
+            }
+            sleep(8);
+            run(mc -> {
+                float l = 100.0F - server(sp -> target.getHealth());
+                lost[k] = l;
+                String what = thrust ? "a thrust is its special attack" : "a swing is its normal attack";
+                check("LesRaisins VR melee: " + what, LrMeleeVr.attacks == lrAttacksBefore + 1
+                                && LrMeleeVr.specials == lrSpecialsBefore + (thrust ? 1 : 0) && l > 0.0F,
+                        "attacks " + (LrMeleeVr.attacks - lrAttacksBefore) + ", special " + (LrMeleeVr.specials - lrSpecialsBefore)
+                                + ", targets " + LrMeleeVr.lastTargets + ", lost " + l);
+                lrMeleeEnd();
+            });
+        }
+        if (delta) {
+            run(mc -> check("LesRaisins VR melee: the special attack does Mercy's x1.5", lost[1] > lost[0] * 1.3F && lost[1] < lost[0] * 1.7F,
+                    lost[0] + " vs " + lost[1]));
+        }
+        // a slow move isn't an attack
+        lrMeleeStart(down, false);
+        for (int i = 0; i < 16; i++) {
+            run(mc -> rig(rigMain.add(-0.02, 0.0, 0.0), down, idleOff()));
+        }
+        run(mc -> check("LesRaisins VR melee: a slow move isn't an attack", LrMeleeVr.attacks == lrAttacksBefore, ""));
+        // a snap turn swings the hand around in the game while it stays put in the room
+        run(mc -> VrClient.testRoomPose = new FakePose(new Vec3(0.2, 1.3, -0.35), down, null, new Vec3(0.0, 1.6, 0.0), NORTH));
+        lrMeleeStart(down, false);
+        for (int i = 0; i < 2; i++) {
+            run(mc -> rig(rigMain.add(-0.3, 0.0, 0.1), down, idleOff()));
+        }
+        run(mc -> {
+            check("LesRaisins VR melee: a snap turn isn't a swing", LrMeleeVr.attacks == lrAttacksBefore, "");
+            VrClient.testRoomPose = null;
+        });
+        // the trigger, aimed with the hand
+        lrMeleeStart(down, true);
+        run(mc -> vrPress(mc.options.keyAttack));
+        sleep(2);
+        run(mc -> mc.options.keyAttack.setDown(false));
+        sleep(8);
+        run(mc -> {
+            float l = 100.0F - server(sp -> target.getHealth());
+            check("LesRaisins VR melee: the trigger attacks with the hand", LrMeleeVr.attacks == lrAttacksBefore + 1 && l > 0.0F,
+                    "attacks " + (LrMeleeVr.attacks - lrAttacksBefore) + ", lost " + l);
+            lrMeleeEnd();
+            VrClient.testRoomPose = savedRoom[0];
+        });
+    }
+
+    /**
+     * The hand still at its start, past the last attack's cooldown, optionally with a fresh pig ahead to hit.
+     */
+    private static void lrMeleeStart(Quaternionf rot, boolean pig) {
+        run(mc -> rig(eye().add(0.2, -0.3, -0.35), rot, idleOff()));
+        // getting there was a jump, which can count as a swing: let its cooldown pass before the pig comes
+        sleep(30);
+        run(mc -> {
+            if (pig) {
+                Vec3 e = eye();
+                server(sp -> {
+                    target = testPig(sp, new Vec3(e.x, sp.getY(), e.z - 1.4), 0.0F);
+                    return null;
+                });
+            }
+            lrAttacksBefore = LrMeleeVr.attacks;
+            lrSpecialsBefore = LrMeleeVr.specials;
+        });
+    }
+
+    private static void lrMeleeEnd() {
+        server(sp -> {
+            target.discard();
+            return null;
+        });
+        restPose();
     }
 
     /**
@@ -3506,6 +4253,25 @@ public final class SelfTest {
             });
             sleep(6);
             run(mc -> screenshot(mc, "taczvr_lr_vr_" + item[2] + ".png"));
+        }
+        // DeltaForce Melee Pack: its knives are LesRaisins melee items from a pack, asked for on CurseForge
+        if (net.minecraftforge.fml.ModList.get().isLoaded("delta_wt")) {
+            for (String knife : new String[]{"cobra_vanguard", "mercy", "annihil", "quenching", "treasure_kn"}) {
+                run(mc -> {
+                    give(InteractionHand.MAIN_HAND, lrItem("melee", "MeleeWeaponId", "delta_wt:" + knife));
+                    Vec3 e = eye();
+                    VrClient.testPose = new FakePose(e.add(-0.1, -0.1, -0.55), EAST, null, e, NORTH);
+                    framesBefore = LrTacticalVr.drawn;
+                });
+                sleep(6);
+                run(mc -> {
+                    check("DeltaForce: " + knife + " is a LesRaisins item", LrTacticalVr.isLrItem(mc.player.getMainHandItem()), "");
+                    check("DeltaForce VR: " + knife + " drawn in the hand", LrTacticalVr.drawn > framesBefore, "");
+                    screenshot(mc, "taczvr_df_" + knife + ".png");
+                });
+            }
+        } else {
+            run(mc -> log("DeltaForce Melee Pack not installed, skipped"));
         }
         // how someone else holds it, for comparison
         run(mc -> {
@@ -3704,7 +4470,7 @@ public final class SelfTest {
             // Vivecraft reports the window active while in VR, TACZ only shoots in an active window
             mc.setWindowActive(true);
             grabMouse(mc);
-            VRInputAction.setKeyBindState(mc.options.keyAttack, true);
+            vrPress(mc.options.keyAttack);
         });
         // pull the trigger again now and then: a bolt gun or a slow draw can swallow the first pull
         STEPS.add(mc -> {
@@ -3717,7 +4483,7 @@ public final class SelfTest {
             } else if (packWaited % 15 == 5) {
                 mc.setWindowActive(true);
                 grabMouse(mc);
-                VRInputAction.setKeyBindState(mc.options.keyAttack, true);
+                vrPress(mc.options.keyAttack);
                 packShots++;
             }
             return false;

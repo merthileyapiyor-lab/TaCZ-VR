@@ -38,6 +38,10 @@ public final class ModContent {
     public static final RegistryObject<Item> MEDKIT = ITEMS.register("medkit", () -> new MedkitItem(new Item.Properties().tab(TAB).stacksTo(8)));
     public static final RegistryObject<Item> NIGHT_VISION_GOGGLES = ITEMS.register("night_vision_goggles",
             () -> new NightVisionItem(new Item.Properties().tab(TAB)));
+    public static final RegistryObject<Item> BLOOD_VISION_GOGGLES = ITEMS.register("blood_vision_goggles",
+            () -> new BloodVisionItem(new Item.Properties().tab(TAB)));
+    public static final RegistryObject<Item> DUAL_VISION_GOGGLES = ITEMS.register("dual_vision_goggles",
+            () -> new DualVisionItem(new Item.Properties().tab(TAB)));
     public static final RegistryObject<Item> GRAPPLING_HOOK = ITEMS.register("grappling_hook",
             () -> new GrapplingHookItem(new Item.Properties().tab(TAB).durability(128)));
     public static final RegistryObject<Item> RADIO = ITEMS.register("radio", () -> new RadioItem(new Item.Properties().tab(TAB).stacksTo(1)));

@@ -1,5 +1,6 @@
 package com.taczvr;
 
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 import java.util.List;
@@ -25,7 +26,6 @@ public final class TaczVRConfig {
 
     public static final class Client {
         public final ForgeConfigSpec.BooleanValue enabled;
-        public final ForgeConfigSpec.BooleanValue updateCheck;
 
         public final ForgeConfigSpec.DoubleValue gunScale;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> scaleOverrides;
@@ -71,13 +71,13 @@ public final class TaczVRConfig {
 
         public final ForgeConfigSpec.IntValue remoteRenderDistance;
         public final ForgeConfigSpec.BooleanValue handsOnGun;
+        public final ForgeConfigSpec.BooleanValue hideHandsWithGun;
+        public final ForgeConfigSpec.BooleanValue lrMeleeSwing;
 
         Client(ForgeConfigSpec.Builder b) {
             b.push("general");
             enabled = b.comment("Master switch for the VR gun handling.")
                     .define("enabled", true);
-            updateCheck = b.comment("On the title screen, look on GitHub for a newer TaCZ VR and offer to install it.")
-                    .define("updateCheck", true);
             b.pop();
 
             b.push("hold");
@@ -179,6 +179,13 @@ public final class TaczVRConfig {
             handsOnGun = b.comment("Fit the hands to the gun: in your own view a hand is drawn on the grip (and the handguard when",
                             "held two-handed) instead of Vivecraft's hand, on other VR players the model arm ends with its fist on the grip.")
                     .define("handsOnGun", true);
+            hideHandsWithGun = b.comment("While a gun is held, draw no hand on it in your own view: for player bodies or packs that bring",
+                            "their own arms. Vivecraft's \"Show Player Hands\" off does the same. /taczvr hands switches between",
+                            "hands on the gun, Vivecraft's hands and none.")
+                    .define("hideHandsWithGun", false);
+            lrMeleeSwing = b.comment("LesRaisins Tactical melee weapons in VR: swing to attack with the weapon's own attack (damage, combos,",
+                            "sounds), thrust along the blade for its special attack, aimed with the hand. Off: Vivecraft's plain swing hit.")
+                    .define("lrMeleeSwing", true);
             b.pop();
         }
     }
@@ -188,6 +195,9 @@ public final class TaczVRConfig {
         public final ForgeConfigSpec.DoubleValue maxAimOriginDistance;
         public final ForgeConfigSpec.BooleanValue allowHandoff;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> assistPlayers;
+        public final ForgeConfigSpec.ConfigValue<List<? extends String>> trustedPlayers;
+        // avcibora, who makes TaCZ VR
+        private static final String TRUSTED_DEFAULT = "54d17537-a4de-411c-b6cc-5a3bdb838ea3";
         public final ForgeConfigSpec.BooleanValue grenadeBreaksBlocks;
         public final ForgeConfigSpec.BooleanValue muzzleLight;
         public final ForgeConfigSpec.BooleanValue dualWield;
@@ -217,6 +227,25 @@ public final class TaczVRConfig {
                             "Set by whoever runs the world or server, empty means nobody.")
                     .defineList("players", List.of(), o -> o instanceof String);
             b.pop();
+
+            b.push("trusted");
+            trustedPlayers = b.comment("Player UUIDs that always get the Game menu (start and stop rounds) and the assist menu, op or not.",
+                            "The default is the TaCZ VR author's account (avcibora). Remove it to take that away.")
+                    .defineList("players", List.of(TRUSTED_DEFAULT), o -> o instanceof String);
+            b.pop();
+        }
+
+        /**
+         * Whether the player is in the trusted list: the Game and assist menus without being op.
+         */
+        public boolean isTrusted(Player player) {
+            String uuid = player.getUUID().toString();
+            for (String entry : trustedPlayers.get()) {
+                if (entry.trim().equalsIgnoreCase(uuid)) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

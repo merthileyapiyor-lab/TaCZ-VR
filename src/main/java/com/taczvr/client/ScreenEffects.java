@@ -23,8 +23,8 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import com.mojang.math.Matrix4f;
 
 /**
- * What flashbangs and night vision goggles do to your picture: a white flash that fades (over the whole screen flat,
- * over each eye's view in VR) and a green tint while the goggles are on.
+ * What flashbangs and goggles do to your picture: a white flash that fades (over the whole screen flat, over each
+ * eye's view in VR), a green tint while night vision goggles are on, and {@link BloodVision}.
  */
 public final class ScreenEffects {
     private static long flashStart = -1000L;
@@ -90,13 +90,16 @@ public final class ScreenEffects {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_WEATHER) {
             return;
         }
-        if (nightVisionOn()) {
+        // blood vision brings its own red picture, the green steps back meanwhile so it doesn't turn black
+        float green = 1.0F - BloodVision.strength();
+        if (nightVisionOn() && green > 0.0F) {
             // multiplied in, so it stays a picture and not a green fog
             RenderSystem.blendFunc(GlStateManager.SourceFactor.DST_COLOR, GlStateManager.DestFactor.ZERO);
-            fullscreen(0.45F, 1.0F, 0.5F, 1.0F);
+            fullscreen(1.0F - 0.55F * green, 1.0F, 1.0F - 0.5F * green, 1.0F);
             RenderSystem.defaultBlendFunc();
             nightVisionFrames++;
         }
+        BloodVision.render(event);
         float alpha = VrClient.isVRActive() ? flashAlpha(event.getPartialTick()) : 0.0F;
         if (alpha > 0.0F) {
             RenderSystem.defaultBlendFunc();
@@ -108,7 +111,7 @@ public final class ScreenEffects {
     /**
      * A quad over the whole view being drawn, each eye in VR, blended with whatever blend function is set.
      */
-    private static void fullscreen(float r, float g, float b, float a) {
+    static void fullscreen(float r, float g, float b, float a) {
         Matrix4f projection = RenderSystem.getProjectionMatrix();
         Matrix4f identity = new Matrix4f();
         identity.setIdentity();

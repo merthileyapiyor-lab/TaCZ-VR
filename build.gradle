@@ -62,6 +62,9 @@ repositories {
         }
     }
     mavenCentral()
+    flatDir {
+        dir 'libs'
+    }
 }
 
 dependencies {
@@ -86,6 +89,12 @@ dependencies {
         // JOML's pom lists Kotlin for its Kotlin helpers; plain Java doesn't need it, and a bundled Kotlin could clash
         transitive = false
         jarJar.pin(it, '1.10.8')
+    }
+
+    // our Minecraft 1.19.2 port of LesRaisins Tactical Equipments (GPL, its own project in ../LesRaisins-1.19.2), only to
+    // test its items in VR. Never shipped in this jar. Only when its jar is in libs/
+    if (!project.hasProperty('nolr') && file('libs/lrtactical-1.19.2-0.4.3.jar').exists()) {
+        runtimeOnly fg.deobf('libs:lrtactical-1.19.2:0.4.3')
     }
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'

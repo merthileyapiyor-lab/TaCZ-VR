@@ -9,7 +9,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Leaves out the mixins that change or call into Vivecraft when it isn't installed (a flat screen game, or a server without it).
+ * Leaves out the mixins that change or call into Vivecraft when it isn't installed (a flat screen game, or a server without it),
+ * and the EnhancedVisuals one without EnhancedVisuals.
  */
 public class TaczVrMixinPlugin implements IMixinConfigPlugin {
     private static final Set<String> NEED_VIVECRAFT = Set.of(
@@ -23,11 +24,15 @@ public class TaczVrMixinPlugin implements IMixinConfigPlugin {
             "com.taczvr.mixin.client.VRPlayerModelWithArmsMixin",
             "com.taczvr.mixin.client.VRRendererMixin");
 
+    private static final String ENHANCED_VISUALS = "com.taczvr.mixin.client.EnhancedVisualsMixin";
+
     private boolean vivecraft;
+    private boolean enhancedVisuals;
 
     @Override
     public void onLoad(String mixinPackage) {
         this.vivecraft = FMLLoader.getLoadingModList().getModFileById("vivecraft") != null;
+        this.enhancedVisuals = FMLLoader.getLoadingModList().getModFileById("enhancedvisuals") != null;
     }
 
     @Override
@@ -37,6 +42,10 @@ public class TaczVrMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (ENHANCED_VISUALS.equals(mixinClassName)) {
+            // keeps EnhancedVisuals' picture off in VR, nothing to do without either
+            return this.vivecraft && this.enhancedVisuals;
+        }
         return this.vivecraft || !NEED_VIVECRAFT.contains(mixinClassName);
     }
 

@@ -15,7 +15,7 @@ Put these in your `mods` folder:
 
 Forge 1.19.2 (43.x). Everything works as on 1.20.1, except what TaCZ 1.1.4 doesn't have: there are no laser attachments (so no laser beams), no pistol scope, and every scope has one view for all its zoom levels.
 
-**Updates:** when the game starts, the mod looks for a newer release on [TaCZ-VR-releases](https://github.com/merthileyapiyor-lab/TaCZ-VR-releases/releases). If there is one, the title screen shows **Update TaCZ VR**: **Later** skips it, **Quit Game** downloads the new jar into your mods folder, removes the old one and closes the game. Start it again to play with the new version. Turn it off with `updateCheck = false`.
+**Updates:** new versions come out on CurseForge and on [TaCZ-VR-releases](https://github.com/merthileyapiyor-lab/TaCZ-VR-releases/releases). The mod doesn't update itself.
 
 On a server the mod goes **on the server too**, because bullet direction, magazines, attachments and handing guns over are done there. The server and every player need the **same version**. Flat-screen players can join and play with VR players; they see VR players holding their guns in 3D. Shots always leave the barrel, even on a server without Vivecraft.
 
@@ -61,12 +61,15 @@ All in their own **TaCZ VR** creative tab, all craftable, and all except the gog
 - **Combat knife:** stab forward in VR. From behind it does 2.5× damage.
 - **Medical syringe:** heals 4 hearts. In VR, push it into your other forearm or a friend. It also gets a downed friend back up.
 - **Night vision goggles:** worn as a helmet. Toggle with **B**, or touch them in VR and press grip.
-- **Grappling hook:** grabs where your hand points, up to 200 blocks away, the moment you click. It pulls you there and you hang with no fall damage. Click again to let go.
+- **Blood vision goggles:** worn as a helmet. In VR, hold your gun hand at the side of your head (flat screen: hold **K**). The world turns dark red, and every living thing within your render distance glows red, even through walls. Pull the hand away and it fades. The idea comes from Vampirism's blood vision; the code is this mod's own.
+- **Grappling hook while carrying (Carry On):** carrying something empties both hands, so then the hook works from the inventory. Use (A) aimed far fires it and pulls you along with what you carry, use again lets go; use at a nearby block still puts down what you carry.
+- **Dual vision goggles:** both goggles in one. Wear one pair and drop the other onto it in the inventory, or craft the two together. In VR, the right side of your head (+ grip) switches night vision (**B**), and a hand held at the left side shows blood vision (**K**). Both can be on at once.
+- **Grappling hook:** grabs where your hand points, as far as your render distance reaches (anywhere you can see), the moment you click. It pulls you there and you hang with no fall damage. Click again to let go.
 - **Radio:** hold use (in VR, hold it to your mouth) and everyone with a radio hears you, however far away, with a crackly radio sound. In team matches only your team hears you. Needs Simple Voice Chat on everyone.
 
 ## Game menu
 
-A **⚔ Game** button appears at the top left of the Esc menu for ops and the world host. Nobody really dies: at 0 health you fall and lose nothing, and everyone gets their game mode back at the end.
+A **⚔ Game** button appears at the top left of the Esc menu for ops, the world host, and the player UUIDs under `[trusted] players` in `config/taczvr-common.toml`. By default that list holds the TaCZ VR author's account (avcibora), which also gets the assist menu; remove it to take that away. Nobody really dies: at 0 health you fall and lose nothing, and everyone gets their game mode back at the end.
 
 - **First to fall loses**
 - **Last one standing**
@@ -76,6 +79,20 @@ A **⚔ Game** button appears at the top left of the Esc menu for ops and the wo
   - Downed players crawl and can be revived by a friend crouching next to them for 3 seconds, or with a syringe.
   - Points for kills, revives and waves, and a shop between waves (**J**). Everything bought with points is taken back when the round ends.
   - A giant boss zombie every 5 waves.
+
+## With LesRaisins Tactical Equipments
+
+On Minecraft 1.19.2 this part does nothing: LesRaisins (and the packs built on it) only exist for 1.20.1.
+
+Its knives, grenades and medkits draw nothing in first person outside its own hand animation, so in VR TaCZ VR draws them gripped in your VR fist, pointing where your hand points. Melee packs built on it work the same, for example the **DeltaForce Melee Pack** (its 0.2.0 knives were tested). LesRaisins isn't changed or bundled.
+
+**VR melee:** with one of its weapons in hand, swing your arm and LesRaisins' own attack runs: the pack's damage factor, combos, cooldown and sounds, aimed where your hand points. A quick thrust along the blade is the pack's **special attack** (x1.5 damage on DeltaForce knives), and the trigger does a normal attack. Your arm buzzes on a hit. Vivecraft's plain punch-style hit is off with these weapons, so nothing hits twice. The pack's lunge forward is off in VR to avoid motion sickness, and snap turns or teleports don't count as swings. `lrMeleeSwing = false` turns it off.
+
+## With EnhancedVisuals
+
+This was tested on 1.20.1; on 1.19.2 it is untested.
+
+EnhancedVisuals paints blood, blast blur and faded colors over the whole screen. In VR that screen is Vivecraft's HUD panel at your hand, which turned solid black with the blood on it. TaCZ VR keeps EnhancedVisuals' picture off while you're in VR; its sounds (heartbeat, ringing after a blast) stay, and flat screen play is unchanged. EnhancedVisuals itself isn't changed or bundled.
 
 ## Gun packs
 
@@ -96,6 +113,7 @@ On 1.19.2 a pack has to be made for TaCZ 1.1.4; most newer packs need TaCZ 1.1.5
 | `/taczvr grip 0 -0.01 0.03` | Where the grip sits relative to the controller, in metres |
 | `/taczvr pitch 10` | Tilts the barrel up or down, in degrees |
 | `/taczvr aimline` | Draws the bullet path as a red line |
+| `/taczvr hands` | Which hands show while holding a gun: on the gun (default), Vivecraft's own hands, or none (for player bodies or packs with their own arms, no third arm). With Vivecraft's "Show Player Hands" off, no hand is drawn on the gun either |
 | `/taczvr reset` | Back to defaults |
 
 Everything else is in `config/taczvr-client.toml` and `config/taczvr-common.toml`; each feature can be turned off there.
@@ -115,7 +133,7 @@ Needs JDK 17. Gradle downloads TaCZ, Vivecraft and Simple Voice Chat from Modrin
 
 The jar is `build/libs/taczvr-1.20.1-<version>.jar`.
 
-`./gradlew runClient` starts a dev client. `./gradlew runClient -Pselftest` runs the built-in self-test: it fakes VR poses and checks shooting, reloading, attachments, the items and the game modes, then closes the client. `-Ptestonly=hook` (also `models`, `deagle`, `zombie`, `hint`, `lr`, `update`) runs only one part. `-Ptestonly=gunpacks -Prundir=run-gunpacks` holds, aims and fires every gun of the gun packs in `run-gunpacks/tacz` (`-Ppacks=ccrp,ww2` for only some), in a game folder of its own so the packs don't change the other checks. `-Pnovoice` starts without Simple Voice Chat.
+`./gradlew runClient` starts a dev client. `./gradlew runClient -Pselftest` runs the built-in self-test: it fakes VR poses and checks shooting, reloading, attachments, the items and the game modes, then closes the client. `-Ptestonly=hook` (also `models`, `deagle`, `zombie`, `hint`, `lr`) runs only one part. `-Ptestonly=gunpacks -Prundir=run-gunpacks` holds, aims and fires every gun of the gun packs in `run-gunpacks/tacz` (`-Ppacks=ccrp,ww2` for only some), in a game folder of its own so the packs don't change the other checks. `-Pnovoice` starts without Simple Voice Chat.
 
 ## Licence
 
