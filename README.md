@@ -9,7 +9,7 @@ Minecraft **1.20.1**, **Forge**. A **1.19.2** version is on the [`1.19.2` branch
 Put these in your `mods` folder:
 
 1. `taczvr-1.20.1-<version>.jar` (this mod, from [TaCZ-VR-releases](https://github.com/merthileyapiyor-lab/TaCZ-VR-releases/releases))
-2. [TaCZ](https://modrinth.com/mod/timeless-and-classics-zero) 1.1.8-hotfix or newer
+2. [TaCZ](https://modrinth.com/mod/timeless-and-classics-zero) 1.1.8-hotfix or newer (1.2.0 works too)
 3. [Vivecraft](https://modrinth.com/mod/vivecraft) 1.20.1 Forge (built with 1.3.15)
 4. Optional: [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) 1.20.1, for the radio
 

@@ -330,7 +330,7 @@ public final class VrGunRenderer {
                 ShellRender.isSelf = true;
                 // TACZ caches the flash pose relative to the first camera that sees it, re-capture for every eye
                 if (System.currentTimeMillis() - MuzzleFlashRenderAccessor.taczvr$getShootTimeStamp() <= MUZZLE_FLASH_MILLIS) {
-                    MuzzleFlashRenderAccessor.taczvr$setMuzzleFlashStartMark(true);
+                    markFlashStart();
                 }
             } else if (owner != null) {
                 // TACZ runs no animations for other players: the rest pose (hands on the gun) plus shots and reloads
@@ -340,7 +340,7 @@ public final class VrGunRenderer {
                     // TACZ's flash only knows your own last shot, lend it theirs for this draw
                     savedFlashStamp = MuzzleFlashRenderAccessor.taczvr$getShootTimeStamp();
                     MuzzleFlashRenderAccessor.taczvr$setShootTimeStamp(flash);
-                    MuzzleFlashRenderAccessor.taczvr$setMuzzleFlashStartMark(true);
+                    markFlashStart();
                     MuzzleFlashRender.isSelf = true;
                 }
             } else if (handsOf != null) {
@@ -409,7 +409,7 @@ public final class VrGunRenderer {
             RestPose.apply(pose.display, model);
             if (flashing) {
                 MuzzleFlashRenderAccessor.taczvr$setShootTimeStamp(flash);
-                MuzzleFlashRenderAccessor.taczvr$setMuzzleFlashStartMark(true);
+                markFlashStart();
                 MuzzleFlashRender.isSelf = true;
             }
             RenderType renderType = pose.display.enablesTransparency()
@@ -431,6 +431,31 @@ public final class VrGunRenderer {
     }
 
     // for the self-test
+    // TACZ 1.1.8 captures the flash pose once per shot unless this is set; 1.2.0 has no such field
+    @Nullable
+    private static final java.lang.reflect.Field FLASH_START_MARK = flashStartMark();
+
+    @Nullable
+    private static java.lang.reflect.Field flashStartMark() {
+        try {
+            java.lang.reflect.Field field = MuzzleFlashRender.class.getDeclaredField("muzzleFlashStartMark");
+            field.setAccessible(true);
+            return field;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static void markFlashStart() {
+        if (FLASH_START_MARK != null) {
+            try {
+                FLASH_START_MARK.setBoolean(null, true);
+            } catch (IllegalAccessException ignored) {
+                // accessible since it was looked up
+            }
+        }
+    }
+
     static int offhandGunsDrawn = 0;
     static int gunsDrawn = 0;
 

@@ -13,6 +13,14 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
+// a scripted showcase video recorded from the dev client (runClient -Ptrailer=<out.mp4>, see src/trailer); never in the jar
+sourceSets {
+    trailer {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+
 minecraft {
     mappings channel: 'official', version: minecraft_version
     copyIdeResources = true
@@ -39,9 +47,15 @@ minecraft {
                     property 'taczvr.update.live', 'true'
                 }
             }
+            if (project.hasProperty('trailer')) {
+                property 'taczvr.trailer', project.property('trailer')
+            }
             mods {
                 taczvr {
                     source sourceSets.main
+                    if (project.hasProperty('trailer')) {
+                        source sourceSets.trailer
+                    }
                 }
             }
         }

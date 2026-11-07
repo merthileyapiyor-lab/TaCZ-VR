@@ -15,9 +15,4 @@ public interface MuzzleFlashRenderAccessor {
     static void taczvr$setShootTimeStamp(long value) {
         throw new AssertionError();
     }
-
-    @Accessor("muzzleFlashStartMark")
-    static void taczvr$setMuzzleFlashStartMark(boolean value) {
-        throw new AssertionError();
-    }
 }

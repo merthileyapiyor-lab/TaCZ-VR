@@ -31,6 +31,21 @@ public final class GunEcho {
     private static final double ENCLOSED = 0.6;
     private static final List<Pending> PENDING = new ArrayList<>();
     private static final Vec3[] RAYS = rays();
+
+    /**
+     * The gun's third person shot sound. TACZ 1.1.8 hands back its id, 1.2.0 a SoundData holding it.
+     */
+    private static ResourceLocation shootSound(GunDisplayInstance display) {
+        try {
+            Object sound = GunDisplayInstance.class.getMethod("getSounds", String.class).invoke(display, SoundManager.SHOOT_3P_SOUND);
+            if (sound == null || sound instanceof ResourceLocation) {
+                return (ResourceLocation) sound;
+            }
+            return (ResourceLocation) sound.getClass().getMethod("getSound").invoke(sound);
+        } catch (ReflectiveOperationException | ClassCastException e) {
+            return null;
+        }
+    }
     static int echoes = 0;
     static double lastEnclosed = -1.0;
 
@@ -59,7 +74,7 @@ public final class GunEcho {
         }
         LivingEntity shooter = event.getShooter();
         GunDisplayInstance display = TimelessAPI.getGunDisplay(event.getGunItemStack()).orElse(null);
-        ResourceLocation sound = display == null ? null : display.getSounds(SoundManager.SHOOT_3P_SOUND);
+        ResourceLocation sound = display == null ? null : shootSound(display);
         if (sound == null || shooter.distanceToSqr(mc.gameRenderer.getMainCamera().getPosition()) > 96.0 * 96.0) {
             return;
         }

@@ -125,8 +125,8 @@ LesRaisins Tactical Equipments (TACZ eklentisi) yüklüyse, onun bıçakları, s
 
 `mods` klasörüne şunlar:
 
-1. `taczvr-1.20.1-1.4.11.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
-2. TACZ `tacz-1.20.1-1.1.8-hotfix` (veya daha yeni 1.1.8+)
+1. `taczvr-1.20.1-1.4.12.jar` (bu mod; eski sürümü sil, iki sürüm aynı anda durmasın)
+2. TACZ `tacz-1.20.1-1.1.8-hotfix` veya daha yenisi (1.2.0 da çalışır)
 3. **Vivecraft 1.20.1 Forge** — `vivecraft-1.20.1-1.3.15-forge.jar`
 4. **Simple Voice Chat** — `voicechat-forge-1.20.1-2.6.17.jar` (telsiz için; olmasa da mod çalışır)
 
