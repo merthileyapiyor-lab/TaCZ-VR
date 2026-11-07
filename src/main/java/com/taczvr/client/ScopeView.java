@@ -233,7 +233,9 @@ public final class ScopeView {
     }
 
     private static void drawLens(Matrix4f matrix, float radius, int textureId) {
-        RenderSystem.enableDepthTest();
+        // over everything: while you look through it, TaCZ's shooting animation moves the scope's own housing back
+        // past the picture, and it went dark on every shot
+        RenderSystem.disableDepthTest();
         RenderSystem.disableCull();
         RenderSystem.disableBlend();
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
@@ -263,6 +265,7 @@ public final class ScopeView {
         quad(buffer, matrix, -w, -w, w, w, z);
         BufferUploader.drawWithShader(buffer.end());
         RenderSystem.enableCull();
+        RenderSystem.enableDepthTest();
     }
 
     private static void quad(BufferBuilder buffer, Matrix4f m, float x0, float y0, float x1, float y1, float z) {
